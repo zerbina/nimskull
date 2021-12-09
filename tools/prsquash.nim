@@ -266,7 +266,7 @@ proc doSquash(gh: GithubBackend): bool =
 
     for author in coAuthors:
       commitMsg.add "\n"
-      commitMsg.add author
+      commitMsg.add &"Co-authored-by: {author}"
 
   echo "Creating the squash commit with the following message:"
   echo "---"
