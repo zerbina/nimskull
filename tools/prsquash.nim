@@ -28,7 +28,7 @@ func wrapForCommit(s: string): string =
 
 func toCommitMsg(p: Pull): string =
   ## Create a commit message from `p`.
-  let msgBody = p.body.split("\n---")[0].strip()
+  let msgBody = p.body.split("\n---")[0].dup(stripLineEnd)
 
   result = &"""
 {p.title} (#{p.number})
@@ -219,9 +219,20 @@ proc doSquash(gh: GithubBackend): bool =
   stdout.writeLine "Pulling from remote"
   exec("git", "pull", "--ff-only")
 
+  let mergeBase = block:
+    let call = capture(
+      "git", "merge-base", pr.baseCommit, "HEAD"
+    )
+
+    if call.exitcode != 0:
+      echo "Could not get the base commit: ", call.error
+      return
+
+    call.output.strip()
+
   let commitCount = block:
     let call = capture(
-      "git", "rev-list", "--count", &"{pr.baseCommit}..HEAD"
+      "git", "rev-list", "--count", &"{mergeBase}..HEAD"
     )
 
     if call.exitcode != 0:
@@ -241,7 +252,7 @@ proc doSquash(gh: GithubBackend): bool =
       # This format specifier obtain all commit authors and co-authors and
       # present them in `Name <Email>` format
       "--format=%an <%ae>%+(trailers:key=Co-authored-by,valueonly)",
-      &"{pr.baseCommit}..HEAD"
+      &"{mergeBase}..HEAD"
     )
 
     if authorsCall.exitcode != 0:
@@ -284,8 +295,14 @@ proc doSquash(gh: GithubBackend): bool =
 
     call.output.strip() == "true"
 
+  let extraArgs =
+    if needGpg:
+      @["-S"]
+    else:
+      @[]
+
   let commitCall = capture(
-    "git", "commit-tree", "-p", pr.baseCommit, "HEAD^{tree}",
+    "git", @["commit-tree", "-p", mergeBase] & extraArgs & "HEAD^{tree}",
     input = some commitMsg
   )
 
