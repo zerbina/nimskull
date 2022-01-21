@@ -1,0 +1,3 @@
+Transformation	utils/pluginsupport.html#Transformation	pluginsupport: Transformation	
+Plugin	utils/pluginsupport.html#Plugin	pluginsupport: Plugin	
+pluginMatches	utils/pluginsupport.html#pluginMatches,IdentCache,Plugin,PSym	pluginsupport: pluginMatches(ic: IdentCache; p: Plugin; s: PSym): bool	

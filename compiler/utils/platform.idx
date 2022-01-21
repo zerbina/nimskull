@@ -1,0 +1,80 @@
+osNone	utils/platform.html#osNone	TSystemOS.osNone	
+osDos	utils/platform.html#osDos	TSystemOS.osDos	
+osWindows	utils/platform.html#osWindows	TSystemOS.osWindows	
+osOs2	utils/platform.html#osOs2	TSystemOS.osOs2	
+osLinux	utils/platform.html#osLinux	TSystemOS.osLinux	
+osMorphos	utils/platform.html#osMorphos	TSystemOS.osMorphos	
+osSkyos	utils/platform.html#osSkyos	TSystemOS.osSkyos	
+osSolaris	utils/platform.html#osSolaris	TSystemOS.osSolaris	
+osIrix	utils/platform.html#osIrix	TSystemOS.osIrix	
+osNetbsd	utils/platform.html#osNetbsd	TSystemOS.osNetbsd	
+osFreebsd	utils/platform.html#osFreebsd	TSystemOS.osFreebsd	
+osOpenbsd	utils/platform.html#osOpenbsd	TSystemOS.osOpenbsd	
+osDragonfly	utils/platform.html#osDragonfly	TSystemOS.osDragonfly	
+osCrossos	utils/platform.html#osCrossos	TSystemOS.osCrossos	
+osAix	utils/platform.html#osAix	TSystemOS.osAix	
+osPalmos	utils/platform.html#osPalmos	TSystemOS.osPalmos	
+osQnx	utils/platform.html#osQnx	TSystemOS.osQnx	
+osAmiga	utils/platform.html#osAmiga	TSystemOS.osAmiga	
+osAtari	utils/platform.html#osAtari	TSystemOS.osAtari	
+osNetware	utils/platform.html#osNetware	TSystemOS.osNetware	
+osMacos	utils/platform.html#osMacos	TSystemOS.osMacos	
+osMacosx	utils/platform.html#osMacosx	TSystemOS.osMacosx	
+osIos	utils/platform.html#osIos	TSystemOS.osIos	
+osHaiku	utils/platform.html#osHaiku	TSystemOS.osHaiku	
+osAndroid	utils/platform.html#osAndroid	TSystemOS.osAndroid	
+osVxWorks	utils/platform.html#osVxWorks	TSystemOS.osVxWorks	
+osGenode	utils/platform.html#osGenode	TSystemOS.osGenode	
+osJS	utils/platform.html#osJS	TSystemOS.osJS	
+osNimVM	utils/platform.html#osNimVM	TSystemOS.osNimVM	
+osStandalone	utils/platform.html#osStandalone	TSystemOS.osStandalone	
+osNintendoSwitch	utils/platform.html#osNintendoSwitch	TSystemOS.osNintendoSwitch	
+osFreeRTOS	utils/platform.html#osFreeRTOS	TSystemOS.osFreeRTOS	
+osAny	utils/platform.html#osAny	TSystemOS.osAny	
+TSystemOS	utils/platform.html#TSystemOS	platform: TSystemOS	
+ospNeedsPIC	utils/platform.html#ospNeedsPIC	TInfoOSProp.ospNeedsPIC	
+ospCaseInsensitive	utils/platform.html#ospCaseInsensitive	TInfoOSProp.ospCaseInsensitive	
+ospPosix	utils/platform.html#ospPosix	TInfoOSProp.ospPosix	
+ospLacksThreadVars	utils/platform.html#ospLacksThreadVars	TInfoOSProp.ospLacksThreadVars	
+TInfoOSProp	utils/platform.html#TInfoOSProp	platform: TInfoOSProp	
+TInfoOSProps	utils/platform.html#TInfoOSProps	platform: TInfoOSProps	
+TInfoOS	utils/platform.html#TInfoOS	platform: TInfoOS	
+OS	utils/platform.html#OS	platform: OS	
+cpuNone	utils/platform.html#cpuNone	TSystemCPU.cpuNone	
+cpuI386	utils/platform.html#cpuI386	TSystemCPU.cpuI386	
+cpuM68k	utils/platform.html#cpuM68k	TSystemCPU.cpuM68k	
+cpuAlpha	utils/platform.html#cpuAlpha	TSystemCPU.cpuAlpha	
+cpuPowerpc	utils/platform.html#cpuPowerpc	TSystemCPU.cpuPowerpc	
+cpuPowerpc64	utils/platform.html#cpuPowerpc64	TSystemCPU.cpuPowerpc64	
+cpuPowerpc64el	utils/platform.html#cpuPowerpc64el	TSystemCPU.cpuPowerpc64el	
+cpuSparc	utils/platform.html#cpuSparc	TSystemCPU.cpuSparc	
+cpuVm	utils/platform.html#cpuVm	TSystemCPU.cpuVm	
+cpuHppa	utils/platform.html#cpuHppa	TSystemCPU.cpuHppa	
+cpuIa64	utils/platform.html#cpuIa64	TSystemCPU.cpuIa64	
+cpuAmd64	utils/platform.html#cpuAmd64	TSystemCPU.cpuAmd64	
+cpuMips	utils/platform.html#cpuMips	TSystemCPU.cpuMips	
+cpuMipsel	utils/platform.html#cpuMipsel	TSystemCPU.cpuMipsel	
+cpuArm	utils/platform.html#cpuArm	TSystemCPU.cpuArm	
+cpuArm64	utils/platform.html#cpuArm64	TSystemCPU.cpuArm64	
+cpuJS	utils/platform.html#cpuJS	TSystemCPU.cpuJS	
+cpuNimVM	utils/platform.html#cpuNimVM	TSystemCPU.cpuNimVM	
+cpuAVR	utils/platform.html#cpuAVR	TSystemCPU.cpuAVR	
+cpuMSP430	utils/platform.html#cpuMSP430	TSystemCPU.cpuMSP430	
+cpuSparc64	utils/platform.html#cpuSparc64	TSystemCPU.cpuSparc64	
+cpuMips64	utils/platform.html#cpuMips64	TSystemCPU.cpuMips64	
+cpuMips64el	utils/platform.html#cpuMips64el	TSystemCPU.cpuMips64el	
+cpuRiscV32	utils/platform.html#cpuRiscV32	TSystemCPU.cpuRiscV32	
+cpuRiscV64	utils/platform.html#cpuRiscV64	TSystemCPU.cpuRiscV64	
+cpuEsp	utils/platform.html#cpuEsp	TSystemCPU.cpuEsp	
+cpuWasm32	utils/platform.html#cpuWasm32	TSystemCPU.cpuWasm32	
+TSystemCPU	utils/platform.html#TSystemCPU	platform: TSystemCPU	
+TInfoCPU	utils/platform.html#TInfoCPU	platform: TInfoCPU	
+EndianToStr	utils/platform.html#EndianToStr	platform: EndianToStr	
+CPU	utils/platform.html#CPU	platform: CPU	
+Target	utils/platform.html#Target	platform: Target	
+setTarget	utils/platform.html#setTarget,Target,TSystemOS,TSystemCPU	platform: setTarget(t: var Target; o: TSystemOS; c: TSystemCPU)	
+nameToOS	utils/platform.html#nameToOS,string	platform: nameToOS(name: string): TSystemOS	
+listOSnames	utils/platform.html#listOSnames	platform: listOSnames(): seq[string]	
+nameToCPU	utils/platform.html#nameToCPU,string	platform: nameToCPU(name: string): TSystemCPU	
+listCPUnames	utils/platform.html#listCPUnames	platform: listCPUnames(): seq[string]	
+setTargetFromSystem	utils/platform.html#setTargetFromSystem,Target	platform: setTargetFromSystem(t: var Target)	

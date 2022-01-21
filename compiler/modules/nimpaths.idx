@@ -1,0 +1,10 @@
+docCss	modules/nimpaths.html#docCss	nimpaths: docCss	
+docHackNim	modules/nimpaths.html#docHackNim	nimpaths: docHackNim	
+docHackJs	modules/nimpaths.html#docHackJs	nimpaths: docHackJs	
+docHackJsFname	modules/nimpaths.html#docHackJsFname	nimpaths: docHackJsFname	
+theindexFname	modules/nimpaths.html#theindexFname	nimpaths: theindexFname	
+nimdocOutCss	modules/nimpaths.html#nimdocOutCss	nimpaths: nimdocOutCss	
+htmldocsDirname	modules/nimpaths.html#htmldocsDirname	nimpaths: htmldocsDirname	
+dotdotMangle	modules/nimpaths.html#dotdotMangle	nimpaths: dotdotMangle	
+interp	modules/nimpaths.html#interp,string,string	nimpaths: interp(path: string; nimr: string): string	
+getDocHacksJs	modules/nimpaths.html#getDocHacksJs,string	nimpaths: getDocHacksJs(nimr: string; nim = getCurrentCompilerExe(); forceRebuild = false): string	

@@ -1,0 +1,7 @@
+TPassData	sem/passes.html#TPassData	passes: TPassData	
+makePass	sem/passes.html#makePass,TPassOpen,TPassProcess,TPassClose	passes: makePass(open: TPassOpen = nil; process: TPassProcess = nil;\n         close: TPassClose = nil; isFrontend = false): TPass	
+skipCodegen	sem/passes.html#skipCodegen,ConfigRef,PNode	passes: skipCodegen(config: ConfigRef; n: PNode): bool	
+clearPasses	sem/passes.html#clearPasses,ModuleGraph	passes: clearPasses(g: ModuleGraph)	
+registerPass	sem/passes.html#registerPass,ModuleGraph,TPass	passes: registerPass(g: ModuleGraph; p: TPass)	
+moduleHasChanged	sem/passes.html#moduleHasChanged,ModuleGraph,PSym	passes: moduleHasChanged(graph: ModuleGraph; module: PSym): bool	
+processModule	sem/passes.html#processModule,ModuleGraph,PSym,IdGenerator,PLLStream	passes: processModule(graph: ModuleGraph; module: PSym; idgen: IdGenerator;\n              stream: PLLStream): bool	

@@ -1,0 +1,32 @@
+FirstCallConv	sem/pragmas.html#FirstCallConv	pragmas: FirstCallConv	
+LastCallConv	sem/pragmas.html#LastCallConv	pragmas: LastCallConv	
+procPragmas	sem/pragmas.html#procPragmas	pragmas: procPragmas	
+converterPragmas	sem/pragmas.html#converterPragmas	pragmas: converterPragmas	
+methodPragmas	sem/pragmas.html#methodPragmas	pragmas: methodPragmas	
+templatePragmas	sem/pragmas.html#templatePragmas	pragmas: templatePragmas	
+macroPragmas	sem/pragmas.html#macroPragmas	pragmas: macroPragmas	
+iteratorPragmas	sem/pragmas.html#iteratorPragmas	pragmas: iteratorPragmas	
+exprPragmas	sem/pragmas.html#exprPragmas	pragmas: exprPragmas	
+stmtPragmas	sem/pragmas.html#stmtPragmas	pragmas: stmtPragmas	
+lambdaPragmas	sem/pragmas.html#lambdaPragmas	pragmas: lambdaPragmas	
+typePragmas	sem/pragmas.html#typePragmas	pragmas: typePragmas	
+fieldPragmas	sem/pragmas.html#fieldPragmas	pragmas: fieldPragmas	
+varPragmas	sem/pragmas.html#varPragmas	pragmas: varPragmas	
+constPragmas	sem/pragmas.html#constPragmas	pragmas: constPragmas	
+paramPragmas	sem/pragmas.html#paramPragmas	pragmas: paramPragmas	
+letPragmas	sem/pragmas.html#letPragmas	pragmas: letPragmas	
+procTypePragmas	sem/pragmas.html#procTypePragmas	pragmas: procTypePragmas	
+forVarPragmas	sem/pragmas.html#forVarPragmas	pragmas: forVarPragmas	
+allRoutinePragmas	sem/pragmas.html#allRoutinePragmas	pragmas: allRoutinePragmas	
+enumFieldPragmas	sem/pragmas.html#enumFieldPragmas	pragmas: enumFieldPragmas	
+getPragmaVal	sem/pragmas.html#getPragmaVal,PNode,TSpecialWord	pragmas: getPragmaVal(procAst: PNode; name: TSpecialWord): PNode	
+invalidPragma	sem/pragmas.html#invalidPragma,PContext,PNode	pragmas: invalidPragma(c: PContext; n: PNode)	
+illegalCustomPragma	sem/pragmas.html#illegalCustomPragma,PContext,PNode,PSym	pragmas: illegalCustomPragma(c: PContext; n: PNode; s: PSym)	
+newInvalidPragmaNode	sem/pragmas.html#newInvalidPragmaNode,PContext,PNode	pragmas: newInvalidPragmaNode(c: PContext; n: PNode): PNode	
+newIllegalCustomPragmaNode	sem/pragmas.html#newIllegalCustomPragmaNode,PContext,PNode,PSym	pragmas: newIllegalCustomPragmaNode(c: PContext; n: PNode; s: PSym): PNode	
+pragmaAsm	sem/pragmas.html#pragmaAsm,PContext,PNode	pragmas: pragmaAsm(c: PContext; n: PNode): char	
+semAsmOrEmit	sem/pragmas.html#semAsmOrEmit,PContext,PNode,char	pragmas: semAsmOrEmit(con: PContext; n: PNode; marker: char): PNode	
+hasPragma	sem/pragmas.html#hasPragma,PNode,TSpecialWord	pragmas: hasPragma(n: PNode; pragma: TSpecialWord): bool	
+implicitPragmas	sem/pragmas.html#implicitPragmas,PContext,PSym,TLineInfo,TSpecialWords	pragmas: implicitPragmas(c: PContext; sym: PSym; info: TLineInfo;\n                validPragmas: TSpecialWords): PSym	
+pragma	sem/pragmas.html#pragma,PContext,PSym,PNode,TSpecialWords,bool	pragmas: pragma(c: PContext; sym: PSym; n: PNode; validPragmas: TSpecialWords;\n       isStatement: bool = false): PNode	
+pragmaCallable	sem/pragmas.html#pragmaCallable,PContext,PSym,PNode,TSpecialWords	pragmas: pragmaCallable(c: PContext; sym: PSym; n: PNode; validPragmas: TSpecialWords): PNode	

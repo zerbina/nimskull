@@ -1,0 +1,88 @@
+TermColorBg	colortext.html#TermColorBg	colortext: TermColorBg	
+TermColorFg	colortext.html#TermColorFg	colortext: TermColorFg	
+`==`	colortext.html#==,,	colortext: `==`(a, b: TermColorBg | TermColorFg): bool	
+ColStyle	colortext.html#ColStyle	colortext: ColStyle	
+ColRune	colortext.html#ColRune	colortext: ColRune	
+ColText	colortext.html#ColText	colortext: ColText	
+ColRuneLine	colortext.html#ColRuneLine	colortext: ColRuneLine	
+ColRuneGrid	colortext.html#ColRuneGrid	colortext: ColRuneGrid	
+ColModifier	colortext.html#ColModifier	colortext: ColModifier	
+len	colortext.html#len,ColText	colortext: len(text: ColText): int	
+add	colortext.html#add,ColText,	colortext: add(text: var ColText; rune: ColRune | seq[ColRune])	
+items	colortext.html#items.i,ColText	colortext: items(text: ColText): ColRune	
+ritems	colortext.html#ritems.i,ColText	colortext: ritems(text: ColText): ColRune	
+`==`	colortext.html#==,ColStyle,ColStyle	colortext: `==`(s1, s2: ColStyle): bool	
+contains	colortext.html#contains,ColStyle,Style	colortext: contains(ps: ColStyle; s: Style): bool	
+termColor	colortext.html#termColor,BackgroundColor	colortext: termColor(bg: BackgroundColor): TermColorBg	
+termColor	colortext.html#termColor,ForegroundColor	colortext: termColor(bg: ForegroundColor): TermColorFg	
+`==`	colortext.html#==,TermColorFg,ForegroundColor	colortext: `==`(f1: TermColorFg; f2: ForegroundColor): bool	
+`==`	colortext.html#==,TermColorBg,BackgroundColor	colortext: `==`(f1: TermColorBg; f2: BackgroundColor): bool	
+initColStyle	colortext.html#initColStyle,ForegroundColor,BackgroundColor,set[Style]	colortext: initColStyle(fg: ForegroundColor = fgDefault; bg: BackgroundColor = bgDefault;\n             style: set[Style] = {}): ColStyle	
+colStyle	colortext.html#colStyle,ForegroundColor	colortext: colStyle(fg: ForegroundColor): ColStyle	
+colStyle	colortext.html#colStyle,BackgroundColor	colortext: colStyle(bg: BackgroundColor): ColStyle	
+colStyle	colortext.html#colStyle,TermColorFg	colortext: colStyle(fg: TermColorFg): ColStyle	
+colStyle	colortext.html#colStyle,TermColorBg	colortext: colStyle(bg: TermColorBg): ColStyle	
+colStyle	colortext.html#colStyle,set[Style]	colortext: colStyle(style: set[Style]): ColStyle	
+colStyle	colortext.html#colStyle,Style	colortext: colStyle(style: Style): ColStyle	
+colStyle	colortext.html#colStyle,ColStyle	colortext: colStyle(style: ColStyle): ColStyle	
+default	colortext.html#default,typedesc[ColRune]	colortext: default(rune: typedesc[ColRune]): ColRune	
+default	colortext.html#default,typedesc[ColStyle]	colortext: default(style: typedesc[ColStyle]): ColStyle	
+uc	colortext.html#uc,static[string]	colortext: uc(s: static[string]): Rune	
+isDefault	colortext.html#isDefault	colortext: isDefault(col: TermColorFg | TermColorBg): bool	
+`+=`	colortext.html#+=,ColStyle,ColStyle	colortext: `+=`(s1: var ColStyle; s2: ColStyle)	
+`+`	colortext.html#+,ColStyle,ColStyle	colortext: `+`(s1, s2: ColStyle): ColStyle	
+`+`	colortext.html#+,ColModifier,	colortext: `+`(a: ColModifier; b: distinct ColModifier): ColStyle	
+toColRune	colortext.html#toColRune,Rune,ColStyle	colortext: toColRune(rune: Rune; style: ColStyle): ColRune	
+toColText	colortext.html#toColText,string,ColStyle	colortext: toColText(text: string; style: ColStyle = default(ColStyle)): ColText	
+`+`	colortext.html#+,string,ColModifier	colortext: `+`(text: string; style: ColModifier): ColText	
+`+`	colortext.html#+,char,ColModifier	colortext: `+`(ch: char; style: ColModifier): ColRune	
+`+`	colortext.html#+,Rune,ColModifier	colortext: `+`(r: Rune; style: ColModifier): ColRune	
+setStyle	colortext.html#setStyle,ColText,ColStyle,bool	colortext: setStyle(text: var ColText; new: ColStyle; override: bool = true)	
+`+`	colortext.html#+,sinkColText,ColModifier	colortext: `+`(text: sink ColText; style: ColModifier): ColText	
+toColText	colortext.html#toColText,ColText	colortext: toColText(text: ColText): ColText	
+toColText	colortext.html#toColText,ColRune	colortext: toColText(rune: ColRune): ColText	
+clt	colortext.html#clt,string	colortext: clt(str: string): ColText	
+clt	colortext.html#clt,char	colortext: clt(ch: char): ColText	
+clr	colortext.html#clr,char	colortext: clr(ch: char): ColRune	
+isNewline	colortext.html#isNewline,ColRune	colortext: isNewline(rune: ColRune): bool	
+toLower	colortext.html#toLower,sinkColText	colortext: toLower(text: sink ColText): ColText	
+toUpper	colortext.html#toUpper,sinkColText	colortext: toUpper(text: sink ColText): ColText	
+alignLeft	colortext.html#alignLeft,sinkColText,int,ColRune	colortext: alignLeft(text: sink ColText; length: int; padding: ColRune = clr(&apos; &apos;)): ColText	
+alignCenter	colortext.html#alignCenter,sinkColText,int,ColRune	colortext: alignCenter(text: sink ColText; length: int; padding: ColRune = clr(&apos; &apos;)): ColText	
+alignRight	colortext.html#alignRight,ColText,int,ColRune	colortext: alignRight(text: ColText; length: int; padding: ColRune = clr(&apos; &apos;)): ColText	
+`|&lt;&lt;`	colortext.html#|<<,sinkColText,int	colortext: `|&lt;&lt;`(s: sink ColText; l: int): ColText	
+`|&gt;&gt;`	colortext.html#|>>,sinkColText,int	colortext: `|&gt;&gt;`(s: sink ColText; l: int): ColText	
+`==`	colortext.html#==,ColRune,char	colortext: `==`(rune: ColRune; ch: char): bool	
+hasNewline	colortext.html#hasNewline,ColText	colortext: hasNewline(text: ColText): bool	
+hasOnlyTailNewline	colortext.html#hasOnlyTailNewline,ColText	colortext: hasOnlyTailNewline(text: ColText): bool	
+newline	colortext.html#newline,ColText	colortext: newline(text: var ColText)	
+lines	colortext.html#lines.i,ColText	colortext: lines(text: ColText): ColRuneLine	
+width	colortext.html#width,ColText	colortext: width(text: ColText): int	
+add	colortext.html#add,ColText,ColText	colortext: add(colored: var ColText; other: ColText)	
+add	colortext.html#add,ColText,ColRuneLine	colortext: add(colored: var ColText; other: ColRuneLine)	
+add	colortext.html#add,ColText,ColRune	colortext: add(colored: var ColText; rune: ColRune)	
+add	colortext.html#add,ColText,_2	colortext: add(colored: var ColText; ch: string | char)	
+indent	colortext.html#indent,ColText,int,int,ColText,ColText	colortext: indent(str: ColText; count: int; indentAfter: int = -1;\n       indent: ColText = clt(&quot; &quot;); prefix: ColText = clt(&quot;&quot;)): ColText	
+stripLines	colortext.html#stripLines,ColText,bool,bool,set[char]	colortext: stripLines(text: ColText; leading: bool = false; trails: bool = true;\n           chars: set[char] = {&apos; &apos;}): ColText	
+`&amp;`	colortext.html#&,sinkColText,ColText	colortext: `&amp;`(t1: sink ColText; t2: ColText): ColText	
+`&amp;`	colortext.html#&,sinkColText,string	colortext: `&amp;`(t1: sink ColText; t2: string): ColText	
+`&amp;`	colortext.html#&,string,ColText	colortext: `&amp;`(t1: string; t2: ColText): ColText	
+lispRepr	colortext.html#lispRepr,ColRune	colortext: lispRepr(rune: ColRune): string	
+lispRepr	colortext.html#lispRepr,ColText	colortext: lispRepr(rune: ColText): string	
+toString	colortext.html#toString,ColRune,bool	colortext: toString(rune: ColRune; color: bool = true): string	
+toString	colortext.html#toString,seq[ColRune],bool	colortext: toString(runes: seq[ColRune]; color: bool = true): string	
+toString	colortext.html#toString,ColText,bool	colortext: toString(text: ColText; color: bool = true): string	
+`$`	colortext.html#$,ColRune	colortext: `$`(colored: ColRune): string	
+`$`	colortext.html#$,ColRuneLine	colortext: `$`(colr: ColRuneLine): string	
+`$`	colortext.html#$,ColText	colortext: `$`(text: ColText): string	
+`$`	colortext.html#$,ColRuneGrid	colortext: `$`(colr: ColRuneGrid): string	
+termFg	colortext.html#termFg,range[],range[],range[]	colortext: termFg(r, g, b: range[0 .. 5]): TermColorFg	
+termBg	colortext.html#termBg,range[],range[],range[]	colortext: termBg(r, g, b: range[0 .. 5]): TermColorBg	
+termBg	colortext.html#termBg,range[]	colortext: termBg(gray: range[0 .. 23]): TermColorBg	
+termFg	colortext.html#termFg,range[]	colortext: termFg(gray: range[0 .. 23]): TermColorFg	
+addIndent	colortext.html#addIndent,ColText,int,int,ColRune	colortext: addIndent(res: var ColText; level: int; sep: int = 2; prefix: ColRune = clr(&apos; &apos;))	
+coloredResult	colortext.html#coloredResult.t,int	colortext: coloredResult(indentationStep: int = 2): untyped	
+`[]=`	colortext.html#[]=,ColRuneGrid,R1,R2,ColRune,ColRune	colortext: `[]=`[R1, R2: openArray[int] | Slice[int] | int](buf: var ColRuneGrid;\n    rowIdx: R1; colIdx: R2; ch: ColRune; fill: ColRune = clr(&apos; &apos;))	
+`[]=`	colortext.html#[]=,ColRuneGrid,int,int,ColText	colortext: `[]=`(buf: var ColRuneGrid; row, col: int; str: ColText)	
+`[]=`	colortext.html#[]=,ColRuneGrid,int,int,char	colortext: `[]=`(buf: var ColRuneGrid; row, col: int; ch: char)	
+grid	colortext.html#grid,ColText	colortext: grid(text: ColText): ColRuneGrid	

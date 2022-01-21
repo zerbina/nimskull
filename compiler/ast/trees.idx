@@ -1,0 +1,19 @@
+cyclicTree	ast/trees.html#cyclicTree,PNode	trees: cyclicTree(n: PNode): bool	
+exprStructuralEquivalent	ast/trees.html#exprStructuralEquivalent,PNode,PNode	trees: exprStructuralEquivalent(a, b: PNode; strictSymEquality = false): bool	
+sameTree	ast/trees.html#sameTree,PNode,PNode	trees: sameTree(a, b: PNode): bool	
+getMagic	ast/trees.html#getMagic,PNode	trees: getMagic(op: PNode): TMagic	
+isConstExpr	ast/trees.html#isConstExpr,PNode	trees: isConstExpr(n: PNode): bool	
+isCaseObj	ast/trees.html#isCaseObj,PNode	trees: isCaseObj(n: PNode): bool	
+isDeepConstExpr	ast/trees.html#isDeepConstExpr,PNode	trees: isDeepConstExpr(n: PNode; preventInheritance = false): bool	
+isRange	ast/trees.html#isRange,PNode	trees: isRange(n: PNode): bool	
+whichPragma	ast/trees.html#whichPragma,PNode	trees: whichPragma(n: PNode): TSpecialWord	
+isNoSideEffectPragma	ast/trees.html#isNoSideEffectPragma,PNode	trees: isNoSideEffectPragma(n: PNode): bool	
+findPragma	ast/trees.html#findPragma,PNode,TSpecialWord	trees: findPragma(n: PNode; which: TSpecialWord): PNode	
+effectSpec	ast/trees.html#effectSpec,PNode,TSpecialWord	trees: effectSpec(n: PNode; effectType: TSpecialWord): PNode	
+propSpec	ast/trees.html#propSpec,PNode,TSpecialWord	trees: propSpec(n: PNode; effectType: TSpecialWord): PNode	
+flattenStmts	ast/trees.html#flattenStmts,PNode	trees: flattenStmts(n: PNode): PNode	
+extractRange	ast/trees.html#extractRange,TNodeKind,PNode,int,int	trees: extractRange(k: TNodeKind; n: PNode; a, b: int): PNode	
+isTrue	ast/trees.html#isTrue,PNode	trees: isTrue(n: PNode): bool	
+getRoot	ast/trees.html#getRoot,PNode	trees: getRoot(n: PNode): PSym	
+stupidStmtListExpr	ast/trees.html#stupidStmtListExpr,PNode	trees: stupidStmtListExpr(n: PNode): bool	
+dontInlineConstant	ast/trees.html#dontInlineConstant,PNode,PNode	trees: dontInlineConstant(orig, cnst: PNode): bool	

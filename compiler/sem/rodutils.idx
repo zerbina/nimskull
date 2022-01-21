@@ -1,0 +1,9 @@
+toStrMaxPrecision	sem/rodutils.html#toStrMaxPrecision	rodutils: toStrMaxPrecision(f: BiggestFloat | float32): string	
+encodeStr	sem/rodutils.html#encodeStr,string,string	rodutils: encodeStr(s: string; result: var string)	
+decodeStr	sem/rodutils.html#decodeStr,cstring,int	rodutils: decodeStr(s: cstring; pos: var int): string	
+encodeVBiggestInt	sem/rodutils.html#encodeVBiggestInt,BiggestInt,string	rodutils: encodeVBiggestInt(x: BiggestInt; result: var string)	
+encodeVInt	sem/rodutils.html#encodeVInt,int,string	rodutils: encodeVInt(x: int; result: var string)	
+decodeVInt	sem/rodutils.html#decodeVInt,cstring,int	rodutils: decodeVInt(s: cstring; pos: var int): int	
+decodeVBiggestInt	sem/rodutils.html#decodeVBiggestInt,cstring,int	rodutils: decodeVBiggestInt(s: cstring; pos: var int): BiggestInt	
+decodeVIntArray	sem/rodutils.html#decodeVIntArray.i,cstring	rodutils: decodeVIntArray(s: cstring): int	
+decodeStrArray	sem/rodutils.html#decodeStrArray.i,cstring	rodutils: decodeStrArray(s: cstring): string	

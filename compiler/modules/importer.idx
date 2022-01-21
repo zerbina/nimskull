@@ -1,0 +1,6 @@
+readExceptSet	modules/importer.html#readExceptSet,PContext,PNode	importer: readExceptSet(c: PContext; n: PNode): IntSet	
+declarePureEnumField	modules/importer.html#declarePureEnumField,PContext,PSym	importer: declarePureEnumField(c: PContext; s: PSym)	
+importAllSymbols	modules/importer.html#importAllSymbols,PContext,PSym	importer: importAllSymbols(c: PContext; fromMod: PSym)	
+evalImport	modules/importer.html#evalImport,PContext,PNode	importer: evalImport(c: PContext; n: PNode): PNode	
+evalFrom	modules/importer.html#evalFrom,PContext,PNode	importer: evalFrom(c: PContext; n: PNode): PNode	
+evalImportExcept	modules/importer.html#evalImportExcept,PContext,PNode	importer: evalImportExcept(c: PContext; n: PNode): PNode	

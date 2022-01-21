@@ -1,0 +1,25 @@
+interestingCaseExpr	sem/guards.html#interestingCaseExpr,PNode	guards: interestingCaseExpr(m: PNode): bool	
+buildCall	sem/guards.html#buildCall,PSym,PNode	guards: buildCall(op: PSym; a: PNode): PNode	
+buildCall	sem/guards.html#buildCall,PSym,PNode,PNode	guards: buildCall(op: PSym; a, b: PNode): PNode	
+lowBound	sem/guards.html#lowBound,ConfigRef,PNode	guards: lowBound(conf: ConfigRef; x: PNode): PNode	
+highBound	sem/guards.html#highBound,ConfigRef,PNode,Operators	guards: highBound(conf: ConfigRef; x: PNode; o: Operators): PNode	
+buildLe	sem/guards.html#buildLe,Operators,PNode,PNode	guards: buildLe(o: Operators; a, b: PNode): PNode	
+canon	sem/guards.html#canon,PNode,Operators	guards: canon(n: PNode; o: Operators): PNode	
+buildAdd	sem/guards.html#buildAdd,PNode,BiggestInt,Operators	guards: buildAdd(a: PNode; b: BiggestInt; o: Operators): PNode	
+TModel	sem/guards.html#TModel	guards: TModel	
+addFact	sem/guards.html#addFact,TModel,PNode	guards: addFact(m: var TModel; nn: PNode)	
+addFactNeg	sem/guards.html#addFactNeg,TModel,PNode	guards: addFactNeg(m: var TModel; n: PNode)	
+sameTree	sem/guards.html#sameTree,PNode,PNode	guards: sameTree(a, b: PNode): bool	
+invalidateFacts	sem/guards.html#invalidateFacts,seq[PNode],PNode	guards: invalidateFacts(s: var seq[PNode]; n: PNode)	
+invalidateFacts	sem/guards.html#invalidateFacts,TModel,PNode	guards: invalidateFacts(m: var TModel; n: PNode)	
+doesImply	sem/guards.html#doesImply,TModel,PNode	guards: doesImply(facts: TModel; prop: PNode): TImplication	
+impliesNotNil	sem/guards.html#impliesNotNil,TModel,PNode	guards: impliesNotNil(m: TModel; arg: PNode): TImplication	
+simpleSlice	sem/guards.html#simpleSlice,PNode,PNode	guards: simpleSlice(a, b: PNode): BiggestInt	
+proveLe	sem/guards.html#proveLe,TModel,PNode,PNode	guards: proveLe(m: TModel; a, b: PNode): TImplication	
+addFactLe	sem/guards.html#addFactLe,TModel,PNode,PNode	guards: addFactLe(m: var TModel; a, b: PNode)	
+addFactLt	sem/guards.html#addFactLt,TModel,PNode,PNode	guards: addFactLt(m: var TModel; a, b: PNode)	
+addDiscriminantFact	sem/guards.html#addDiscriminantFact,TModel,PNode	guards: addDiscriminantFact(m: var TModel; n: PNode)	
+addAsgnFact	sem/guards.html#addAsgnFact,TModel,PNode,PNode	guards: addAsgnFact(m: var TModel; key, value: PNode)	
+sameSubexprs	sem/guards.html#sameSubexprs,TModel,PNode,PNode	guards: sameSubexprs(m: TModel; a, b: PNode): bool	
+addCaseBranchFacts	sem/guards.html#addCaseBranchFacts,TModel,PNode,int	guards: addCaseBranchFacts(m: var TModel; n: PNode; i: int)	
+checkFieldAccess	sem/guards.html#checkFieldAccess,TModel,PNode,ConfigRef	guards: checkFieldAccess(m: TModel; n: PNode; conf: ConfigRef)	

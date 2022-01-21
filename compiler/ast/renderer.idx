@@ -1,0 +1,25 @@
+renderNone	ast/renderer.html#renderNone	TRenderFlag.renderNone	
+renderNoBody	ast/renderer.html#renderNoBody	TRenderFlag.renderNoBody	
+renderNoComments	ast/renderer.html#renderNoComments	TRenderFlag.renderNoComments	
+renderDocComments	ast/renderer.html#renderDocComments	TRenderFlag.renderDocComments	
+renderNoPragmas	ast/renderer.html#renderNoPragmas	TRenderFlag.renderNoPragmas	
+renderIds	ast/renderer.html#renderIds	TRenderFlag.renderIds	
+renderNoProcDefs	ast/renderer.html#renderNoProcDefs	TRenderFlag.renderNoProcDefs	
+renderSyms	ast/renderer.html#renderSyms	TRenderFlag.renderSyms	
+renderRunnableExamples	ast/renderer.html#renderRunnableExamples	TRenderFlag.renderRunnableExamples	
+renderIr	ast/renderer.html#renderIr	TRenderFlag.renderIr	
+renderWithoutErrorPrefix	ast/renderer.html#renderWithoutErrorPrefix	TRenderFlag.renderWithoutErrorPrefix	
+TRenderFlag	ast/renderer.html#TRenderFlag	renderer: TRenderFlag	
+TRenderFlags	ast/renderer.html#TRenderFlags	renderer: TRenderFlags	
+TRenderTok	ast/renderer.html#TRenderTok	renderer: TRenderTok	
+TRenderTokSeq	ast/renderer.html#TRenderTokSeq	renderer: TRenderTokSeq	
+TSrcGen	ast/renderer.html#TSrcGen	renderer: TSrcGen	
+isKeyword	ast/renderer.html#isKeyword,PIdent	renderer: isKeyword(i: PIdent): bool	
+renderDefinitionName	ast/renderer.html#renderDefinitionName,PSym	renderer: renderDefinitionName(s: PSym; noQuotes = false): string	
+bracketKind	ast/renderer.html#bracketKind,TSrcGen,PNode	renderer: bracketKind(g: TSrcGen; n: PNode): BracketKind	
+renderTree	ast/renderer.html#renderTree,PNode,TRenderFlags	renderer: renderTree(n: PNode; renderFlags: TRenderFlags = {}): string	
+`$`	ast/renderer.html#$,PNode	renderer: `$`(n: PNode): string	
+renderModule	ast/renderer.html#renderModule,PNode,string,TRenderFlags,ConfigRef	renderer: renderModule(n: PNode; outfile: string; renderFlags: TRenderFlags = {};\n             fid = FileIndex(-1); conf: ConfigRef = nil)	
+initTokRender	ast/renderer.html#initTokRender,TSrcGen,PNode,TRenderFlags	renderer: initTokRender(r: var TSrcGen; n: PNode; renderFlags: TRenderFlags = {})	
+getNextTok	ast/renderer.html#getNextTok,TSrcGen,TokType,string	renderer: getNextTok(r: var TSrcGen; kind: var TokType; literal: var string)	
+getTokSym	ast/renderer.html#getTokSym,TSrcGen	renderer: getTokSym(r: TSrcGen): PSym	

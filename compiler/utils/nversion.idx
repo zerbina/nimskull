@@ -1,0 +1,9 @@
+Version	utils/nversion.html#Version	nversion: Version	
+`$`	utils/nversion.html#$,Version	nversion: `$`(v: Version): string	
+parse	utils/nversion.html#parse,string	nversion: parse(s: string): Version	
+MaxSetElements	utils/nversion.html#MaxSetElements	nversion: MaxSetElements	
+CompilerVersionSuffix	utils/nversion.html#CompilerVersionSuffix	nversion: CompilerVersionSuffix	
+CompilerVersion	utils/nversion.html#CompilerVersion	nversion: CompilerVersion	
+VersionAsString	utils/nversion.html#VersionAsString	nversion: VersionAsString	
+RodFileVersion	utils/nversion.html#RodFileVersion	nversion: RodFileVersion	
+NimCompilerApiVersion	utils/nversion.html#NimCompilerApiVersion	nversion: NimCompilerApiVersion	

@@ -1,0 +1,61 @@
+TInstrType	vm/vmdef.html#TInstrType	vmdef: TInstrType	
+byteExcess	vm/vmdef.html#byteExcess	vmdef: byteExcess	
+regOShift	vm/vmdef.html#regOShift	vmdef: regOShift	
+regAShift	vm/vmdef.html#regAShift	vmdef: regAShift	
+regBShift	vm/vmdef.html#regBShift	vmdef: regBShift	
+regCShift	vm/vmdef.html#regCShift	vmdef: regCShift	
+regBxShift	vm/vmdef.html#regBxShift	vmdef: regBxShift	
+regOMask	vm/vmdef.html#regOMask	vmdef: regOMask	
+regAMask	vm/vmdef.html#regAMask	vmdef: regAMask	
+regBMask	vm/vmdef.html#regBMask	vmdef: regBMask	
+regCMask	vm/vmdef.html#regCMask	vmdef: regCMask	
+regBxMask	vm/vmdef.html#regBxMask	vmdef: regBxMask	
+wordExcess	vm/vmdef.html#wordExcess	vmdef: wordExcess	
+regBxMin	vm/vmdef.html#regBxMin	vmdef: regBxMin	
+regBxMax	vm/vmdef.html#regBxMax	vmdef: regBxMax	
+TRegister	vm/vmdef.html#TRegister	vmdef: TRegister	
+TDest	vm/vmdef.html#TDest	vmdef: TDest	
+TInstr	vm/vmdef.html#TInstr	vmdef: TInstr	
+TBlock	vm/vmdef.html#TBlock	vmdef: TBlock	
+emRepl	vm/vmdef.html#emRepl	TEvalMode.emRepl	
+emConst	vm/vmdef.html#emConst	TEvalMode.emConst	
+emOptimize	vm/vmdef.html#emOptimize	TEvalMode.emOptimize	
+emStaticExpr	vm/vmdef.html#emStaticExpr	TEvalMode.emStaticExpr	
+emStaticStmt	vm/vmdef.html#emStaticStmt	TEvalMode.emStaticStmt	
+TEvalMode	vm/vmdef.html#TEvalMode	vmdef: TEvalMode	
+allowCast	vm/vmdef.html#allowCast	TSandboxFlag.allowCast	
+allowInfiniteLoops	vm/vmdef.html#allowInfiniteLoops	TSandboxFlag.allowInfiniteLoops	
+TSandboxFlag	vm/vmdef.html#TSandboxFlag	vmdef: TSandboxFlag	
+TSandboxFlags	vm/vmdef.html#TSandboxFlags	vmdef: TSandboxFlags	
+slotEmpty	vm/vmdef.html#slotEmpty	TSlotKind.slotEmpty	
+slotFixedVar	vm/vmdef.html#slotFixedVar	TSlotKind.slotFixedVar	
+slotFixedLet	vm/vmdef.html#slotFixedLet	TSlotKind.slotFixedLet	
+slotTempUnknown	vm/vmdef.html#slotTempUnknown	TSlotKind.slotTempUnknown	
+slotTempInt	vm/vmdef.html#slotTempInt	TSlotKind.slotTempInt	
+slotTempFloat	vm/vmdef.html#slotTempFloat	TSlotKind.slotTempFloat	
+slotTempStr	vm/vmdef.html#slotTempStr	TSlotKind.slotTempStr	
+slotTempComplex	vm/vmdef.html#slotTempComplex	TSlotKind.slotTempComplex	
+slotTempPerm	vm/vmdef.html#slotTempPerm	TSlotKind.slotTempPerm	
+TSlotKind	vm/vmdef.html#TSlotKind	vmdef: TSlotKind	
+TFullReg	vm/vmdef.html#TFullReg	vmdef: TFullReg	
+PProc	vm/vmdef.html#PProc	vmdef: PProc	
+VmArgs	vm/vmdef.html#VmArgs	vmdef: VmArgs	
+VmCallback	vm/vmdef.html#VmCallback	vmdef: VmCallback	
+PCtx	vm/vmdef.html#PCtx	vmdef: PCtx	
+TCtx	vm/vmdef.html#TCtx	vmdef: TCtx	
+PStackFrame	vm/vmdef.html#PStackFrame	vmdef: PStackFrame	
+TStackFrame	vm/vmdef.html#TStackFrame	vmdef: TStackFrame	
+Profiler	vm/vmdef.html#Profiler	vmdef: Profiler	
+TPosition	vm/vmdef.html#TPosition	vmdef: TPosition	
+PEvalContext	vm/vmdef.html#PEvalContext	vmdef: PEvalContext	
+newCtx	vm/vmdef.html#newCtx,PSym,IdentCache,ModuleGraph,IdGenerator	vmdef: newCtx(module: PSym; cache: IdentCache; g: ModuleGraph; idgen: IdGenerator): PCtx	
+refresh	vm/vmdef.html#refresh,PCtx,PSym,IdGenerator	vmdef: refresh(c: PCtx; module: PSym; idgen: IdGenerator)	
+registerCallback	vm/vmdef.html#registerCallback,PCtx,string,VmCallback	vmdef: registerCallback(c: PCtx; name: string; callback: VmCallback): int	
+slotSomeTemp	vm/vmdef.html#slotSomeTemp	vmdef: slotSomeTemp	
+nimNodeFlag	vm/vmdef.html#nimNodeFlag	vmdef: nimNodeFlag	
+opcode	vm/vmdef.html#opcode.t,TInstr	vmdef: opcode(x: TInstr): TOpcode	
+regA	vm/vmdef.html#regA.t,TInstr	vmdef: regA(x: TInstr): TRegister	
+regB	vm/vmdef.html#regB.t,TInstr	vmdef: regB(x: TInstr): TRegister	
+regC	vm/vmdef.html#regC.t,TInstr	vmdef: regC(x: TInstr): TRegister	
+regBx	vm/vmdef.html#regBx.t,TInstr	vmdef: regBx(x: TInstr): int	
+jmpDiff	vm/vmdef.html#jmpDiff.t,TInstr	vmdef: jmpDiff(x: TInstr): int	

@@ -1,0 +1,8 @@
+typeAllowed	sem/typeallowed.html#typeAllowed,PType,TSymKind,PContext,TTypeAllowedFlags	typeallowed: typeAllowed(t: PType; kind: TSymKind; c: PContext; flags: TTypeAllowedFlags = {}): PType	
+noView	sem/typeallowed.html#noView	ViewTypeKind.noView	
+immutableView	sem/typeallowed.html#immutableView	ViewTypeKind.immutableView	
+mutableView	sem/typeallowed.html#mutableView	ViewTypeKind.mutableView	
+ViewTypeKind	sem/typeallowed.html#ViewTypeKind	typeallowed: ViewTypeKind	
+classifyViewType	sem/typeallowed.html#classifyViewType,PType	typeallowed: classifyViewType(t: PType): ViewTypeKind	
+directViewType	sem/typeallowed.html#directViewType,PType	typeallowed: directViewType(t: PType): ViewTypeKind	
+requiresInit	sem/typeallowed.html#requiresInit,PType	typeallowed: requiresInit(t: PType): bool	

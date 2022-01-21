@@ -1,0 +1,32 @@
+FormatStr	utils/ropes.html#FormatStr	ropes: FormatStr	
+Rope	utils/ropes.html#Rope	ropes: Rope	
+RopeObj	utils/ropes.html#RopeObj	ropes: RopeObj	
+len	utils/ropes.html#len,Rope	ropes: len(a: Rope): int	
+resetRopeCache	utils/ropes.html#resetRopeCache	ropes: resetRopeCache()	
+gCacheTries	utils/ropes.html#gCacheTries	ropes: gCacheTries	
+gCacheMisses	utils/ropes.html#gCacheMisses	ropes: gCacheMisses	
+gCacheIntTries	utils/ropes.html#gCacheIntTries	ropes: gCacheIntTries	
+rope	utils/ropes.html#rope,string	ropes: rope(s: string): Rope	
+rope	utils/ropes.html#rope,BiggestInt	ropes: rope(i: BiggestInt): Rope	
+rope	utils/ropes.html#rope,BiggestFloat	ropes: rope(f: BiggestFloat): Rope	
+`&amp;`	utils/ropes.html#&,Rope,Rope	ropes: `&amp;`(a, b: Rope): Rope	
+`&amp;`	utils/ropes.html#&,Rope,string	ropes: `&amp;`(a: Rope; b: string): Rope	
+`&amp;`	utils/ropes.html#&,string,Rope	ropes: `&amp;`(a: string; b: Rope): Rope	
+`&amp;`	utils/ropes.html#&,openArray[Rope]	ropes: `&amp;`(a: openArray[Rope]): Rope	
+add	utils/ropes.html#add,Rope,Rope	ropes: add(a: var Rope; b: Rope)	
+add	utils/ropes.html#add,Rope,string	ropes: add(a: var Rope; b: string)	
+leaves	utils/ropes.html#leaves.i,Rope	ropes: leaves(r: Rope): string	
+items	utils/ropes.html#items.i,Rope	ropes: items(r: Rope): char	
+writeRope	utils/ropes.html#writeRope,File,Rope	ropes: writeRope(f: File; r: Rope)	
+writeRope	utils/ropes.html#writeRope,Rope,AbsoluteFile	ropes: writeRope(head: Rope; filename: AbsoluteFile): bool	
+`$`	utils/ropes.html#$,Rope	ropes: `$`(r: Rope): string	
+ropeConcat	utils/ropes.html#ropeConcat,varargs[Rope]	ropes: ropeConcat(a: varargs[Rope]): Rope	
+prepend	utils/ropes.html#prepend,Rope,Rope	ropes: prepend(a: var Rope; b: Rope)	
+prepend	utils/ropes.html#prepend,Rope,string	ropes: prepend(a: var Rope; b: string)	
+runtimeFormat	utils/ropes.html#runtimeFormat,FormatStr,openArray[Rope]	ropes: runtimeFormat(frmt: FormatStr; args: openArray[Rope]): Rope	
+`%`	utils/ropes.html#%,static[FormatStr],openArray[Rope]	ropes: `%`(frmt: static[FormatStr]; args: openArray[Rope]): Rope	
+addf	utils/ropes.html#addf.t,Rope,FormatStr,openArray[Rope]	ropes: addf(c: var Rope; frmt: FormatStr; args: openArray[Rope])	
+`~`	utils/ropes.html#~.t,string	ropes: `~`(r: string): Rope	
+equalsFile	utils/ropes.html#equalsFile,Rope,File	ropes: equalsFile(r: Rope; f: File): bool	
+equalsFile	utils/ropes.html#equalsFile,Rope,AbsoluteFile	ropes: equalsFile(r: Rope; filename: AbsoluteFile): bool	
+writeRopeIfNotEqual	utils/ropes.html#writeRopeIfNotEqual,Rope,AbsoluteFile	ropes: writeRopeIfNotEqual(r: Rope; filename: AbsoluteFile): bool	

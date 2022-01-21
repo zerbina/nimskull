@@ -1,0 +1,5 @@
+arNo	sem/aliases.html#arNo	TAnalysisResult.arNo	
+arMaybe	sem/aliases.html#arMaybe	TAnalysisResult.arMaybe	
+arYes	sem/aliases.html#arYes	TAnalysisResult.arYes	
+TAnalysisResult	sem/aliases.html#TAnalysisResult	aliases: TAnalysisResult	
+isPartOf	sem/aliases.html#isPartOf,PNode,PNode	aliases: isPartOf(a, b: PNode): TAnalysisResult	

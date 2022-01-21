@@ -1,0 +1,19 @@
+Item	diff.html#Item	diff: Item	
+diffInt	diff.html#diffInt,openArray[int],openArray[int]	diff: diffInt(arrayA, arrayB: openArray[int]): seq[Item]	
+diffText	diff.html#diffText,string,string	diff: diffText(textA, textB: string): seq[Item]	
+sekNone	diff.html#sekNone	SeqEditKind.sekNone	
+sekKeep	diff.html#sekKeep	SeqEditKind.sekKeep	
+sekInsert	diff.html#sekInsert	SeqEditKind.sekInsert	
+sekReplace	diff.html#sekReplace	SeqEditKind.sekReplace	
+sekDelete	diff.html#sekDelete	SeqEditKind.sekDelete	
+sekTranspose	diff.html#sekTranspose	SeqEditKind.sekTranspose	
+SeqEditKind	diff.html#SeqEditKind	diff: SeqEditKind	
+SeqEdit	diff.html#SeqEdit	diff: SeqEdit	
+levenshteinDistance	diff.html#levenshteinDistance,openArray[T],openArray[T]	diff: levenshteinDistance[T](str1, str2: openArray[T]): tuple[distance: int,\n    operations: seq[SeqEdit]]	
+ShiftedDiff	diff.html#ShiftedDiff	diff: ShiftedDiff	
+myersDiff	diff.html#myersDiff,openArray[T],openArray[T],proc(T,T)	diff: myersDiff[T](aSeq, bSeq: openArray[T]; itemCmp: proc (x, y: T): bool): seq[\n    SeqEdit]	
+shiftDiffed	diff.html#shiftDiffed,seq[SeqEdit],openArray[T],openArray[T]	diff: shiftDiffed[T](diff: seq[SeqEdit]; oldSeq, newSeq: openArray[T]): ShiftedDiff	
+formatDiffed	diff.html#formatDiffed,ShiftedDiff,seq[string],seq[string],bool,bool	diff: formatDiffed(shifted: ShiftedDiff; oldSeq, newSeq: seq[string];\n             sideBySide: bool; showLineNumbers: bool = false): string	
+myersDiff	diff.html#myersDiff,openArray[T],openArray[T]	diff: myersDiff[T](aSeq, bSeq: openArray[T]): seq[SeqEdit]	
+diffText	diff.html#diffText,string,string,bool,bool	diff: diffText(text1, text2: string; sideBySide: bool; showLineNumbers: bool = false): string	
+diff	diff.html#diff_1	Module diff	

@@ -1,0 +1,70 @@
+SigHash	modules/modulegraphs.html#SigHash	modulegraphs: SigHash	
+LazySym	modules/modulegraphs.html#LazySym	modulegraphs: LazySym	
+Iface	modules/modulegraphs.html#Iface	modulegraphs: Iface	
+Operators	modules/modulegraphs.html#Operators	modulegraphs: Operators	
+FullId	modules/modulegraphs.html#FullId	modulegraphs: FullId	
+LazyType	modules/modulegraphs.html#LazyType	modulegraphs: LazyType	
+LazyInstantiation	modules/modulegraphs.html#LazyInstantiation	modulegraphs: LazyInstantiation	
+ModuleGraph	modules/modulegraphs.html#ModuleGraph	modulegraphs: ModuleGraph	
+TPassContext	modules/modulegraphs.html#TPassContext	modulegraphs: TPassContext	
+PPassContext	modules/modulegraphs.html#PPassContext	modulegraphs: PPassContext	
+TPassOpen	modules/modulegraphs.html#TPassOpen	modulegraphs: TPassOpen	
+TPassClose	modules/modulegraphs.html#TPassClose	modulegraphs: TPassClose	
+TPassProcess	modules/modulegraphs.html#TPassProcess	modulegraphs: TPassProcess	
+TPass	modules/modulegraphs.html#TPass	modulegraphs: TPass	
+resetForBackend	modules/modulegraphs.html#resetForBackend,ModuleGraph	modulegraphs: resetForBackend(g: ModuleGraph)	
+semtabAll	modules/modulegraphs.html#semtabAll.t,ModuleGraph,PSym	modulegraphs: semtabAll(g: ModuleGraph; m: PSym): TStrTable	
+initStrTables	modules/modulegraphs.html#initStrTables,ModuleGraph,PSym	modulegraphs: initStrTables(g: ModuleGraph; m: PSym)	
+strTableAdds	modules/modulegraphs.html#strTableAdds,ModuleGraph,PSym,PSym	modulegraphs: strTableAdds(g: ModuleGraph; m: PSym; s: PSym)	
+simulateCachedModule	modules/modulegraphs.html#simulateCachedModule,ModuleGraph,PSym,PackedModule	modulegraphs: simulateCachedModule(g: ModuleGraph; moduleSym: PSym; m: PackedModule)	
+initEncoder	modules/modulegraphs.html#initEncoder,ModuleGraph,PSym	modulegraphs: initEncoder(g: ModuleGraph; module: PSym)	
+ModuleIter	modules/modulegraphs.html#ModuleIter	modulegraphs: ModuleIter	
+initModuleIter	modules/modulegraphs.html#initModuleIter,ModuleIter,ModuleGraph,PSym,PIdent	modulegraphs: initModuleIter(mi: var ModuleIter; g: ModuleGraph; m: PSym; name: PIdent): PSym	
+nextModuleIter	modules/modulegraphs.html#nextModuleIter,ModuleIter,ModuleGraph	modulegraphs: nextModuleIter(mi: var ModuleIter; g: ModuleGraph): PSym	
+allSyms	modules/modulegraphs.html#allSyms.i,ModuleGraph,PSym	modulegraphs: allSyms(g: ModuleGraph; m: PSym): PSym	
+someSym	modules/modulegraphs.html#someSym,ModuleGraph,PSym,PIdent	modulegraphs: someSym(g: ModuleGraph; m: PSym; name: PIdent): PSym	
+systemModuleSym	modules/modulegraphs.html#systemModuleSym,ModuleGraph,PIdent	modulegraphs: systemModuleSym(g: ModuleGraph; name: PIdent): PSym	
+systemModuleSyms	modules/modulegraphs.html#systemModuleSyms.i,ModuleGraph,PIdent	modulegraphs: systemModuleSyms(g: ModuleGraph; name: PIdent): PSym	
+typeInstCacheItems	modules/modulegraphs.html#typeInstCacheItems.i,ModuleGraph,PSym	modulegraphs: typeInstCacheItems(g: ModuleGraph; s: PSym): PType	
+procInstCacheItems	modules/modulegraphs.html#procInstCacheItems.i,ModuleGraph,PSym	modulegraphs: procInstCacheItems(g: ModuleGraph; s: PSym): PInstantiation	
+getAttachedOp	modules/modulegraphs.html#getAttachedOp,ModuleGraph,PType,TTypeAttachedOp	modulegraphs: getAttachedOp(g: ModuleGraph; t: PType; op: TTypeAttachedOp): PSym	
+setAttachedOp	modules/modulegraphs.html#setAttachedOp,ModuleGraph,int,PType,TTypeAttachedOp,PSym	modulegraphs: setAttachedOp(g: ModuleGraph; module: int; t: PType; op: TTypeAttachedOp;\n              value: PSym)	
+setAttachedOpPartial	modules/modulegraphs.html#setAttachedOpPartial,ModuleGraph,int,PType,TTypeAttachedOp,PSym	modulegraphs: setAttachedOpPartial(g: ModuleGraph; module: int; t: PType; op: TTypeAttachedOp;\n                     value: PSym)	
+completePartialOp	modules/modulegraphs.html#completePartialOp,ModuleGraph,int,PType,TTypeAttachedOp,PSym	modulegraphs: completePartialOp(g: ModuleGraph; module: int; t: PType; op: TTypeAttachedOp;\n                  value: PSym)	
+getToStringProc	modules/modulegraphs.html#getToStringProc,ModuleGraph,PType	modulegraphs: getToStringProc(g: ModuleGraph; t: PType): PSym	
+setToStringProc	modules/modulegraphs.html#setToStringProc,ModuleGraph,PType,PSym	modulegraphs: setToStringProc(g: ModuleGraph; t: PType; value: PSym)	
+methodsForGeneric	modules/modulegraphs.html#methodsForGeneric.i,ModuleGraph,PType	modulegraphs: methodsForGeneric(g: ModuleGraph; t: PType): (int, PSym)	
+addMethodToGeneric	modules/modulegraphs.html#addMethodToGeneric,ModuleGraph,int,PType,int,PSym	modulegraphs: addMethodToGeneric(g: ModuleGraph; module: int; t: PType; col: int; m: PSym)	
+hasDisabledAsgn	modules/modulegraphs.html#hasDisabledAsgn,ModuleGraph,PType	modulegraphs: hasDisabledAsgn(g: ModuleGraph; t: PType): bool	
+copyTypeProps	modules/modulegraphs.html#copyTypeProps,ModuleGraph,int,PType,PType	modulegraphs: copyTypeProps(g: ModuleGraph; module: int; dest, src: PType)	
+loadCompilerProc	modules/modulegraphs.html#loadCompilerProc,ModuleGraph,string	modulegraphs: loadCompilerProc(g: ModuleGraph; name: string): PSym	
+loadPackedSym	modules/modulegraphs.html#loadPackedSym,ModuleGraph,LazySym	modulegraphs: loadPackedSym(g: ModuleGraph; s: var LazySym)	
+`$`	modules/modulegraphs.html#$,SigHash	modulegraphs: `$`(u: SigHash): string	
+`==`	modules/modulegraphs.html#==,SigHash,SigHash	modulegraphs: `==`(a, b: SigHash): bool	
+hash	modules/modulegraphs.html#hash,SigHash	modulegraphs: hash(u: SigHash): Hash	
+hash	modules/modulegraphs.html#hash,FileIndex	modulegraphs: hash(x: FileIndex): Hash	
+onUse	modules/modulegraphs.html#onUse.t,TLineInfo,PSym	modulegraphs: onUse(info: TLineInfo; s: PSym)	
+onDef	modules/modulegraphs.html#onDef.t,TLineInfo,PSym	modulegraphs: onDef(info: TLineInfo; s: PSym)	
+onDefResolveForward	modules/modulegraphs.html#onDefResolveForward.t,TLineInfo,PSym	modulegraphs: onDefResolveForward(info: TLineInfo; s: PSym)	
+stopCompile	modules/modulegraphs.html#stopCompile,ModuleGraph	modulegraphs: stopCompile(g: ModuleGraph): bool	
+createMagic	modules/modulegraphs.html#createMagic,ModuleGraph,IdGenerator,string,TMagic	modulegraphs: createMagic(g: ModuleGraph; idgen: IdGenerator; name: string; m: TMagic): PSym	
+registerModule	modules/modulegraphs.html#registerModule,ModuleGraph,PSym	modulegraphs: registerModule(g: ModuleGraph; m: PSym)	
+registerModuleById	modules/modulegraphs.html#registerModuleById,ModuleGraph,FileIndex	modulegraphs: registerModuleById(g: ModuleGraph; m: FileIndex)	
+initOperators	modules/modulegraphs.html#initOperators,ModuleGraph	modulegraphs: initOperators(g: ModuleGraph): Operators	
+newModuleGraph	modules/modulegraphs.html#newModuleGraph,IdentCache,ConfigRef	modulegraphs: newModuleGraph(cache: IdentCache; config: ConfigRef): ModuleGraph	
+resetAllModules	modules/modulegraphs.html#resetAllModules,ModuleGraph	modulegraphs: resetAllModules(g: ModuleGraph)	
+getModule	modules/modulegraphs.html#getModule,ModuleGraph,FileIndex	modulegraphs: getModule(g: ModuleGraph; fileIdx: FileIndex): PSym	
+moduleOpenForCodegen	modules/modulegraphs.html#moduleOpenForCodegen,ModuleGraph,FileIndex	modulegraphs: moduleOpenForCodegen(g: ModuleGraph; m: FileIndex): bool	
+rememberEmittedTypeInfo	modules/modulegraphs.html#rememberEmittedTypeInfo,ModuleGraph,FileIndex,string	modulegraphs: rememberEmittedTypeInfo(g: ModuleGraph; m: FileIndex; ti: string)	
+rememberFlag	modules/modulegraphs.html#rememberFlag,ModuleGraph,PSym,ModuleBackendFlag	modulegraphs: rememberFlag(g: ModuleGraph; m: PSym; flag: ModuleBackendFlag)	
+closeRodFile	modules/modulegraphs.html#closeRodFile,ModuleGraph,PSym	modulegraphs: closeRodFile(g: ModuleGraph; m: PSym)	
+addDep	modules/modulegraphs.html#addDep,ModuleGraph,PSym,FileIndex	modulegraphs: addDep(g: ModuleGraph; m: PSym; dep: FileIndex)	
+addIncludeDep	modules/modulegraphs.html#addIncludeDep,ModuleGraph,FileIndex,FileIndex	modulegraphs: addIncludeDep(g: ModuleGraph; module, includeFile: FileIndex)	
+parentModule	modules/modulegraphs.html#parentModule,ModuleGraph,FileIndex	modulegraphs: parentModule(g: ModuleGraph; fileIdx: FileIndex): FileIndex	
+markDirty	modules/modulegraphs.html#markDirty,ModuleGraph,FileIndex	modulegraphs: markDirty(g: ModuleGraph; fileIdx: FileIndex)	
+markClientsDirty	modules/modulegraphs.html#markClientsDirty,ModuleGraph,FileIndex	modulegraphs: markClientsDirty(g: ModuleGraph; fileIdx: FileIndex)	
+isDirty	modules/modulegraphs.html#isDirty,ModuleGraph,PSym	modulegraphs: isDirty(g: ModuleGraph; m: PSym): bool	
+getBody	modules/modulegraphs.html#getBody,ModuleGraph,PSym	modulegraphs: getBody(g: ModuleGraph; s: PSym): PNode	
+moduleFromRodFile	modules/modulegraphs.html#moduleFromRodFile,ModuleGraph,FileIndex,seq[FileIndex]	modulegraphs: moduleFromRodFile(g: ModuleGraph; fileIdx: FileIndex;\n                  cachedModules: var seq[FileIndex]): PSym	
+configComplete	modules/modulegraphs.html#configComplete,ModuleGraph	modulegraphs: configComplete(g: ModuleGraph)	
+onProcessing	modules/modulegraphs.html#onProcessing,ModuleGraph,FileIndex,string,PSym	modulegraphs: onProcessing(graph: ModuleGraph; fileIdx: FileIndex; moduleStatus: string;\n             fromModule: PSym)	

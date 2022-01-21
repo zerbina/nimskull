@@ -1,0 +1,2 @@
+config	backend/jsgen.html#config.t,PProc	jsgen: config(p: PProc): ConfigRef	
+JSgenPass	backend/jsgen.html#JSgenPass	jsgen: JSgenPass	

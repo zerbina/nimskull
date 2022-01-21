@@ -1,0 +1,17 @@
+SourceNode	sem/sourcemap.html#SourceNode	sourcemap: SourceNode	
+Child	sem/sourcemap.html#Child	sourcemap: Child	
+SourceMap	sem/sourcemap.html#SourceMap	sourcemap: SourceMap	
+Mapping	sem/sourcemap.html#Mapping	sourcemap: Mapping	
+child	sem/sourcemap.html#child,string	sourcemap: child(s: string): Child	
+child	sem/sourcemap.html#child,SourceNode	sourcemap: child(node: SourceNode): Child	
+text	sem/sourcemap.html#text,SourceNode,int	sourcemap: text(sourceNode: SourceNode; depth: int): string	
+`$`	sem/sourcemap.html#$,SourceNode	sourcemap: `$`(sourceNode: SourceNode): string	
+encode	sem/sourcemap.html#encode,int	sourcemap: encode(i: int): string	
+tokenize	sem/sourcemap.html#tokenize.i,string	sourcemap: tokenize(line: string): (bool, string)	
+parse	sem/sourcemap.html#parse,string,string	sourcemap: parse(source: string; path: string): SourceNode	
+index	sem/sourcemap.html#index,seq[T],T	sourcemap: index[T](elements: seq[T]; element: T): int	
+gen	sem/sourcemap.html#gen,SourceMapGenerator	sourcemap: gen(map: SourceMapGenerator): SourceMap	
+addMapping	sem/sourcemap.html#addMapping,SourceMapGenerator,Mapping	sourcemap: addMapping(map: SourceMapGenerator; mapping: Mapping)	
+walk	sem/sourcemap.html#walk,SourceNode,proc(string,SourceNode)	sourcemap: walk(node: SourceNode; fn: proc (line: string; original: SourceNode))	
+toSourceMap	sem/sourcemap.html#toSourceMap,SourceNode,string	sourcemap: toSourceMap(node: SourceNode; file: string): SourceMapGenerator	
+genSourceMap	sem/sourcemap.html#genSourceMap,string,string	sourcemap: genSourceMap(source: string; outFile: string): (Rope, SourceMap)	

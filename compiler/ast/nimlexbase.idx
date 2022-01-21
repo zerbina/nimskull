@@ -1,0 +1,19 @@
+Lrz	ast/nimlexbase.html#Lrz	nimlexbase: Lrz	
+Apo	ast/nimlexbase.html#Apo	nimlexbase: Apo	
+Tabulator	ast/nimlexbase.html#Tabulator	nimlexbase: Tabulator	
+ESC	ast/nimlexbase.html#ESC	nimlexbase: ESC	
+CR	ast/nimlexbase.html#CR	nimlexbase: CR	
+FF	ast/nimlexbase.html#FF	nimlexbase: FF	
+LF	ast/nimlexbase.html#LF	nimlexbase: LF	
+BEL	ast/nimlexbase.html#BEL	nimlexbase: BEL	
+BACKSPACE	ast/nimlexbase.html#BACKSPACE	nimlexbase: BACKSPACE	
+VT	ast/nimlexbase.html#VT	nimlexbase: VT	
+EndOfFile	ast/nimlexbase.html#EndOfFile	nimlexbase: EndOfFile	
+NewLines	ast/nimlexbase.html#NewLines	nimlexbase: NewLines	
+TBaseLexer	ast/nimlexbase.html#TBaseLexer	nimlexbase: TBaseLexer	
+closeBaseLexer	ast/nimlexbase.html#closeBaseLexer,TBaseLexer	nimlexbase: closeBaseLexer(L: var TBaseLexer)	
+handleCR	ast/nimlexbase.html#handleCR,TBaseLexer,int	nimlexbase: handleCR(L: var TBaseLexer; pos: int): int	
+handleLF	ast/nimlexbase.html#handleLF,TBaseLexer,int	nimlexbase: handleLF(L: var TBaseLexer; pos: int): int	
+openBaseLexer	ast/nimlexbase.html#openBaseLexer,TBaseLexer,PLLStream,int	nimlexbase: openBaseLexer(L: var TBaseLexer; inputstream: PLLStream; bufLen: int = 8192)	
+getColNumber	ast/nimlexbase.html#getColNumber,TBaseLexer,int	nimlexbase: getColNumber(L: TBaseLexer; pos: int): int	
+getCurrentLine	ast/nimlexbase.html#getCurrentLine,TBaseLexer,bool	nimlexbase: getCurrentLine(L: TBaseLexer; marker: bool = true): string	

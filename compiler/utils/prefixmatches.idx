@@ -1,0 +1,2 @@
+PrefixMatch	utils/prefixmatches.html#PrefixMatch	prefixmatches: PrefixMatch	
+prefixMatch	utils/prefixmatches.html#prefixMatch,string,string	prefixmatches: prefixMatch(p, s: string): PrefixMatch	

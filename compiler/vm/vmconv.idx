@@ -1,0 +1,3 @@
+elementType	vm/vmconv.html#elementType.t,typedesc	vmconv: elementType(T: typedesc): typedesc	
+fromLit	vm/vmconv.html#fromLit,PNode,typedesc	vmconv: fromLit(a: PNode; T: typedesc): auto	
+toLit	vm/vmconv.html#toLit,T	vmconv: toLit[T](a: T): PNode	

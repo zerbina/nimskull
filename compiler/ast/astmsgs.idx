@@ -1,0 +1,7 @@
+typSym	ast/astmsgs.html#typSym,PType	astmsgs: typSym(t: PType): PSym	
+addDeclaredLoc	ast/astmsgs.html#addDeclaredLoc,string,ConfigRef,PSym	astmsgs: addDeclaredLoc(result: var string; conf: ConfigRef; sym: PSym)	
+addDeclaredLocMaybe	ast/astmsgs.html#addDeclaredLocMaybe,string,ConfigRef,PSym	astmsgs: addDeclaredLocMaybe(result: var string; conf: ConfigRef; sym: PSym)	
+addDeclaredLoc	ast/astmsgs.html#addDeclaredLoc,string,ConfigRef,PType	astmsgs: addDeclaredLoc(result: var string; conf: ConfigRef; typ: PType)	
+addDeclaredLocMaybe	ast/astmsgs.html#addDeclaredLocMaybe,string,ConfigRef,PType	astmsgs: addDeclaredLocMaybe(result: var string; conf: ConfigRef; typ: PType)	
+quoteExpr	ast/astmsgs.html#quoteExpr.t,string	astmsgs: quoteExpr(a: string): untyped	
+genFieldDefect	ast/astmsgs.html#genFieldDefect,ConfigRef,string,PSym	astmsgs: genFieldDefect(conf: ConfigRef; field: string; disc: PSym): string	

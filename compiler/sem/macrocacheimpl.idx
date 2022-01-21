@@ -1,0 +1,4 @@
+recordInc	sem/macrocacheimpl.html#recordInc,PCtx,TLineInfo,string,BiggestInt	macrocacheimpl: recordInc(c: PCtx; info: TLineInfo; key: string; by: BiggestInt)	
+recordPut	sem/macrocacheimpl.html#recordPut,PCtx,TLineInfo,string,string,PNode	macrocacheimpl: recordPut(c: PCtx; info: TLineInfo; key: string; k: string; val: PNode)	
+recordAdd	sem/macrocacheimpl.html#recordAdd,PCtx,TLineInfo,string,PNode	macrocacheimpl: recordAdd(c: PCtx; info: TLineInfo; key: string; val: PNode)	
+recordIncl	sem/macrocacheimpl.html#recordIncl,PCtx,TLineInfo,string,PNode	macrocacheimpl: recordIncl(c: PCtx; info: TLineInfo; key: string; val: PNode)	

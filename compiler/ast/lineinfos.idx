@@ -1,0 +1,21 @@
+explanationsBaseUrl	ast/lineinfos.html#explanationsBaseUrl	lineinfos: explanationsBaseUrl	
+createDocLink	ast/lineinfos.html#createDocLink,string	lineinfos: createDocLink(urlSuffix: string): string	
+NotesVerbosity	ast/lineinfos.html#NotesVerbosity	lineinfos: NotesVerbosity	
+TFileInfo	ast/lineinfos.html#TFileInfo	lineinfos: TFileInfo	
+eStdOut	ast/lineinfos.html#eStdOut	TErrorOutput.eStdOut	
+eStdErr	ast/lineinfos.html#eStdErr	TErrorOutput.eStdErr	
+TErrorOutput	ast/lineinfos.html#TErrorOutput	lineinfos: TErrorOutput	
+TErrorOutputs	ast/lineinfos.html#TErrorOutputs	lineinfos: TErrorOutputs	
+ERecoverableError	ast/lineinfos.html#ERecoverableError	lineinfos: ERecoverableError	
+ESuggestDone	ast/lineinfos.html#ESuggestDone	lineinfos: ESuggestDone	
+`==`	ast/lineinfos.html#==,FileIndex,FileIndex	lineinfos: `==`(a, b: FileIndex): bool	
+hash	ast/lineinfos.html#hash,TLineInfo	lineinfos: hash(i: TLineInfo): Hash	
+raiseRecoverableError	ast/lineinfos.html#raiseRecoverableError,string	lineinfos: raiseRecoverableError(msg: string)	
+InvalidFileIdx	ast/lineinfos.html#InvalidFileIdx	lineinfos: InvalidFileIdx	
+unknownLineInfo	ast/lineinfos.html#unknownLineInfo	lineinfos: unknownLineInfo	
+isKnown	ast/lineinfos.html#isKnown,TLineInfo	lineinfos: isKnown(info: TLineInfo): bool	
+Severity	ast/lineinfos.html#Severity	lineinfos: Severity	
+trackPosInvalidFileIdx	ast/lineinfos.html#trackPosInvalidFileIdx	lineinfos: trackPosInvalidFileIdx	
+commandLineIdx	ast/lineinfos.html#commandLineIdx	lineinfos: commandLineIdx	
+MsgConfig	ast/lineinfos.html#MsgConfig	lineinfos: MsgConfig	
+initMsgConfig	ast/lineinfos.html#initMsgConfig	lineinfos: initMsgConfig(): MsgConfig	

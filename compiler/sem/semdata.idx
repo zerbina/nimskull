@@ -1,0 +1,80 @@
+TOptionEntry	sem/semdata.html#TOptionEntry	semdata: TOptionEntry	
+POptionEntry	sem/semdata.html#POptionEntry	semdata: POptionEntry	
+PProcCon	sem/semdata.html#PProcCon	semdata: PProcCon	
+TProcCon	sem/semdata.html#TProcCon	semdata: TProcCon	
+TMatchedConcept	sem/semdata.html#TMatchedConcept	semdata: TMatchedConcept	
+TInstantiationPair	sem/semdata.html#TInstantiationPair	semdata: TInstantiationPair	
+importAll	sem/semdata.html#importAll	ImportMode.importAll	
+importSet	sem/semdata.html#importSet	ImportMode.importSet	
+importExcept	sem/semdata.html#importExcept	ImportMode.importExcept	
+ImportMode	sem/semdata.html#ImportMode	semdata: ImportMode	
+ImportedModule	sem/semdata.html#ImportedModule	semdata: ImportedModule	
+PContext	sem/semdata.html#PContext	semdata: PContext	
+TContext	sem/semdata.html#TContext	semdata: TContext	
+config	sem/semdata.html#config.t,PContext	semdata: config(c: PContext): ConfigRef	
+isfirstTopLevelStmt	sem/semdata.html#isfirstTopLevelStmt,PContext	semdata: isfirstTopLevelStmt(c: PContext): bool	
+getIntLitType	sem/semdata.html#getIntLitType,PContext,PNode	semdata: getIntLitType(c: PContext; literal: PNode): PType	
+setIntLitType	sem/semdata.html#setIntLitType,PContext,PNode	semdata: setIntLitType(c: PContext; result: PNode)	
+makeInstPair	sem/semdata.html#makeInstPair,PSym,PInstantiation	semdata: makeInstPair(s: PSym; inst: PInstantiation): TInstantiationPair	
+filename	sem/semdata.html#filename,PContext	semdata: filename(c: PContext): string	
+scopeDepth	sem/semdata.html#scopeDepth,PContext	semdata: scopeDepth(c: PContext): int	
+getCurrOwner	sem/semdata.html#getCurrOwner,PContext	semdata: getCurrOwner(c: PContext): PSym	
+pushOwner	sem/semdata.html#pushOwner,PContext,PSym	semdata: pushOwner(c: PContext; owner: PSym)	
+popOwner	sem/semdata.html#popOwner,PContext	semdata: popOwner(c: PContext)	
+lastOptionEntry	sem/semdata.html#lastOptionEntry,PContext	semdata: lastOptionEntry(c: PContext): POptionEntry	
+popProcCon	sem/semdata.html#popProcCon,PContext	semdata: popProcCon(c: PContext)	
+put	sem/semdata.html#put,PProcCon,PSym,PSym	semdata: put(p: PProcCon; key, val: PSym)	
+get	sem/semdata.html#get,PProcCon,PSym	semdata: get(p: PProcCon; key: PSym): PSym	
+getGenSym	sem/semdata.html#getGenSym,PContext,PSym	semdata: getGenSym(c: PContext; s: PSym): PSym	
+considerGenSyms	sem/semdata.html#considerGenSyms,PContext,PNode	semdata: considerGenSyms(c: PContext; n: PNode)	
+newOptionEntry	sem/semdata.html#newOptionEntry,ConfigRef	semdata: newOptionEntry(conf: ConfigRef): POptionEntry	
+pushOptionEntry	sem/semdata.html#pushOptionEntry,PContext	semdata: pushOptionEntry(c: PContext): POptionEntry	
+popOptionEntry	sem/semdata.html#popOptionEntry,PContext	semdata: popOptionEntry(c: PContext)	
+newContext	sem/semdata.html#newContext,ModuleGraph,PSym	semdata: newContext(graph: ModuleGraph; module: PSym): PContext	
+packedRepr	sem/semdata.html#packedRepr.t	semdata: packedRepr(c): untyped	
+encoder	sem/semdata.html#encoder.t	semdata: encoder(c): untyped	
+addIncludeFileDep	sem/semdata.html#addIncludeFileDep,PContext,FileIndex	semdata: addIncludeFileDep(c: PContext; f: FileIndex)	
+addImportFileDep	sem/semdata.html#addImportFileDep,PContext,FileIndex	semdata: addImportFileDep(c: PContext; f: FileIndex)	
+addPragmaComputation	sem/semdata.html#addPragmaComputation,PContext,PNode	semdata: addPragmaComputation(c: PContext; n: PNode)	
+addConverter	sem/semdata.html#addConverter,PContext,LazySym	semdata: addConverter(c: PContext; conv: LazySym)	
+addConverterDef	sem/semdata.html#addConverterDef,PContext,LazySym	semdata: addConverterDef(c: PContext; conv: LazySym)	
+addPureEnum	sem/semdata.html#addPureEnum,PContext,LazySym	semdata: addPureEnum(c: PContext; e: LazySym)	
+addPattern	sem/semdata.html#addPattern,PContext,LazySym	semdata: addPattern(c: PContext; p: LazySym)	
+exportSym	sem/semdata.html#exportSym,PContext,PSym	semdata: exportSym(c: PContext; s: PSym)	
+reexportSym	sem/semdata.html#reexportSym,PContext,PSym	semdata: reexportSym(c: PContext; s: PSym)	
+newLib	sem/semdata.html#newLib,TLibKind	semdata: newLib(kind: TLibKind): PLib	
+addToLib	sem/semdata.html#addToLib,PLib,PSym	semdata: addToLib(lib: PLib; sym: PSym)	
+newTypeS	sem/semdata.html#newTypeS,TTypeKind,PContext	semdata: newTypeS(kind: TTypeKind; c: PContext): PType	
+makePtrType	sem/semdata.html#makePtrType,PSym,PType,IdGenerator	semdata: makePtrType(owner: PSym; baseType: PType; idgen: IdGenerator): PType	
+makePtrType	sem/semdata.html#makePtrType,PContext,PType	semdata: makePtrType(c: PContext; baseType: PType): PType	
+makeTypeWithModifier	sem/semdata.html#makeTypeWithModifier,PContext,TTypeKind,PType	semdata: makeTypeWithModifier(c: PContext; modifier: TTypeKind; baseType: PType): PType	
+makeVarType	sem/semdata.html#makeVarType,PContext,PType	semdata: makeVarType(c: PContext; baseType: PType; kind = tyVar): PType	
+makeVarType	sem/semdata.html#makeVarType,PSym,PType,IdGenerator	semdata: makeVarType(owner: PSym; baseType: PType; idgen: IdGenerator; kind = tyVar): PType	
+makeTypeSymNode	sem/semdata.html#makeTypeSymNode,PContext,PType,TLineInfo	semdata: makeTypeSymNode(c: PContext; typ: PType; info: TLineInfo): PNode	
+makeTypeFromExpr	sem/semdata.html#makeTypeFromExpr,PContext,PNode	semdata: makeTypeFromExpr(c: PContext; n: PNode): PType	
+newTypeWithSons	sem/semdata.html#newTypeWithSons,PSym,TTypeKind,seq[PType],IdGenerator	semdata: newTypeWithSons(owner: PSym; kind: TTypeKind; sons: seq[PType];\n                idgen: IdGenerator): PType	
+newTypeWithSons	sem/semdata.html#newTypeWithSons,PContext,TTypeKind,seq[PType]	semdata: newTypeWithSons(c: PContext; kind: TTypeKind; sons: seq[PType]): PType	
+makeStaticExpr	sem/semdata.html#makeStaticExpr,PContext,PNode	semdata: makeStaticExpr(c: PContext; n: PNode): PNode	
+makeAndType	sem/semdata.html#makeAndType,PContext,PType,PType	semdata: makeAndType(c: PContext; t1, t2: PType): PType	
+makeOrType	sem/semdata.html#makeOrType,PContext,PType,PType	semdata: makeOrType(c: PContext; t1, t2: PType): PType	
+makeNotType	sem/semdata.html#makeNotType,PContext,PType	semdata: makeNotType(c: PContext; t1: PType): PType	
+makeRangeWithStaticExpr	sem/semdata.html#makeRangeWithStaticExpr,PContext,PNode	semdata: makeRangeWithStaticExpr(c: PContext; n: PNode): PType	
+rangeHasUnresolvedStatic	sem/semdata.html#rangeHasUnresolvedStatic.t,PType	semdata: rangeHasUnresolvedStatic(t: PType): bool	
+errorType	sem/semdata.html#errorType,PContext	semdata: errorType(c: PContext): PType	
+errorNode	sem/semdata.html#errorNode,PContext,PNode	semdata: errorNode(c: PContext; n: PNode): PNode	
+fillTypeS	sem/semdata.html#fillTypeS,PType,TTypeKind,PContext	semdata: fillTypeS(dest: PType; kind: TTypeKind; c: PContext)	
+makeRangeType	sem/semdata.html#makeRangeType,PContext,BiggestInt,BiggestInt,TLineInfo,PType	semdata: makeRangeType(c: PContext; first, last: BiggestInt; info: TLineInfo;\n              intType: PType = nil): PType	
+markIndirect	sem/semdata.html#markIndirect,PContext,PSym	semdata: markIndirect(c: PContext; s: PSym)	
+checkSonsLen	sem/semdata.html#checkSonsLen,PNode,int,ConfigRef	semdata: checkSonsLen(n: PNode; length: int; conf: ConfigRef)	
+checkMinSonsLen	sem/semdata.html#checkMinSonsLen,PNode,int,ConfigRef	semdata: checkMinSonsLen(n: PNode; length: int; conf: ConfigRef)	
+isTopLevel	sem/semdata.html#isTopLevel,PContext	semdata: isTopLevel(c: PContext): bool	
+isTopLevelInsideDeclaration	sem/semdata.html#isTopLevelInsideDeclaration,PContext,PSym	semdata: isTopLevelInsideDeclaration(c: PContext; sym: PSym): bool	
+pushCaseContext	sem/semdata.html#pushCaseContext,PContext,PNode	semdata: pushCaseContext(c: PContext; caseNode: PNode)	
+popCaseContext	sem/semdata.html#popCaseContext,PContext	semdata: popCaseContext(c: PContext)	
+setCaseContextIdx	sem/semdata.html#setCaseContextIdx,PContext,int	semdata: setCaseContextIdx(c: PContext; idx: int)	
+addExport	sem/semdata.html#addExport.t,PContext,PSym	semdata: addExport(c: PContext; s: PSym)	
+storeRodNode	sem/semdata.html#storeRodNode,PContext,PNode	semdata: storeRodNode(c: PContext; n: PNode)	
+addToGenericProcCache	sem/semdata.html#addToGenericProcCache,PContext,PSym,PInstantiation	semdata: addToGenericProcCache(c: PContext; s: PSym; inst: PInstantiation)	
+addToGenericCache	sem/semdata.html#addToGenericCache,PContext,PSym,PType	semdata: addToGenericCache(c: PContext; s: PSym; inst: PType)	
+sealRodFile	sem/semdata.html#sealRodFile,PContext	semdata: sealRodFile(c: PContext)	
+rememberExpansion	sem/semdata.html#rememberExpansion,PContext,TLineInfo,PSym	semdata: rememberExpansion(c: PContext; info: TLineInfo; expandedSym: PSym)	

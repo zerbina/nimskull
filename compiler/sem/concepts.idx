@@ -1,0 +1,6 @@
+isSelf	sem/concepts.html#isSelf,PType	concepts: isSelf(t: PType): bool	
+makeTypeDesc	sem/concepts.html#makeTypeDesc,PContext,PType	concepts: makeTypeDesc(c: PContext; typ: PType): PType	
+semConceptDeclaration	sem/concepts.html#semConceptDeclaration,PContext,PNode	concepts: semConceptDeclaration(c: PContext; n: PNode): PNode	
+conceptMatch	sem/concepts.html#conceptMatch,PContext,PType,PType,TIdTable,PType	concepts: conceptMatch(c: PContext; concpt, arg: PType; bindings: var TIdTable;\n             invocation: PType): bool	
+Code dealing with Concept declarations	sem/concepts.html#code-dealing-with-concept-declarations	 Code dealing with Concept declarations	
+Concept matching	sem/concepts.html#concept-matching	 Concept matching	

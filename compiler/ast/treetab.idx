@@ -1,0 +1,4 @@
+hashTree	ast/treetab.html#hashTree,PNode	treetab: hashTree(n: PNode): Hash	
+nodeTableGet	ast/treetab.html#nodeTableGet,TNodeTable,PNode	treetab: nodeTableGet(t: TNodeTable; key: PNode): int	
+nodeTablePut	ast/treetab.html#nodeTablePut,TNodeTable,PNode,int	treetab: nodeTablePut(t: var TNodeTable; key: PNode; val: int)	
+nodeTableTestOrSet	ast/treetab.html#nodeTableTestOrSet,TNodeTable,PNode,int	treetab: nodeTableTestOrSet(t: var TNodeTable; key: PNode; val: int): int	

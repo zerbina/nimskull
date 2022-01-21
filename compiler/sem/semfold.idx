@@ -1,0 +1,9 @@
+errorType	sem/semfold.html#errorType,ModuleGraph	semfold: errorType(g: ModuleGraph): PType	
+newIntNodeT	sem/semfold.html#newIntNodeT,Int128,PNode,IdGenerator,ModuleGraph	semfold: newIntNodeT(intVal: Int128; n: PNode; idgen: IdGenerator; g: ModuleGraph): PNode	
+newFloatNodeT	sem/semfold.html#newFloatNodeT,BiggestFloat,PNode,ModuleGraph	semfold: newFloatNodeT(floatVal: BiggestFloat; n: PNode; g: ModuleGraph): PNode	
+newStrNodeT	sem/semfold.html#newStrNodeT,string,PNode,ModuleGraph	semfold: newStrNodeT(strVal: string; n: PNode; g: ModuleGraph): PNode	
+ordinalValToString	sem/semfold.html#ordinalValToString,PNode,ModuleGraph	semfold: ordinalValToString(a: PNode; g: ModuleGraph): string	
+evalOp	sem/semfold.html#evalOp,TMagic,PNode,PNode,PNode,PNode,IdGenerator,ModuleGraph	semfold: evalOp(m: TMagic; n, a, b, c: PNode; idgen: IdGenerator; g: ModuleGraph): PNode	
+leValueConv	sem/semfold.html#leValueConv,PNode,PNode	semfold: leValueConv(a, b: PNode): bool	
+newSymNodeTypeDesc	sem/semfold.html#newSymNodeTypeDesc,PSym,IdGenerator,TLineInfo	semfold: newSymNodeTypeDesc(s: PSym; idgen: IdGenerator; info: TLineInfo): PNode	
+getConstExpr	sem/semfold.html#getConstExpr,PSym,PNode,IdGenerator,ModuleGraph	semfold: getConstExpr(m: PSym; n: PNode; idgen: IdGenerator; g: ModuleGraph): PNode	

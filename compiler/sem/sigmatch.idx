@@ -1,0 +1,48 @@
+MismatchInfo	sem/sigmatch.html#MismatchInfo	sigmatch: MismatchInfo	
+csEmpty	sem/sigmatch.html#csEmpty	TCandidateState.csEmpty	
+csMatch	sem/sigmatch.html#csMatch	TCandidateState.csMatch	
+csNoMatch	sem/sigmatch.html#csNoMatch	TCandidateState.csNoMatch	
+TCandidateState	sem/sigmatch.html#TCandidateState	sigmatch: TCandidateState	
+CandidateError	sem/sigmatch.html#CandidateError	sigmatch: CandidateError	
+CandidateErrors	sem/sigmatch.html#CandidateErrors	sigmatch: CandidateErrors	
+TCandidate	sem/sigmatch.html#TCandidate	sigmatch: TCandidate	
+trDontBind	sem/sigmatch.html#trDontBind	TTypeRelFlag.trDontBind	
+trNoCovariance	sem/sigmatch.html#trNoCovariance	TTypeRelFlag.trNoCovariance	
+trBindGenericParam	sem/sigmatch.html#trBindGenericParam	TTypeRelFlag.trBindGenericParam	
+TTypeRelFlag	sem/sigmatch.html#TTypeRelFlag	sigmatch: TTypeRelFlag	
+TTypeRelFlags	sem/sigmatch.html#TTypeRelFlags	sigmatch: TTypeRelFlags	
+hasFauxMatch	sem/sigmatch.html#hasFauxMatch.t,TCandidate	sigmatch: hasFauxMatch(c: TCandidate): bool	
+initCandidate	sem/sigmatch.html#initCandidate,PContext,TCandidate,PType	sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PType)	
+initCandidate	sem/sigmatch.html#initCandidate,PContext,TCandidate,PSym,PNode,int	sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;\n              calleeScope = -1; diagnosticsEnabled = false)	
+newCandidate	sem/sigmatch.html#newCandidate,PContext,PSym,PNode,int	sigmatch: newCandidate(ctx: PContext; callee: PSym; binding: PNode; calleeScope = -1): TCandidate	
+newCandidate	sem/sigmatch.html#newCandidate,PContext,PType	sigmatch: newCandidate(ctx: PContext; callee: PType): TCandidate	
+writeMatches	sem/sigmatch.html#writeMatches,TCandidate	sigmatch: writeMatches(c: TCandidate)	
+cmpCandidates	sem/sigmatch.html#cmpCandidates,TCandidate,TCandidate	sigmatch: cmpCandidates(a, b: TCandidate): int	
+matchUserTypeClass	sem/sigmatch.html#matchUserTypeClass,TCandidate,PType,PType	sigmatch: matchUserTypeClass(m: var TCandidate; ff, a: PType): PType	
+inferStaticParam	sem/sigmatch.html#inferStaticParam,TCandidate,PNode,BiggestInt	sigmatch: inferStaticParam(c: var TCandidate; lhs: PNode; rhs: BiggestInt): bool	
+typeRel	sem/sigmatch.html#typeRel,TCandidate,PType,PType,TTypeRelFlags	sigmatch: typeRel(c: var TCandidate; f, aOrig: PType; flags: TTypeRelFlags = {}): TTypeRelation	
+cmpTypes	sem/sigmatch.html#cmpTypes,PContext,PType,PType	sigmatch: cmpTypes(c: PContext; f, a: PType): TTypeRelation	
+paramTypesMatch	sem/sigmatch.html#paramTypesMatch,TCandidate,PType,PType,PNode,PNode	sigmatch: paramTypesMatch(m: var TCandidate; f, a: PType; arg, argOrig: PNode): PNode	
+semFinishOperands	sem/sigmatch.html#semFinishOperands,PContext,PNode	sigmatch: semFinishOperands(c: PContext; n: PNode)	
+partialMatch	sem/sigmatch.html#partialMatch,PContext,PNode,PNode,TCandidate	sigmatch: partialMatch(c: PContext; n, nOrig: PNode; m: var TCandidate)	
+matches	sem/sigmatch.html#matches,PContext,PNode,PNode,TCandidate	sigmatch: matches(c: PContext; n, nOrig: PNode; m: var TCandidate)	
+argtypeMatches	sem/sigmatch.html#argtypeMatches,PContext,PType,PType	sigmatch: argtypeMatches(c: PContext; f, a: PType; fromHlo = false): bool	
+instTypeBoundOp	sem/sigmatch.html#instTypeBoundOp,PContext,PSym,PType,TLineInfo,TTypeAttachedOp,int	sigmatch: instTypeBoundOp(c: PContext; dc: PSym; t: PType; info: TLineInfo;\n                op: TTypeAttachedOp; col: int): PSym	
+`$`	sem/sigmatch.html#$,Suggest	sigmatch: `$`(suggest: Suggest): string	
+fieldVisible	sem/sigmatch.html#fieldVisible,PContext,PSym	sigmatch: fieldVisible(c: PContext; f: PSym): bool	
+cpNone	sem/sigmatch.html#cpNone	TCheckPointResult.cpNone	
+cpFuzzy	sem/sigmatch.html#cpFuzzy	TCheckPointResult.cpFuzzy	
+cpExact	sem/sigmatch.html#cpExact	TCheckPointResult.cpExact	
+TCheckPointResult	sem/sigmatch.html#TCheckPointResult	sigmatch: TCheckPointResult	
+inCheckpoint	sem/sigmatch.html#inCheckpoint,TLineInfo,TLineInfo	sigmatch: inCheckpoint(current, trackPos: TLineInfo): TCheckPointResult	
+isTracked	sem/sigmatch.html#isTracked,TLineInfo,TLineInfo,int	sigmatch: isTracked(current, trackPos: TLineInfo; tokenLen: int): bool	
+suggestSym	sem/sigmatch.html#suggestSym,ModuleGraph,TLineInfo,PSym,PSym	sigmatch: suggestSym(g: ModuleGraph; info: TLineInfo; s: PSym; usageSym: var PSym;\n           isDecl = true)	
+markOwnerModuleAsUsed	sem/sigmatch.html#markOwnerModuleAsUsed,PContext,PSym	sigmatch: markOwnerModuleAsUsed(c: PContext; s: PSym)	
+markUsed	sem/sigmatch.html#markUsed,PContext,TLineInfo,PSym	sigmatch: markUsed(c: PContext; info: TLineInfo; s: PSym)	
+safeSemExpr	sem/sigmatch.html#safeSemExpr,PContext,PNode	sigmatch: safeSemExpr(c: PContext; n: PNode): PNode	
+suggestExprNoCheck	sem/sigmatch.html#suggestExprNoCheck,PContext,PNode	sigmatch: suggestExprNoCheck(c: PContext; n: PNode)	
+suggestExpr	sem/sigmatch.html#suggestExpr,PContext,PNode	sigmatch: suggestExpr(c: PContext; n: PNode)	
+suggestDecl	sem/sigmatch.html#suggestDecl,PContext,PNode,PSym	sigmatch: suggestDecl(c: PContext; n: PNode; s: PSym)	
+suggestStmt	sem/sigmatch.html#suggestStmt,PContext,PNode	sigmatch: suggestStmt(c: PContext; n: PNode)	
+suggestEnum	sem/sigmatch.html#suggestEnum,PContext,PNode,PType	sigmatch: suggestEnum(c: PContext; n: PNode; t: PType)	
+suggestSentinel	sem/sigmatch.html#suggestSentinel,PContext	sigmatch: suggestSentinel(c: PContext)	

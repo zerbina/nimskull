@@ -1,0 +1,4 @@
+commonOptimizations	sem/transf.html#commonOptimizations,ModuleGraph,IdGenerator,PSym,PNode	transf: commonOptimizations(g: ModuleGraph; idgen: IdGenerator; c: PSym; n: PNode): PNode	
+transformBody	sem/transf.html#transformBody,ModuleGraph,IdGenerator,PSym,bool	transf: transformBody(g: ModuleGraph; idgen: IdGenerator; prc: PSym; cache: bool): PNode	
+transformStmt	sem/transf.html#transformStmt,ModuleGraph,IdGenerator,PSym,PNode	transf: transformStmt(g: ModuleGraph; idgen: IdGenerator; module: PSym; n: PNode): PNode	
+transformExpr	sem/transf.html#transformExpr,ModuleGraph,IdGenerator,PSym,PNode	transf: transformExpr(g: ModuleGraph; idgen: IdGenerator; module: PSym; n: PNode): PNode	

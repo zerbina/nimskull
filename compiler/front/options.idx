@@ -1,0 +1,334 @@
+hasTinyCBackend	front/options.html#hasTinyCBackend	options: hasTinyCBackend	
+useEffectSystem	front/options.html#useEffectSystem	options: useEffectSystem	
+useWriteTracking	front/options.html#useWriteTracking	options: useWriteTracking	
+hasFFI	front/options.html#hasFFI	options: hasFFI	
+copyrightYear	front/options.html#copyrightYear	options: copyrightYear	
+nimEnableCovariance	front/options.html#nimEnableCovariance	options: nimEnableCovariance	
+gloptNone	front/options.html#gloptNone	TGlobalOption.gloptNone	
+optForceFullMake	front/options.html#optForceFullMake	TGlobalOption.optForceFullMake	
+optWasNimscript	front/options.html#optWasNimscript	TGlobalOption.optWasNimscript	
+optListCmd	front/options.html#optListCmd	TGlobalOption.optListCmd	
+optCompileOnly	front/options.html#optCompileOnly	TGlobalOption.optCompileOnly	
+optNoLinking	front/options.html#optNoLinking	TGlobalOption.optNoLinking	
+optCDebug	front/options.html#optCDebug	TGlobalOption.optCDebug	
+optGenDynLib	front/options.html#optGenDynLib	TGlobalOption.optGenDynLib	
+optGenStaticLib	front/options.html#optGenStaticLib	TGlobalOption.optGenStaticLib	
+optGenGuiApp	front/options.html#optGenGuiApp	TGlobalOption.optGenGuiApp	
+optGenScript	front/options.html#optGenScript	TGlobalOption.optGenScript	
+optGenMapping	front/options.html#optGenMapping	TGlobalOption.optGenMapping	
+optRun	front/options.html#optRun	TGlobalOption.optRun	
+optUseNimcache	front/options.html#optUseNimcache	TGlobalOption.optUseNimcache	
+optStyleHint	front/options.html#optStyleHint	TGlobalOption.optStyleHint	
+optStyleError	front/options.html#optStyleError	TGlobalOption.optStyleError	
+optStyleUsages	front/options.html#optStyleUsages	TGlobalOption.optStyleUsages	
+optSkipSystemConfigFile	front/options.html#optSkipSystemConfigFile	TGlobalOption.optSkipSystemConfigFile	
+optSkipProjConfigFile	front/options.html#optSkipProjConfigFile	TGlobalOption.optSkipProjConfigFile	
+optSkipUserConfigFile	front/options.html#optSkipUserConfigFile	TGlobalOption.optSkipUserConfigFile	
+optSkipParentConfigFiles	front/options.html#optSkipParentConfigFiles	TGlobalOption.optSkipParentConfigFiles	
+optNoMain	front/options.html#optNoMain	TGlobalOption.optNoMain	
+optUseColors	front/options.html#optUseColors	TGlobalOption.optUseColors	
+optThreads	front/options.html#optThreads	TGlobalOption.optThreads	
+optStdout	front/options.html#optStdout	TGlobalOption.optStdout	
+optThreadAnalysis	front/options.html#optThreadAnalysis	TGlobalOption.optThreadAnalysis	
+optTlsEmulation	front/options.html#optTlsEmulation	TGlobalOption.optTlsEmulation	
+optGenIndex	front/options.html#optGenIndex	TGlobalOption.optGenIndex	
+optEmbedOrigSrc	front/options.html#optEmbedOrigSrc	TGlobalOption.optEmbedOrigSrc	
+optIdeDebug	front/options.html#optIdeDebug	TGlobalOption.optIdeDebug	
+optIdeTerse	front/options.html#optIdeTerse	TGlobalOption.optIdeTerse	
+optExcessiveStackTrace	front/options.html#optExcessiveStackTrace	TGlobalOption.optExcessiveStackTrace	
+optShowAllMismatches	front/options.html#optShowAllMismatches	TGlobalOption.optShowAllMismatches	
+optWholeProject	front/options.html#optWholeProject	TGlobalOption.optWholeProject	
+optDocInternal	front/options.html#optDocInternal	TGlobalOption.optDocInternal	
+optMixedMode	front/options.html#optMixedMode	TGlobalOption.optMixedMode	
+optDeclaredLocs	front/options.html#optDeclaredLocs	TGlobalOption.optDeclaredLocs	
+optNoNimblePath	front/options.html#optNoNimblePath	TGlobalOption.optNoNimblePath	
+optHotCodeReloading	front/options.html#optHotCodeReloading	TGlobalOption.optHotCodeReloading	
+optDynlibOverrideAll	front/options.html#optDynlibOverrideAll	TGlobalOption.optDynlibOverrideAll	
+optSeqDestructors	front/options.html#optSeqDestructors	TGlobalOption.optSeqDestructors	
+optTinyRtti	front/options.html#optTinyRtti	TGlobalOption.optTinyRtti	
+optOwnedRefs	front/options.html#optOwnedRefs	TGlobalOption.optOwnedRefs	
+optMultiMethods	front/options.html#optMultiMethods	TGlobalOption.optMultiMethods	
+optBenchmarkVM	front/options.html#optBenchmarkVM	TGlobalOption.optBenchmarkVM	
+optProduceAsm	front/options.html#optProduceAsm	TGlobalOption.optProduceAsm	
+optPanics	front/options.html#optPanics	TGlobalOption.optPanics	
+optNimV1Emulation	front/options.html#optNimV1Emulation	TGlobalOption.optNimV1Emulation	
+optNimV12Emulation	front/options.html#optNimV12Emulation	TGlobalOption.optNimV12Emulation	
+optSourcemap	front/options.html#optSourcemap	TGlobalOption.optSourcemap	
+optProfileVM	front/options.html#optProfileVM	TGlobalOption.optProfileVM	
+optEnableDeepCopy	front/options.html#optEnableDeepCopy	TGlobalOption.optEnableDeepCopy	
+TGlobalOption	front/options.html#TGlobalOption	options: TGlobalOption	
+TGlobalOptions	front/options.html#TGlobalOptions	options: TGlobalOptions	
+harmlessOptions	front/options.html#harmlessOptions	options: harmlessOptions	
+genSubDir	front/options.html#genSubDir	options: genSubDir	
+NimExt	front/options.html#NimExt	options: NimExt	
+RodExt	front/options.html#RodExt	options: RodExt	
+HtmlExt	front/options.html#HtmlExt	options: HtmlExt	
+JsonExt	front/options.html#JsonExt	options: JsonExt	
+TagsExt	front/options.html#TagsExt	options: TagsExt	
+TexExt	front/options.html#TexExt	options: TexExt	
+IniExt	front/options.html#IniExt	options: IniExt	
+DefaultConfig	front/options.html#DefaultConfig	options: DefaultConfig	
+DefaultConfigNims	front/options.html#DefaultConfigNims	options: DefaultConfigNims	
+DocConfig	front/options.html#DocConfig	options: DocConfig	
+DocTexConfig	front/options.html#DocTexConfig	options: DocTexConfig	
+htmldocsDir	front/options.html#htmldocsDir	options: htmldocsDir	
+docRootDefault	front/options.html#docRootDefault	options: docRootDefault	
+oKeepVariableNames	front/options.html#oKeepVariableNames	options: oKeepVariableNames	
+spellSuggestSecretSauce	front/options.html#spellSuggestSecretSauce	options: spellSuggestSecretSauce	
+backendInvalid	front/options.html#backendInvalid	TBackend.backendInvalid	
+backendC	front/options.html#backendC	TBackend.backendC	
+backendCpp	front/options.html#backendCpp	TBackend.backendCpp	
+backendJs	front/options.html#backendJs	TBackend.backendJs	
+backendObjc	front/options.html#backendObjc	TBackend.backendObjc	
+TBackend	front/options.html#TBackend	options: TBackend	
+cmdNone	front/options.html#cmdNone	Command.cmdNone	
+cmdUnknown	front/options.html#cmdUnknown	Command.cmdUnknown	
+cmdCompileToC	front/options.html#cmdCompileToC	Command.cmdCompileToC	
+cmdCompileToCpp	front/options.html#cmdCompileToCpp	Command.cmdCompileToCpp	
+cmdCompileToOC	front/options.html#cmdCompileToOC	Command.cmdCompileToOC	
+cmdCompileToJS	front/options.html#cmdCompileToJS	Command.cmdCompileToJS	
+cmdCrun	front/options.html#cmdCrun	Command.cmdCrun	
+cmdTcc	front/options.html#cmdTcc	Command.cmdTcc	
+cmdCheck	front/options.html#cmdCheck	Command.cmdCheck	
+cmdParse	front/options.html#cmdParse	Command.cmdParse	
+cmdRod	front/options.html#cmdRod	Command.cmdRod	
+cmdIdeTools	front/options.html#cmdIdeTools	Command.cmdIdeTools	
+cmdNimscript	front/options.html#cmdNimscript	Command.cmdNimscript	
+cmdDoc0	front/options.html#cmdDoc0	Command.cmdDoc0	
+cmdDoc	front/options.html#cmdDoc	Command.cmdDoc	
+cmdDoc2tex	front/options.html#cmdDoc2tex	Command.cmdDoc2tex	
+cmdRst2html	front/options.html#cmdRst2html	Command.cmdRst2html	
+cmdRst2tex	front/options.html#cmdRst2tex	Command.cmdRst2tex	
+cmdJsondoc0	front/options.html#cmdJsondoc0	Command.cmdJsondoc0	
+cmdJsondoc	front/options.html#cmdJsondoc	Command.cmdJsondoc	
+cmdCtags	front/options.html#cmdCtags	Command.cmdCtags	
+cmdBuildindex	front/options.html#cmdBuildindex	Command.cmdBuildindex	
+cmdGendepend	front/options.html#cmdGendepend	Command.cmdGendepend	
+cmdDump	front/options.html#cmdDump	Command.cmdDump	
+cmdInteractive	front/options.html#cmdInteractive	Command.cmdInteractive	
+cmdNop	front/options.html#cmdNop	Command.cmdNop	
+cmdJsonscript	front/options.html#cmdJsonscript	Command.cmdJsonscript	
+cmdNimfix	front/options.html#cmdNimfix	Command.cmdNimfix	
+Command	front/options.html#Command	options: Command	
+cmdBackends	front/options.html#cmdBackends	options: cmdBackends	
+cmdDocLike	front/options.html#cmdDocLike	options: cmdDocLike	
+NimVer	front/options.html#NimVer	options: NimVer	
+TStringSeq	front/options.html#TStringSeq	options: TStringSeq	
+gcUnselected	front/options.html#gcUnselected	TGCMode.gcUnselected	
+gcNone	front/options.html#gcNone	TGCMode.gcNone	
+gcBoehm	front/options.html#gcBoehm	TGCMode.gcBoehm	
+gcRegions	front/options.html#gcRegions	TGCMode.gcRegions	
+gcArc	front/options.html#gcArc	TGCMode.gcArc	
+gcOrc	front/options.html#gcOrc	TGCMode.gcOrc	
+gcMarkAndSweep	front/options.html#gcMarkAndSweep	TGCMode.gcMarkAndSweep	
+gcHooks	front/options.html#gcHooks	TGCMode.gcHooks	
+gcRefc	front/options.html#gcRefc	TGCMode.gcRefc	
+gcV2	front/options.html#gcV2	TGCMode.gcV2	
+gcGo	front/options.html#gcGo	TGCMode.gcGo	
+TGCMode	front/options.html#TGCMode	options: TGCMode	
+ideNone	front/options.html#ideNone	IdeCmd.ideNone	
+ideSug	front/options.html#ideSug	IdeCmd.ideSug	
+ideCon	front/options.html#ideCon	IdeCmd.ideCon	
+ideDef	front/options.html#ideDef	IdeCmd.ideDef	
+ideUse	front/options.html#ideUse	IdeCmd.ideUse	
+ideDus	front/options.html#ideDus	IdeCmd.ideDus	
+ideChk	front/options.html#ideChk	IdeCmd.ideChk	
+ideMod	front/options.html#ideMod	IdeCmd.ideMod	
+ideHighlight	front/options.html#ideHighlight	IdeCmd.ideHighlight	
+ideOutline	front/options.html#ideOutline	IdeCmd.ideOutline	
+ideKnown	front/options.html#ideKnown	IdeCmd.ideKnown	
+ideMsg	front/options.html#ideMsg	IdeCmd.ideMsg	
+ideProject	front/options.html#ideProject	IdeCmd.ideProject	
+IdeCmd	front/options.html#IdeCmd	options: IdeCmd	
+implicitDeref	front/options.html#implicitDeref	Feature.implicitDeref	
+dotOperators	front/options.html#dotOperators	Feature.dotOperators	
+callOperator	front/options.html#callOperator	Feature.callOperator	
+parallel	front/options.html#parallel	Feature.parallel	
+destructor	front/options.html#destructor	Feature.destructor	
+notnil	front/options.html#notnil	Feature.notnil	
+dynamicBindSym	front/options.html#dynamicBindSym	Feature.dynamicBindSym	
+forLoopMacros	front/options.html#forLoopMacros	Feature.forLoopMacros	
+caseStmtMacros	front/options.html#caseStmtMacros	Feature.caseStmtMacros	
+codeReordering	front/options.html#codeReordering	Feature.codeReordering	
+compiletimeFFI	front/options.html#compiletimeFFI	Feature.compiletimeFFI	
+vmopsDanger	front/options.html#vmopsDanger	Feature.vmopsDanger	
+strictFuncs	front/options.html#strictFuncs	Feature.strictFuncs	
+views	front/options.html#views	Feature.views	
+strictNotNil	front/options.html#strictNotNil	Feature.strictNotNil	
+overloadableEnums	front/options.html#overloadableEnums	Feature.overloadableEnums	
+strictEffects	front/options.html#strictEffects	Feature.strictEffects	
+unicodeOperators	front/options.html#unicodeOperators	Feature.unicodeOperators	
+Feature	front/options.html#Feature	options: Feature	
+allowSemcheckedAstModification	front/options.html#allowSemcheckedAstModification	LegacyFeature.allowSemcheckedAstModification	
+checkUnsignedConversions	front/options.html#checkUnsignedConversions	LegacyFeature.checkUnsignedConversions	
+LegacyFeature	front/options.html#LegacyFeature	options: LegacyFeature	
+disabledSf	front/options.html#disabledSf	SymbolFilesOption.disabledSf	
+writeOnlySf	front/options.html#writeOnlySf	SymbolFilesOption.writeOnlySf	
+readOnlySf	front/options.html#readOnlySf	SymbolFilesOption.readOnlySf	
+v2Sf	front/options.html#v2Sf	SymbolFilesOption.v2Sf	
+stressTest	front/options.html#stressTest	SymbolFilesOption.stressTest	
+SymbolFilesOption	front/options.html#SymbolFilesOption	options: SymbolFilesOption	
+ccNone	front/options.html#ccNone	TSystemCC.ccNone	
+ccGcc	front/options.html#ccGcc	TSystemCC.ccGcc	
+ccNintendoSwitch	front/options.html#ccNintendoSwitch	TSystemCC.ccNintendoSwitch	
+ccLLVM_Gcc	front/options.html#ccLLVM_Gcc	TSystemCC.ccLLVM_Gcc	
+ccCLang	front/options.html#ccCLang	TSystemCC.ccCLang	
+ccBcc	front/options.html#ccBcc	TSystemCC.ccBcc	
+ccVcc	front/options.html#ccVcc	TSystemCC.ccVcc	
+ccTcc	front/options.html#ccTcc	TSystemCC.ccTcc	
+ccEnv	front/options.html#ccEnv	TSystemCC.ccEnv	
+ccIcl	front/options.html#ccIcl	TSystemCC.ccIcl	
+ccIcc	front/options.html#ccIcc	TSystemCC.ccIcc	
+ccClangCl	front/options.html#ccClangCl	TSystemCC.ccClangCl	
+TSystemCC	front/options.html#TSystemCC	options: TSystemCC	
+excNone	front/options.html#excNone	ExceptionSystem.excNone	
+excSetjmp	front/options.html#excSetjmp	ExceptionSystem.excSetjmp	
+excCpp	front/options.html#excCpp	ExceptionSystem.excCpp	
+excGoto	front/options.html#excGoto	ExceptionSystem.excGoto	
+excQuirky	front/options.html#excQuirky	ExceptionSystem.excQuirky	
+ExceptionSystem	front/options.html#ExceptionSystem	options: ExceptionSystem	
+CfileFlag	front/options.html#CfileFlag	options: CfileFlag	
+Cfile	front/options.html#Cfile	options: Cfile	
+CfileList	front/options.html#CfileList	options: CfileList	
+Suggest	front/options.html#Suggest	options: Suggest	
+Suggestions	front/options.html#Suggestions	options: Suggestions	
+ProfileInfo	front/options.html#ProfileInfo	options: ProfileInfo	
+ProfileData	front/options.html#ProfileData	options: ProfileData	
+stdOrrStdout	front/options.html#stdOrrStdout	StdOrrKind.stdOrrStdout	
+stdOrrStderr	front/options.html#stdOrrStderr	StdOrrKind.stdOrrStderr	
+StdOrrKind	front/options.html#StdOrrKind	options: StdOrrKind	
+foAbs	front/options.html#foAbs	FilenameOption.foAbs	
+foRelProject	front/options.html#foRelProject	FilenameOption.foRelProject	
+foCanonical	front/options.html#foCanonical	FilenameOption.foCanonical	
+foLegacyRelProj	front/options.html#foLegacyRelProj	FilenameOption.foLegacyRelProj	
+foName	front/options.html#foName	FilenameOption.foName	
+foStacktrace	front/options.html#foStacktrace	FilenameOption.foStacktrace	
+FilenameOption	front/options.html#FilenameOption	options: FilenameOption	
+msgStdout	front/options.html#msgStdout	MsgFlag.msgStdout	
+msgNoUnitSep	front/options.html#msgNoUnitSep	MsgFlag.msgNoUnitSep	
+MsgFlag	front/options.html#MsgFlag	options: MsgFlag	
+MsgFlags	front/options.html#MsgFlags	options: MsgFlags	
+doDefault	front/options.html#doDefault	TErrorHandling.doDefault	
+doNothing	front/options.html#doNothing	TErrorHandling.doNothing	
+doAbort	front/options.html#doAbort	TErrorHandling.doAbort	
+doRaise	front/options.html#doRaise	TErrorHandling.doRaise	
+TErrorHandling	front/options.html#TErrorHandling	options: TErrorHandling	
+ReportHook	front/options.html#ReportHook	options: ReportHook	
+cnCurrent	front/options.html#cnCurrent	ConfNoteSet.cnCurrent	
+cnMainPackage	front/options.html#cnMainPackage	ConfNoteSet.cnMainPackage	
+cnForeign	front/options.html#cnForeign	ConfNoteSet.cnForeign	
+cnWarnAsError	front/options.html#cnWarnAsError	ConfNoteSet.cnWarnAsError	
+cnHintAsError	front/options.html#cnHintAsError	ConfNoteSet.cnHintAsError	
+cnCmdline	front/options.html#cnCmdline	ConfNoteSet.cnCmdline	
+cnModifiedy	front/options.html#cnModifiedy	ConfNoteSet.cnModifiedy	
+ConfNoteSet	front/options.html#ConfNoteSet	options: ConfNoteSet	
+ConfigRef	front/options.html#ConfigRef	options: ConfigRef	
+incl	front/options.html#incl,ConfigRef,ConfNoteSet,ReportKind	options: incl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)	
+excl	front/options.html#excl,ConfigRef,ConfNoteSet,ReportKind	options: excl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)	
+asgn	front/options.html#asgn,ConfigRef,ConfNoteSet,ReportKinds	options: asgn(conf: ConfigRef; nset: ConfNoteSet; notes: ReportKinds)	
+asgn	front/options.html#asgn,ConfigRef,ConfNoteSet,ConfNoteSet	options: asgn(conf: ConfigRef; sto, sfrom: ConfNoteSet)	
+flip	front/options.html#flip,ConfigRef,ConfNoteSet,ReportKind,bool	options: flip(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind; state: bool)	
+options	front/options.html#options,ConfigRef	options: options(conf: ConfigRef): TOptions	
+options=	front/options.html#options=,ConfigRef,TOptions	options: options=(conf: ConfigRef; opts: TOptions)	
+excl	front/options.html#excl,ConfigRef,	options: excl(conf: ConfigRef; opt: TOption | TOptions)	
+incl	front/options.html#incl,ConfigRef,	options: incl(conf: ConfigRef; opt: TOption | TOptions)	
+modifiedyNotes	front/options.html#modifiedyNotes,ConfigRef	options: modifiedyNotes(conf: ConfigRef): ReportKinds	
+cmdlineNotes	front/options.html#cmdlineNotes,ConfigRef	options: cmdlineNotes(conf: ConfigRef): ReportKinds	
+foreignPackageNotes	front/options.html#foreignPackageNotes,ConfigRef	options: foreignPackageNotes(conf: ConfigRef): ReportKinds	
+notes	front/options.html#notes,ConfigRef	options: notes(conf: ConfigRef): ReportKinds	
+warningAsErrors	front/options.html#warningAsErrors,ConfigRef	options: warningAsErrors(conf: ConfigRef): ReportKinds	
+hintsAsErrors	front/options.html#hintsAsErrors,ConfigRef	options: hintsAsErrors(conf: ConfigRef): ReportKinds	
+mainPackageNotes	front/options.html#mainPackageNotes,ConfigRef	options: mainPackageNotes(conf: ConfigRef): ReportKinds	
+modifiedyNotes=	front/options.html#modifiedyNotes=,ConfigRef,ReportKinds	options: modifiedyNotes=(conf: ConfigRef; nset: ReportKinds)	
+cmdlineNotes=	front/options.html#cmdlineNotes=,ConfigRef,ReportKinds	options: cmdlineNotes=(conf: ConfigRef; nset: ReportKinds)	
+foreignPackageNotes=	front/options.html#foreignPackageNotes=,ConfigRef,ReportKinds	options: foreignPackageNotes=(conf: ConfigRef; nset: ReportKinds)	
+notes=	front/options.html#notes=,ConfigRef,ReportKinds	options: notes=(conf: ConfigRef; nset: ReportKinds)	
+warningAsErrors=	front/options.html#warningAsErrors=,ConfigRef,ReportKinds	options: warningAsErrors=(conf: ConfigRef; nset: ReportKinds)	
+hintsAsErrors=	front/options.html#hintsAsErrors=,ConfigRef,ReportKinds	options: hintsAsErrors=(conf: ConfigRef; nset: ReportKinds)	
+mainPackageNotes=	front/options.html#mainPackageNotes=,ConfigRef,ReportKinds	options: mainPackageNotes=(conf: ConfigRef; nset: ReportKinds)	
+writelnHook	front/options.html#writelnHook,ConfigRef,string,MsgFlags	options: writelnHook(conf: ConfigRef; msg: string; flags: MsgFlags = {})	
+writeHook	front/options.html#writeHook,ConfigRef,string,MsgFlags	options: writeHook(conf: ConfigRef; msg: string; flags: MsgFlags = {})	
+writeln	front/options.html#writeln,ConfigRef,varargs[string,]	options: writeln(conf: ConfigRef; args: varargs[string, `$`])	
+write	front/options.html#write,ConfigRef,varargs[string,]	options: write(conf: ConfigRef; args: varargs[string, `$`])	
+setReportHook	front/options.html#setReportHook,ConfigRef,ReportHook	options: setReportHook(conf: ConfigRef; hook: ReportHook)	
+getReportHook	front/options.html#getReportHook,ConfigRef	options: getReportHook(conf: ConfigRef): ReportHook	
+report	front/options.html#report,ConfigRef,Report	options: report(conf: ConfigRef; inReport: Report): TErrorHandling	
+canReport	front/options.html#canReport,ConfigRef,ReportId	options: canReport(conf: ConfigRef; id: ReportId): bool	
+canReport	front/options.html#canReport,ConfigRef,PNode	options: canReport(conf: ConfigRef; node: PNode): bool	
+report	front/options.html#report,ConfigRef,ReportId	options: report(conf: ConfigRef; id: ReportId): TErrorHandling	
+report	front/options.html#report,ConfigRef,PNode	options: report(conf: ConfigRef; node: PNode): TErrorHandling	
+report	front/options.html#report.t,ConfigRef,R	options: report[R: ReportTypes](conf: ConfigRef; inReport: R): TErrorHandling	
+report	front/options.html#report.t,ConfigRef,TLineInfo,R	options: report[R: ReportTypes](conf: ConfigRef; tinfo: TLineInfo; inReport: R): TErrorHandling	
+addReport	front/options.html#addReport,ConfigRef,Report	options: addReport(conf: ConfigRef; report: Report): ReportId	
+getReport	front/options.html#getReport,ConfigRef,ReportId	options: getReport(conf: ConfigRef; report: ReportId): Report	
+getReport	front/options.html#getReport,ConfigRef,PNode	options: getReport(conf: ConfigRef; err: PNode): Report	
+store	front/options.html#store.t,ConfigRef,ReportTypes	options: store(conf: ConfigRef; report: ReportTypes): untyped	
+store	front/options.html#store.t,ConfigRef,TLineInfo,ReportTypes	options: store(conf: ConfigRef; linfo: TLineInfo; report: ReportTypes): untyped	
+isCompilerFatal	front/options.html#isCompilerFatal,ConfigRef,Report	options: isCompilerFatal(conf: ConfigRef; report: Report): bool	
+severity	front/options.html#severity,ConfigRef,	options: severity(conf: ConfigRef; report: ReportTypes | Report): ReportSeverity	
+isCodeError	front/options.html#isCodeError,ConfigRef,Report	options: isCodeError(conf: ConfigRef; report: Report): bool	
+useColor	front/options.html#useColor,ConfigRef	options: useColor(conf: ConfigRef): bool	
+parseNimVersion	front/options.html#parseNimVersion,string	options: parseNimVersion(a: string): NimVer	
+assignIfDefault	front/options.html#assignIfDefault,T,T,typeof(default(T))	options: assignIfDefault[T](result: var T; val: T; def = default(T))	
+setErrorMaxHighMaybe	front/options.html#setErrorMaxHighMaybe.t,ConfigRef	options: setErrorMaxHighMaybe(conf: ConfigRef)	
+setNoteDefaults	front/options.html#setNoteDefaults,ConfigRef,ReportKind	options: setNoteDefaults(conf: ConfigRef; note: ReportKind; enabled = true)	
+setNote	front/options.html#setNote,ConfigRef,ReportKind	options: setNote(conf: ConfigRef; note: ReportKind; enabled = true)	
+hasHint	front/options.html#hasHint,ConfigRef,ReportKind	options: hasHint(conf: ConfigRef; note: ReportKind): bool	
+hasWarn	front/options.html#hasWarn,ConfigRef,ReportKind	options: hasWarn(conf: ConfigRef; note: ReportKind): bool	
+isEnabled	front/options.html#isEnabled,ConfigRef,ReportKind	options: isEnabled(conf: ConfigRef; report: ReportKind): bool	
+isEnabled	front/options.html#isEnabled,ConfigRef,Report	options: isEnabled(conf: ConfigRef; report: Report): bool	
+hcrOn	front/options.html#hcrOn,ConfigRef	options: hcrOn(conf: ConfigRef): bool	
+oldExperimentalFeatures	front/options.html#oldExperimentalFeatures	options: oldExperimentalFeatures	
+ChecksOptions	front/options.html#ChecksOptions	options: ChecksOptions	
+DefaultOptions	front/options.html#DefaultOptions	options: DefaultOptions	
+DefaultGlobalOptions	front/options.html#DefaultGlobalOptions	options: DefaultGlobalOptions	
+getDateStr	front/options.html#getDateStr	options: getDateStr(): string	
+getClockStr	front/options.html#getClockStr	options: getClockStr(): string	
+newPackageCache	front/options.html#newPackageCache.t	options: newPackageCache(): untyped	
+newConfigRef	front/options.html#newConfigRef,ReportHook	options: newConfigRef(hook: ReportHook): ConfigRef	
+newPartialConfigRef	front/options.html#newPartialConfigRef	options: newPartialConfigRef(): ConfigRef	
+cppDefine	front/options.html#cppDefine,ConfigRef,string	options: cppDefine(c: ConfigRef; define: string)	
+getStdlibVersion	front/options.html#getStdlibVersion,ConfigRef	options: getStdlibVersion(conf: ConfigRef): NimVer	
+isDefined	front/options.html#isDefined,ConfigRef,string	options: isDefined(conf: ConfigRef; symbol: string): bool	
+getDefined	front/options.html#getDefined,ConfigRef,string	options: getDefined(conf: ConfigRef; sym: string): string	
+quitOrRaise	front/options.html#quitOrRaise.t,ConfigRef,string	options: quitOrRaise(conf: ConfigRef; msg = &quot;&quot;)	
+importantComments	front/options.html#importantComments,ConfigRef	options: importantComments(conf: ConfigRef): bool	
+usesWriteBarrier	front/options.html#usesWriteBarrier,ConfigRef	options: usesWriteBarrier(conf: ConfigRef): bool	
+compilationCachePresent	front/options.html#compilationCachePresent.t,ConfigRef	options: compilationCachePresent(conf: ConfigRef): untyped	
+optPreserveOrigSource	front/options.html#optPreserveOrigSource.t,ConfigRef	options: optPreserveOrigSource(conf: ConfigRef): untyped	
+mainCommandArg	front/options.html#mainCommandArg,ConfigRef	options: mainCommandArg(conf: ConfigRef): string	
+existsConfigVar	front/options.html#existsConfigVar,ConfigRef,string	options: existsConfigVar(conf: ConfigRef; key: string): bool	
+getConfigVar	front/options.html#getConfigVar,ConfigRef,string,string	options: getConfigVar(conf: ConfigRef; key: string; default = &quot;&quot;): string	
+setConfigVar	front/options.html#setConfigVar,ConfigRef,string,string	options: setConfigVar(conf: ConfigRef; key, val: string)	
+getOutFile	front/options.html#getOutFile,ConfigRef,RelativeFile,string	options: getOutFile(conf: ConfigRef; filename: RelativeFile; ext: string): AbsoluteFile	
+absOutFile	front/options.html#absOutFile,ConfigRef	options: absOutFile(conf: ConfigRef): AbsoluteFile	
+prepareToWriteOutput	front/options.html#prepareToWriteOutput,ConfigRef	options: prepareToWriteOutput(conf: ConfigRef): AbsoluteFile	
+getPrefixDir	front/options.html#getPrefixDir,ConfigRef	options: getPrefixDir(conf: ConfigRef): AbsoluteDir	
+setDefaultLibpath	front/options.html#setDefaultLibpath,ConfigRef	options: setDefaultLibpath(conf: ConfigRef)	
+canonicalizePath	front/options.html#canonicalizePath,ConfigRef,AbsoluteFile	options: canonicalizePath(conf: ConfigRef; path: AbsoluteFile): AbsoluteFile	
+setFromProjectName	front/options.html#setFromProjectName,ConfigRef,string	options: setFromProjectName(conf: ConfigRef; projectName: string)	
+removeTrailingDirSep	front/options.html#removeTrailingDirSep,string	options: removeTrailingDirSep(path: string): string	
+disableNimblePath	front/options.html#disableNimblePath,ConfigRef	options: disableNimblePath(conf: ConfigRef)	
+clearNimblePath	front/options.html#clearNimblePath,ConfigRef	options: clearNimblePath(conf: ConfigRef)	
+getNimbleFile	front/options.html#getNimbleFile,ConfigRef,string	options: getNimbleFile(conf: ConfigRef; path: string): string	
+getPackageName	front/options.html#getPackageName,ConfigRef,string	options: getPackageName(conf: ConfigRef; path: string): string	
+fakePackageName	front/options.html#fakePackageName,ConfigRef,AbsoluteFile	options: fakePackageName(conf: ConfigRef; path: AbsoluteFile): string	
+demanglePackageName	front/options.html#demanglePackageName,string	options: demanglePackageName(path: string): string	
+withPackageName	front/options.html#withPackageName,ConfigRef,AbsoluteFile	options: withPackageName(conf: ConfigRef; path: AbsoluteFile): AbsoluteFile	
+getNimcacheDir	front/options.html#getNimcacheDir,ConfigRef	options: getNimcacheDir(conf: ConfigRef): AbsoluteDir	
+pathSubs	front/options.html#pathSubs,ConfigRef,string,string	options: pathSubs(conf: ConfigRef; p, config: string): string	
+nimbleSubs	front/options.html#nimbleSubs.i,ConfigRef,string	options: nimbleSubs(conf: ConfigRef; p: string): string	
+toGeneratedFile	front/options.html#toGeneratedFile,ConfigRef,AbsoluteFile,string	options: toGeneratedFile(conf: ConfigRef; path: AbsoluteFile; ext: string): AbsoluteFile	
+completeGeneratedFilePath	front/options.html#completeGeneratedFilePath,ConfigRef,AbsoluteFile,bool	options: completeGeneratedFilePath(conf: ConfigRef; f: AbsoluteFile;\n                          createSubDir: bool = true): AbsoluteFile	
+toRodFile	front/options.html#toRodFile,ConfigRef,AbsoluteFile	options: toRodFile(conf: ConfigRef; f: AbsoluteFile; ext = RodExt): AbsoluteFile	
+getRelativePathFromConfigPath	front/options.html#getRelativePathFromConfigPath,ConfigRef,AbsoluteFile	options: getRelativePathFromConfigPath(conf: ConfigRef; f: AbsoluteFile; isTitle = false): RelativeFile	
+findFile	front/options.html#findFile,ConfigRef,string	options: findFile(conf: ConfigRef; f: string; suppressStdlib = false): AbsoluteFile	
+findModule	front/options.html#findModule,ConfigRef,string,string	options: findModule(conf: ConfigRef; modulename, currentModule: string): AbsoluteFile	
+findProjectNimFile	front/options.html#findProjectNimFile,ConfigRef,string	options: findProjectNimFile(conf: ConfigRef; pkg: string): string	
+canonicalImportAux	front/options.html#canonicalImportAux,ConfigRef,AbsoluteFile	options: canonicalImportAux(conf: ConfigRef; file: AbsoluteFile): string	
+canonicalImport	front/options.html#canonicalImport,ConfigRef,AbsoluteFile	options: canonicalImport(conf: ConfigRef; file: AbsoluteFile): string	
+inclDynlibOverride	front/options.html#inclDynlibOverride,ConfigRef,string	options: inclDynlibOverride(conf: ConfigRef; lib: string)	
+isDynlibOverride	front/options.html#isDynlibOverride,ConfigRef,string	options: isDynlibOverride(conf: ConfigRef; lib: string): bool	
+parseIdeCmd	front/options.html#parseIdeCmd,string	options: parseIdeCmd(s: string): IdeCmd	
+`$`	front/options.html#$,IdeCmd	options: `$`(c: IdeCmd): string	
+floatInt64Align	front/options.html#floatInt64Align,ConfigRef	options: floatInt64Align(conf: ConfigRef): int16	

@@ -1,0 +1,11 @@
+MutationInfo	sem/varpartitions.html#MutationInfo	varpartitions: MutationInfo	
+constParameters	sem/varpartitions.html#constParameters	Goal.constParameters	
+borrowChecking	sem/varpartitions.html#borrowChecking	Goal.borrowChecking	
+cursorInference	sem/varpartitions.html#cursorInference	Goal.cursorInference	
+Goal	sem/varpartitions.html#Goal	varpartitions: Goal	
+Partitions	sem/varpartitions.html#Partitions	varpartitions: Partitions	
+`$`	sem/varpartitions.html#$,ConfigRef,MutationInfo	varpartitions: `$`(config: ConfigRef; g: MutationInfo): string	
+hasSideEffect	sem/varpartitions.html#hasSideEffect,Partitions,MutationInfo	varpartitions: hasSideEffect(c: var Partitions; info: var MutationInfo): bool	
+computeGraphPartitions	sem/varpartitions.html#computeGraphPartitions,PSym,PNode,ModuleGraph,set[Goal]	varpartitions: computeGraphPartitions(s: PSym; n: PNode; g: ModuleGraph; goals: set[Goal]): Partitions	
+checkBorrowedLocations	sem/varpartitions.html#checkBorrowedLocations,Partitions,PNode,ConfigRef	varpartitions: checkBorrowedLocations(par: var Partitions; body: PNode; config: ConfigRef)	
+computeCursors	sem/varpartitions.html#computeCursors,PSym,PNode,ModuleGraph	varpartitions: computeCursors(s: PSym; n: PNode; g: ModuleGraph)	
