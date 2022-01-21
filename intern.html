@@ -112,7 +112,11 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference" id="the-compiler-s-architecture-reports_toc" href="#the-compiler-s-architecture-reports">Reports</a></li>
 <li><a class="reference" id="the-compiler-s-architecture-vm_toc" href="#the-compiler-s-architecture-vm">VM</a></li>
 </ul><li><a class="reference" id="bisecting-for-regressions_toc" href="#bisecting-for-regressions">Bisecting for regressions</a></li>
-<li><a class="reference" id="runtimes_toc" href="#runtimes">Runtimes</a></li>
+<li><a class="reference" id="debugging-the-compiler_toc" href="#debugging-the-compiler">Debugging the compiler</a></li>
+<ul class="simple"><li><a class="reference" id="debugging-the-compiler-special-defines_toc" href="#debugging-the-compiler-special-defines">Special defines</a></li>
+<li><a class="reference" id="debugging-the-compiler-semantic-analysis_toc" href="#debugging-the-compiler-semantic-analysis">Semantic analysis</a></li>
+<li><a class="reference" id="debugging-the-compiler-vm-codegen-and-execution_toc" href="#debugging-the-compiler-vm-codegen-and-execution">VM codegen and execution</a></li>
+</ul><li><a class="reference" id="runtimes_toc" href="#runtimes">Runtimes</a></li>
 <li><a class="reference" id="coding-guidelines_toc" href="#coding-guidelines">Coding Guidelines</a></li>
 <li><a class="reference" id="porting-to-new-platforms_toc" href="#porting-to-new-platforms">Porting to new platforms</a></li>
 <li><a class="reference" id="runtime-type-information_toc" href="#runtime-type-information">Runtime type information</a></li>
@@ -128,7 +132,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/e6119b4e14583ea8b93df096074480368ab33910/doc/intern.rst#L1"
+href="https://github.com/nim-works/nimskull/tree/383bc9949ebc382d655fe69216c68ead44b2aee5/doc/intern.rst#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/doc/intern.rst#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -250,6 +254,66 @@ class="link-seesrc" target="_blank">Source</a>
 <pre class="listing"><span class="program">git</span> <span class="option">bisect</span> <span class="option">start</span> <span class="option">bad-commit</span> <span class="option">good-commit</span>
 <span class="program">git</span> <span class="option">bisect</span> <span class="option">run</span> <span class="Identifier">./koch.py</span> <span class="option">temp</span> <span class="option">-r</span> <span class="option">c</span> <span class="Identifier">test-source.nim</span></pre><p>You can also bisect using custom options to build the compiler, for example if you don't need a debug version of the compiler (which runs slower), you can replace <tt class="docutils literal"><span class="pre"><span class="program">./koch.py</span> <span class="option">temp</span></span></tt> by explicit compilation command, see <a class="reference internal" href="#Rebuilding">Rebuilding</a>.</p>
 
+<h2><a class="toc-backref" id="debugging-the-compiler" href="#debugging-the-compiler">Debugging the compiler</a></h2><p>How to debug different subsystems of the compiler using built-in tooling.</p>
+
+<h3><a class="toc-backref" id="debugging-the-compiler-special-defines" href="#debugging-the-compiler-special-defines">Special defines</a></h3><p>Debugging functionality can usually be accessed only when compiler itself has been built with special defines - this is made to avoid runtime overhead, because some debugging tools are not exactly cheap to run.</p>
+<table border="1" class="docutils"><tr><th>Define</th><th>Enables</th></tr>
+<tr><td>nimVMDebugExecute</td><td>Print out every instruction executed by the VM</td></tr>
+<tr><td>nimVMDebugGenerate</td><td>List VM code generated for every procedure called at compile-time</td></tr>
+<tr><td>nimDebugUtils</td><td>Enable semantic analysis execution tracer</td></tr>
+<tr><td></td><td></td></tr>
+</table>
+<h3><a class="toc-backref" id="debugging-the-compiler-semantic-analysis" href="#debugging-the-compiler-semantic-analysis">Semantic analysis</a></h3><p>When <tt class="docutils literal"><span class="pre">nimDebugUtils</span></tt> is enabled you can annotate section of the code to trace how semantic analysis is performed on this block of code. Each procedure that is annotated with one of the <tt class="docutils literal"><span class="pre">addInNimDebugUtils()</span></tt> overloads is going to be traced in the execution tree. For example - <tt class="docutils literal"><span class="pre">sem.semOverloadedCall</span></tt>, triggered when it is necessary to analyze call to overloaded procedure.</p>
+<pre class="listing"><span class="Keyword">proc</span> <span class="Identifier">semOverloadedCall</span><span class="Punctuation">(</span><span class="Identifier">c</span><span class="Punctuation">:</span> <span class="Identifier">PContext</span><span class="Punctuation">,</span> <span class="Identifier">n</span><span class="Punctuation">,</span> <span class="Identifier">nOrig</span><span class="Punctuation">:</span> <span class="Identifier">PNode</span><span class="Punctuation">,</span>
+                       <span class="Identifier">filter</span><span class="Punctuation">:</span> <span class="Identifier">TSymKinds</span><span class="Punctuation">,</span> <span class="Identifier">flags</span><span class="Punctuation">:</span> <span class="Identifier">TExprFlags</span><span class="Punctuation">)</span><span class="Punctuation">:</span> <span class="Identifier">PNode</span> <span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">nosinks</span><span class="Operator">.</span><span class="Punctuation">}</span> <span class="Operator">=</span>
+  <span class="Identifier">addInNimDebugUtils</span><span class="Punctuation">(</span><span class="Identifier">c</span><span class="Operator">.</span><span class="Identifier">config</span><span class="Punctuation">,</span> <span class="StringLit">&quot;semOverloadedCall&quot;</span><span class="Punctuation">)</span>
+  <span class="Comment"># Other implementaion parts ...</span></pre><p>If you compile your test file with <tt class="docutils literal"><span class="pre">nim c -d:nimDebugUtils --filenames:canonical file.nim</span></tt> and annotate code block with the</p>
+<pre class="listing"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">define</span><span class="Punctuation">(</span><span class="Identifier">nimCompilerDebug</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Punctuation">}</span>
+<span class="Identifier">vmTarget</span><span class="Punctuation">(</span><span class="Identifier">Obj</span><span class="Punctuation">(</span><span class="Punctuation">)</span><span class="Punctuation">)</span>
+<span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">undef</span><span class="Punctuation">(</span><span class="Identifier">nimCompilerDebug</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Punctuation">}</span></pre><p>You will get all the call entries traced</p>
+<pre class="listing">&gt;&gt;] trace start
+#0]&gt; semExpr @ sem/semexprs.nim(2948, 21) from sem/semstmts.nim(2446, 1)
+#1]  &gt; semOverloadedCallAnalyseEffects @ sem/semexprs.nim(941, 21) from sem/semexprs.nim(1133, 1)
+#2]    &gt; semOverloadedCall @ sem/semcall.nim(569, 21) from sem/semexprs.nim(950, 1)
+#3]      &gt; semExpr @ sem/semexprs.nim(2948, 21) from sem/semexprs.nim(43, 1)
+#4]        &gt; semTypeNode @ sem/semtypes.nim(1903, 21) from sem/semobjconstr.nim(469, 1)
+#4]        &lt; semTypeNode @ sem/semtypes.nim(1903, 21) from sem/semobjconstr.nim(469, 1)
+#3]      &lt; semExpr @ sem/semexprs.nim(2948, 21) from sem/semexprs.nim(43, 1)
+#2]    &lt; semOverloadedCall @ sem/semcall.nim(569, 21) from sem/semexprs.nim(950, 1)
+#1]  &lt; semOverloadedCallAnalyseEffects @ sem/semexprs.nim(941, 21) from sem/semexprs.nim(1133, 1)
+#0]&lt; semExpr @ sem/semexprs.nim(2948, 21) from sem/semstmts.nim(2446, 1)
+#0]&gt; semExpr @ sem/semexprs.nim(2948, 21) from sem/semstmts.nim(2446, 1)
+&lt;&lt;] trace end</pre><p>Formatting of the report is implemented in the <tt class="docutils literal"><span class="pre">cli_reporter.nim</span></tt> as well (all debug reports are also transferred using regular reporting pipeline). It has a lot of information, but general parts for each call parts are:</p>
+<pre class="listing">#2]    &lt; semOverloadedCall @ sem/semcall.nim(569, 21) from sem/semexprs.nim(950, 1)
+^      ^ ^                   ^                             ^
+|      | |                   |                             Where proc has been called from
+|      | |                   Location of the `addInNimDebugUtils()` - the proc itsemf
+|      | Name of the proc
+|      Whether proc has been entered or exited
+Depth of the traced call tree</pre>
+<h3><a class="toc-backref" id="debugging-the-compiler-vm-codegen-and-execution" href="#debugging-the-compiler-vm-codegen-and-execution">VM codegen and execution</a></h3><p>VM code generation prints all of the generated procedures. If this is not needed (which would be the majority of use cases) you can add <tt class="docutils literal"><span class="pre">--define:expandVmListing=vmTarget</span></tt> and only code for the specific proc would be printed. For example (generated listing might not match exactly)</p>
+<pre class="listing"><span class="Keyword">type</span>
+  <span class="Identifier">Obj</span> <span class="Operator">=</span> <span class="Keyword">object</span>
+    <span class="Identifier">charField</span><span class="Punctuation">:</span> <span class="Identifier">char</span>
+    <span class="Identifier">intField</span><span class="Punctuation">:</span> <span class="Identifier">int</span>
+
+<span class="Keyword">proc</span> <span class="Identifier">vmTarget</span><span class="Punctuation">(</span><span class="Identifier">arg</span><span class="Punctuation">:</span> <span class="Identifier">Obj</span><span class="Punctuation">)</span> <span class="Operator">=</span>
+  <span class="Identifier">echo</span> <span class="Identifier">arg</span><span class="Operator">.</span><span class="Identifier">charField</span><span class="Operator">.</span><span class="Identifier">int</span> <span class="Operator">+</span> <span class="Identifier">arg</span><span class="Operator">.</span><span class="Identifier">intField</span>
+
+<span class="Keyword">static</span><span class="Punctuation">:</span>
+  <span class="Identifier">vmTarget</span><span class="Punctuation">(</span><span class="Identifier">Obj</span><span class="Punctuation">(</span><span class="Punctuation">)</span><span class="Punctuation">)</span></pre><pre class="listing"><span class="program">nim</span> <span class="option">c</span> <span class="option">--filenames:canonical</span> <span class="option">--define:expandVmListing=vmTarget</span> <span class="Identifier">file.nim</span></pre><pre class="listing">Code listing for the 'vmTarget' file.nim(6, 6)
+  
+  LdConst      r3     $     1279                system.nim(2005, 30)
+  LdObj        r6     r1     r0                 file.nim(7, 11)
+  NodeToReg    r5     r6     r0                 file.nim(7, 11)
+  Conv         r6     r5     int   char         file.nim(7, 21)
+  LdObj        r7     r1     r1                 file.nim(7, 31)
+  NodeToReg    r5     r7     r0                 file.nim(7, 31)
+  AddInt       r4     r6     r5                 file.nim(7, 26)
+  IndCallAsgn  r2     r3     #2                 file.nim(7, 26)
+  Echo         r2     r1     r0                 file.nim(7, 26)
+  Ret          r0     r0     r0                 file.nim(7, 8)
+  Eof          r0     r0     r0                 file.nim(7, 8)</pre>
 <h2><a class="toc-backref" id="runtimes" href="#runtimes">Runtimes</a></h2><p> NimSkull has two different runtimes, the &quot;old runtime&quot; and the &quot;new runtime&quot;. The old runtime supports the old GCs (markAndSweep, refc, Boehm), the new runtime supports ARC/ORC. The new runtime is active <tt class="docutils literal"><span class="pre">when defined(nimV2)</span></tt>.</p>
 
 <h2><a class="toc-backref" id="coding-guidelines" href="#coding-guidelines">Coding Guidelines</a></h2><ul class="simple"><li>We follow  NimSkull's official style guide, see <a class="reference external" href="nep1.html">nep1.html</a>.</li>
