@@ -115,37 +115,47 @@ window.addEventListener('DOMContentLoaded', main);
     title="CandidateErrors = seq[CandidateError]">CandidateErrors</a></li>
   <li><a class="reference" href="#MismatchInfo"
     title="MismatchInfo = object
-  kind*: MismatchKind
-  arg*: int
-  formal*: PSym">MismatchInfo</a></li>
+  kind*: MismatchKind        ## reason for mismatch
+  arg*: int                  ## position of provided arguments that mismatches
+  formal*: PSym ## parameter that mismatches against provided argument
+                ## its position can differ from `arg` because of varargs">MismatchInfo</a></li>
   <li><a class="reference" href="#TCandidate"
     title="TCandidate = object
   c*: PContext
-  exactMatches*: int
-  genericMatches: int
+  exactMatches*: int         ## also misused to prefer iters over procs
+  genericMatches: int        ## also misused to prefer constraints
   subtypeMatches: int
-  intConvMatches: int
+  intConvMatches: int        ## conversions to int are not as expensive
   convMatches: int
   state*: TCandidateState
-  callee*: PType
-  calleeSym*: PSym
-  calleeScope*: int
-  call*: PNode
-  bindings*: TIdTable
-  magic*: TMagic
-  baseTypeMatch: bool
-  fauxMatch*: TTypeKind
-  genericConverter*: bool
-  coerceDistincts*: bool
+  callee*: PType             ## may not be nil!
+  calleeSym*: PSym           ## may be nil
+  calleeScope*: int          ## scope depth:
+                             ## is this a top-level symbol or a nested proc?
+  call*: PNode               ## modified call
+  bindings*: TIdTable        ## maps types to types
+  magic*: TMagic             ## magic of operation
+  baseTypeMatch: bool        ## needed for conversions from T to openarray[T]
+                             ## for example
+  fauxMatch*: TTypeKind      ## the match was successful only due to the use
+                             ## of error or wildcard (unknown) types.
+                             ## this is used to prevent instantiations.
+  genericConverter*: bool    ## true if a generic converter needs to
+                             ## be instantiated
+  coerceDistincts*: bool     ## this is an explicit coercion that can strip away
+                             ## a distrinct type
   typedescMatched*: bool
-  isNoCall*: bool
-  inferredTypes: seq[PType]
+  isNoCall*: bool            ## misused for generic type instantiations C[T]
+  inferredTypes: seq[PType]  ## inferred types during the current signature
+                             ## matching. they will be reset if the matching
+                             ## is not successful. may replace the bindings
+                             ## table in the future.
   diagnostics*: seq[SemReport] ## The matching process (for concepts)
                                ## will collect extra diagnostics that will be displayed to the user.
                                ## triggered when overload resolution fails or when the explain pragma
                                ## is used.
-  inheritancePenalty: int
-  firstMismatch*: MismatchInfo
+  inheritancePenalty: int    ## to prefer closest father object type
+  firstMismatch*: MismatchInfo ## mismatch info for better error messages
   diagnosticsEnabled*: bool">TCandidate</a></li>
   <li><a class="reference" href="#TCandidateState"
     title="TCandidateState = enum
@@ -155,7 +165,7 @@ window.addEventListener('DOMContentLoaded', main);
   cpNone, cpFuzzy, cpExact">TCheckPointResult</a></li>
   <li><a class="reference" href="#TTypeRelFlag"
     title="TTypeRelFlag = enum
-  trDontBind, trNoCovariance, trBindGenericParam">TTypeRelFlag</a></li>
+  trDontBind, trNoCovariance, trBindGenericParam ## bind tyGenericParam even with trDontBind">TTypeRelFlag</a></li>
   <li><a class="reference" href="#TTypeRelFlags"
     title="TTypeRelFlags = set[TTypeRelFlag]">TTypeRelFlags</a></li>
 
@@ -333,7 +343,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -370,7 +380,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L61"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L61"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L61" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -382,7 +392,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L69"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L69"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L69" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -390,15 +400,16 @@ class="link-seesrc" target="_blank">Source</a>
 </div>
 <div id="MismatchInfo">
 <dt><pre><a href="sigmatch.html#MismatchInfo"><span class="Identifier">MismatchInfo</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">kind</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#MismatchKind"><span class="Identifier">MismatchKind</span></a>
-  <span class="Identifier">arg</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">formal</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a>
-</pre></dt>
+  <span class="Identifier">kind</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#MismatchKind"><span class="Identifier">MismatchKind</span></a>        <span class="Comment">## reason for mismatch</span>
+  <span class="Identifier">arg</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>                  <span class="Comment">## position of provided arguments that mismatches</span>
+  <span class="Identifier">formal</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a> <span class="Comment">## parameter that mismatches against provided argument</span>
+                <span class="Comment">## its position can differ from `arg` because of varargs</span>
+  </pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L52"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L52"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L52" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -407,38 +418,47 @@ class="link-seesrc" target="_blank">Source</a>
 <div id="TCandidate">
 <dt><pre><a href="sigmatch.html#TCandidate"><span class="Identifier">TCandidate</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">c</span><span class="Operator">*</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a>
-  <span class="Identifier">exactMatches</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">genericMatches</span><span class="Other">:</span> <span class="Identifier">int</span>
+  <span class="Identifier">exactMatches</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>         <span class="Comment">## also misused to prefer iters over procs</span>
+  <span class="Identifier">genericMatches</span><span class="Other">:</span> <span class="Identifier">int</span>        <span class="Comment">## also misused to prefer constraints</span>
   <span class="Identifier">subtypeMatches</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">intConvMatches</span><span class="Other">:</span> <span class="Identifier">int</span>
+  <span class="Identifier">intConvMatches</span><span class="Other">:</span> <span class="Identifier">int</span>        <span class="Comment">## conversions to int are not as expensive</span>
   <span class="Identifier">convMatches</span><span class="Other">:</span> <span class="Identifier">int</span>
   <span class="Identifier">state</span><span class="Operator">*</span><span class="Other">:</span> <a href="sigmatch.html#TCandidateState"><span class="Identifier">TCandidateState</span></a>
-  <span class="Identifier">callee</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a>
-  <span class="Identifier">calleeSym</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a>
-  <span class="Identifier">calleeScope</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">call</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a>
-  <span class="Identifier">bindings</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#TIdTable"><span class="Identifier">TIdTable</span></a>
-  <span class="Identifier">magic</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#TMagic"><span class="Identifier">TMagic</span></a>
-  <span class="Identifier">baseTypeMatch</span><span class="Other">:</span> <span class="Identifier">bool</span>
-  <span class="Identifier">fauxMatch</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#TTypeKind"><span class="Identifier">TTypeKind</span></a>
-  <span class="Identifier">genericConverter</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
-  <span class="Identifier">coerceDistincts</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
+  <span class="Identifier">callee</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a>             <span class="Comment">## may not be nil!</span>
+  <span class="Identifier">calleeSym</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a>           <span class="Comment">## may be nil</span>
+  <span class="Identifier">calleeScope</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>          <span class="Comment">## scope depth:</span>
+                             <span class="Comment">## is this a top-level symbol or a nested proc?</span>
+  <span class="Identifier">call</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a>               <span class="Comment">## modified call</span>
+  <span class="Identifier">bindings</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#TIdTable"><span class="Identifier">TIdTable</span></a>        <span class="Comment">## maps types to types</span>
+  <span class="Identifier">magic</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#TMagic"><span class="Identifier">TMagic</span></a>             <span class="Comment">## magic of operation</span>
+  <span class="Identifier">baseTypeMatch</span><span class="Other">:</span> <span class="Identifier">bool</span>        <span class="Comment">## needed for conversions from T to openarray[T]</span>
+                             <span class="Comment">## for example</span>
+  <span class="Identifier">fauxMatch</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#TTypeKind"><span class="Identifier">TTypeKind</span></a>      <span class="Comment">## the match was successful only due to the use</span>
+                             <span class="Comment">## of error or wildcard (unknown) types.</span>
+                             <span class="Comment">## this is used to prevent instantiations.</span>
+  <span class="Identifier">genericConverter</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>    <span class="Comment">## true if a generic converter needs to</span>
+                             <span class="Comment">## be instantiated</span>
+  <span class="Identifier">coerceDistincts</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>     <span class="Comment">## this is an explicit coercion that can strip away</span>
+                             <span class="Comment">## a distrinct type</span>
   <span class="Identifier">typedescMatched</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
-  <span class="Identifier">isNoCall</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
-  <span class="Identifier">inferredTypes</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a><span class="Other">]</span>
+  <span class="Identifier">isNoCall</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>            <span class="Comment">## misused for generic type instantiations C[T]</span>
+  <span class="Identifier">inferredTypes</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a><span class="Other">]</span>  <span class="Comment">## inferred types during the current signature</span>
+                             <span class="Comment">## matching. they will be reset if the matching</span>
+                             <span class="Comment">## is not successful. may replace the bindings</span>
+                             <span class="Comment">## table in the future.</span>
   <span class="Identifier">diagnostics</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/reports.html#SemReport"><span class="Identifier">SemReport</span></a><span class="Other">]</span> <span class="Comment">## The matching process (for concepts)</span>
                                <span class="Comment">## will collect extra diagnostics that will be displayed to the user.</span>
                                <span class="Comment">## triggered when overload resolution fails or when the explain pragma</span>
                                <span class="Comment">## is used.</span>
-  <span class="Identifier">inheritancePenalty</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">firstMismatch</span><span class="Operator">*</span><span class="Other">:</span> <a href="sigmatch.html#MismatchInfo"><span class="Identifier">MismatchInfo</span></a>
+  <span class="Identifier">inheritancePenalty</span><span class="Other">:</span> <span class="Identifier">int</span>    <span class="Comment">## to prefer closest father object type</span>
+  <span class="Identifier">firstMismatch</span><span class="Operator">*</span><span class="Other">:</span> <a href="sigmatch.html#MismatchInfo"><span class="Identifier">MismatchInfo</span></a> <span class="Comment">## mismatch info for better error messages</span>
   <span class="Identifier">diagnosticsEnabled</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
 </pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L71"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L71"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L71" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -451,7 +471,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L58"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L58"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L58" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -464,7 +484,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L446"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L446"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L446" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -472,12 +492,12 @@ class="link-seesrc" target="_blank">Source</a>
 </div>
 <div id="TTypeRelFlag">
 <dt><pre><a href="sigmatch.html#TTypeRelFlag"><span class="Identifier">TTypeRelFlag</span></a> <span class="Other">=</span> <span class="Keyword">enum</span>
-  <span class="Identifier">trDontBind</span><span class="Other">,</span> <span class="Identifier">trNoCovariance</span><span class="Other">,</span> <span class="Identifier">trBindGenericParam</span></pre></dt>
+  <span class="Identifier">trDontBind</span><span class="Other">,</span> <span class="Identifier">trNoCovariance</span><span class="Other">,</span> <span class="Identifier">trBindGenericParam</span> <span class="Comment">## bind tyGenericParam even with trDontBind</span></pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L109"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L109"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L109" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -489,7 +509,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L114"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L114"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L114" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -506,7 +526,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L187"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L187"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L187" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -520,9 +540,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L2687"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L2692"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2687" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2692" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -533,7 +553,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L314"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L314"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L314" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -547,9 +567,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L1896"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L1901"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L1896" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L1901" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -559,7 +579,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L266"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L266"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L266" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -572,7 +592,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L449"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L449"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L449" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -583,9 +603,20 @@ class="link-seesrc" target="_blank">Source</a>
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
+<p>This is a simple integer arithimetic equation solver, capable of deriving the value of a static parameter in expressions such as <tt class="docutils literal"><span class="pre"><span class="Punctuation">(</span><span class="Identifier">N</span> <span class="Operator">+</span> <span class="DecNumber">5</span><span class="Punctuation">)</span> <span class="Operator">/</span> <span class="DecNumber">2</span> <span class="Operator">=</span> <span class="Identifier">rhs</span></span></tt></p>
+<p>Preconditions:</p>
+<ul class="simple"><li>The input of this proc must be semantized<ul class="simple"><li>all templates should be expanded</li>
+<li>aby constant folding possible should already be performed</li>
+</ul>
+</li>
+<li>There must be exactly one unresolved static parameter</li>
+</ul>
+<dl class="docutils"><dt>Result:</dt>
+<dd>The proc will return true if the static types was successfully inferred. The result will be bound to the original static type in the TCandidate.</dd>
+</dl>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L815"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L815"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L815" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -599,7 +630,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L160"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L160"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L160" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -612,7 +643,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L141"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L141"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L141" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -627,9 +658,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L2702"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L2707"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2702" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2707" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -640,7 +671,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L457"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L457"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L457" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -652,7 +683,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L577"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L577"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L577" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -665,7 +696,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L593"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L593"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L593" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -679,9 +710,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L2628"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L2633"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2628" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2633" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -692,7 +723,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L653"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L653"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L653" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -705,7 +736,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L194"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L194"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L194" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -718,7 +749,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L198"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L198"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L198" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -732,9 +763,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L2241"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L2246"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2241" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2246" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -746,9 +777,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L2623"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L2628"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2623" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2628" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -759,7 +790,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L614"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L614"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L614" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -772,9 +803,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L2617"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L2622"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2617" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2622" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -786,7 +817,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L675"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L675"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L675" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -800,7 +831,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L685"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L685"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L685" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -814,7 +845,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L672"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L672"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L672" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -828,7 +859,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L643"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L643"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L643" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -841,7 +872,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L691"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L691"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L691" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -855,7 +886,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L682"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L682"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L682" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -868,7 +899,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 misnamed: should be 'symDeclared'
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/tools/suggest.nim#L509"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/tools/suggest.nim#L509"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L509" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -880,11 +911,19 @@ class="link-seesrc" target="_blank">Source</a>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
+typeRel can be used to establish various relationships between types:<ol class="simple"><li><dl class="docutils"><dt>When used with concrete types, it will check for type equivalence</dt>
+<dd>or a subtype relationship.</dd>
+</dl>
+</li>
+<li>When used with a concrete type against a type class (such as generic signature of a proc), it will check whether the concrete type is a member of the designated type class.</li>
+<li>When used with two type classes, it will check whether the types matching the first type class are a strict subset of the types matching the other. This allows us to compare the signatures of generic procs in order to give preferrence to the most specific one:</li>
+</ol>
+<p><tt class="docutils literal"><span class="pre"><span class="Identifier">seq</span><span class="Punctuation">[</span><span class="Identifier">seq</span><span class="Punctuation">[</span><span class="Identifier">any</span><span class="Punctuation">]</span><span class="Punctuation">]</span></span></tt> is a strict subset of seq[any] and hence more specific.</p>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L972"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L973"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L972" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L973" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -895,7 +934,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L305"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L305"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L305" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -912,7 +951,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sigmatch.nim#L123"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sigmatch.nim#L123"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L123" class="link-seesrc" target="_blank" >Edit</a>
 

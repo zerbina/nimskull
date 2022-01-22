@@ -14,3 +14,6 @@ AliasKind	sem/dfa.html#AliasKind	dfa: AliasKind
 aliases	sem/dfa.html#aliases,PNode,PNode	dfa: aliases(obj, field: PNode): AliasKind	
 isAnalysableFieldAccess	sem/dfa.html#isAnalysableFieldAccess,PNode,PSym	dfa: isAnalysableFieldAccess(orig: PNode; owner: PSym): bool	
 constructCfg	sem/dfa.html#constructCfg,PSym,PNode	dfa: constructCfg(s: PSym; body: PNode): ControlFlowGraph	
+Join is no more	sem/dfa.html#join-is-no-more	 Join is no more	
+Design of join	sem/dfa.html#design-of-join	 Design of join	
+Abstract Interpretation	sem/dfa.html#design-of-join-abstract-interpretation	  Abstract Interpretation	

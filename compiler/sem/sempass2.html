@@ -137,14 +137,23 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sempass2.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sempass2.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
-  <p class="module-desc"></p>
+  <p class="module-desc">Second semantic checking pass over the AST. Necessary because the old way had some inherent problems. Performs:<ul class="simple"><li>effect+exception tracking</li>
+<li>&quot;usage before definition&quot; checking</li>
+<li>also now calls the &quot;lift destructor logic&quot; at strategic positions, this is about to be put into the spec:</li>
+</ul>
+<p>We treat assignment and sinks and destruction as identical.</p>
+<p>In the construct <tt class="docutils literal"><span class="pre"><span class="Keyword">let</span><span class="Operator">/</span><span class="Keyword">var</span> <span class="Identifier">x</span> <span class="Operator">=</span> <span class="Identifier">expr</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> x's type is marked.</p>
+<p>In <tt class="docutils literal"><span class="pre"><span class="Identifier">x</span> <span class="Operator">=</span> <span class="Identifier">y</span></span></tt> the type of <tt class="docutils literal"><span class="pre"><span class="Identifier">x</span></span></tt> is marked.</p>
+<p>For every sink parameter of type <tt class="docutils literal"><span class="pre"><span class="Identifier">T</span> <span class="Identifier">T</span></span></tt> is marked.</p>
+<p>For every call <tt class="docutils literal"><span class="pre"><span class="Identifier">f</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> the return type of <tt class="docutils literal"><span class="pre"><span class="Identifier">f</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt> is marked.</p>
+</p>
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
@@ -160,7 +169,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sinkparameter_inference.nim#L10"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sinkparameter_inference.nim#L10"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sinkparameter_inference.nim#L10" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -173,9 +182,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 checks for consistent effects for multi methods.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sempass2.nim#L1388"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sempass2.nim#L1391"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1388" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1391" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -186,9 +195,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sempass2.nim#L1434"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sempass2.nim#L1437"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1434" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1437" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -200,9 +209,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sempass2.nim#L1498"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sempass2.nim#L1501"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1498" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1501" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -214,9 +223,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/sem/sempass2.nim#L1638"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/sem/sempass2.nim#L1641"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1638" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sempass2.nim#L1641" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>

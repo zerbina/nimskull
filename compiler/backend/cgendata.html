@@ -109,40 +109,74 @@ window.addEventListener('DOMContentLoaded', main);
   <li><a class="reference" href="#BModuleList"
     title="BModuleList = ref object of RootObj
   mainModProcs*, mainModInit*, otherModsInit*, mainDatInit*: Rope
-  mapping*: Rope
-  modules*: seq[BModule]
-  modulesClosed*: seq[BModule]
-  forwardedProcs*: seq[PSym]
+  mapping*: Rope             ## the generated mapping file (if requested)
+  modules*: seq[BModule]     ## list of all compiled modules
+  modulesClosed*: seq[BModule] ## list of the same compiled modules, but in the order they were closed
+  forwardedProcs*: seq[PSym] ## proc:s that did not yet have a body
   generatedHeader*: BModule
   typeInfoMarker*: TypeCacheWithOwner
   typeInfoMarkerV2*: TypeCacheWithOwner
   config*: ConfigRef
   graph*: ModuleGraph
-  strVersion*, seqVersion*: int
-  nimtv*: Rope
-  nimtvDeps*: seq[PType]
-  nimtvDeclared*: IntSet">BModuleList</a></li>
+  strVersion*, seqVersion*: int ## version of the string/seq implementation to use
+  nimtv*: Rope               ## Nim thread vars; the struct body
+  nimtvDeps*: seq[PType]     ## type deps: every module needs whole struct
+  nimtvDeclared*: IntSet     ## so that every var/field exists only once
+                             ## in the struct
+                             ## 'nimtv' is incredibly hard to modularize! Best
+                             ## effort is to store all thread vars in a ROD
+                             ## section and with their type deps and load them
+                             ## unconditionally...
+                             ## nimtvDeps is VERY hard to cache because it's
+                             ## not a list of IDs nor can it be made to be one.">BModuleList</a></li>
   <li><a class="reference" href="#BProc"
     title="BProc = ref TCProc">BProc</a></li>
   <li><a class="reference" href="#CodegenFlag"
     title="CodegenFlag = enum
-  preventStackTrace, usesThreadVars, frameDeclared, isHeaderFile,
-  includesStringh, objHasKidsValid, useAliveDataFromDce">CodegenFlag</a></li>
+  preventStackTrace,        ## true if stack traces need to be prevented
+  usesThreadVars,           ## true if the module uses a thread var
+  frameDeclared,            ## hack for ROD support so that we don't declare
+                             ## a frame var twice in an init proc
+  isHeaderFile,             ## C source file is the header file
+  includesStringh,          ## C source file already includes ``&lt;string.h&gt;``
+  objHasKidsValid,          ## whether we can rely on tfObjHasKids
+  useAliveDataFromDce        ## use the `alive: IntSet` field instead of
+                             ## computing alive data on our own.">CodegenFlag</a></li>
   <li><a class="reference" href="#TBlock"
     title="TBlock = object
-  id*: int
-  label*: Rope
-  sections*: TCProcSections
-  isLoop*: bool
-  nestedTryStmts*: int16
-  nestedExceptStmts*: int16
+  id*: int                   ## the ID of the label; positive means that it
+  label*: Rope               ## generated text for the label
+                             ## nil if label is not used
+  sections*: TCProcSections  ## the code belonging
+  isLoop*: bool              ## whether block is a loop
+  nestedTryStmts*: int16     ## how many try statements is it nested into
+  nestedExceptStmts*: int16  ## how many except statements is it nested into
   frameLen*: int16">TBlock</a></li>
   <li><a class="reference" href="#TCFileSection"
     title="TCFileSection = enum
-  cfsMergeInfo, cfsHeaders, cfsFrameDefines, cfsForwardTypes, cfsTypes,
-  cfsSeqTypes, cfsFieldInfo, cfsTypeInfo, cfsProcHeaders, cfsData, cfsVars,
-  cfsProcs, cfsInitProc, cfsDatInitProc, cfsTypeInit1, cfsTypeInit2,
-  cfsTypeInit3, cfsDebugInit, cfsDynLibInit, cfsDynLibDeinit">TCFileSection</a></li>
+  cfsMergeInfo,             ## section containing merge information
+  cfsHeaders,               ## section for C include file headers
+  cfsFrameDefines,          ## section for nim frame macros
+  cfsForwardTypes,          ## section for C forward typedefs
+  cfsTypes,                 ## section for C typedefs
+  cfsSeqTypes,              ## section for sequence types only
+                             ## this is needed for strange type generation
+                             ## reasons
+  cfsFieldInfo,             ## section for field information
+  cfsTypeInfo,              ## section for type information (ag ABI checks)
+  cfsProcHeaders,           ## section for C procs prototypes
+  cfsData,                  ## section for C constant data
+  cfsVars,                  ## section for C variable declarations
+  cfsProcs,                 ## section for C procs that are not inline
+  cfsInitProc,              ## section for the C init proc
+  cfsDatInitProc,           ## section for the C datInit proc
+  cfsTypeInit1,             ## section 1 for declarations of type information
+  cfsTypeInit2,             ## section 2 for init of type information
+  cfsTypeInit3,             ## section 3 for init of type information
+  cfsDebugInit,             ## section for init of debug information
+  cfsDynLibInit,            ## section for init of dynamic library binding
+  cfsDynLibDeinit            ## section for deinitialization of dynamic
+                             ## libraries">TCFileSection</a></li>
   <li><a class="reference" href="#TCFileSections"
     title="TCFileSections = array[TCFileSection, Rope]">TCFileSections</a></li>
   <li><a class="reference" href="#TCProcFlag"
@@ -151,7 +185,9 @@ window.addEventListener('DOMContentLoaded', main);
   nimErrorFlagAccessed, nimErrorFlagDeclared, nimErrorFlagDisabled">TCProcFlag</a></li>
   <li><a class="reference" href="#TCProcSection"
     title="TCProcSection = enum
-  cpsLocals, cpsInit, cpsStmts">TCProcSection</a></li>
+  cpsLocals,                ## section of local variables for C proc
+  cpsInit,                  ## section for init of variables for C proc
+  cpsStmts                   ## section of local statements for C proc">TCProcSection</a></li>
   <li><a class="reference" href="#TCProcSections"
     title="TCProcSections = array[TCProcSection, Rope]">TCProcSections</a></li>
   <li><a class="reference" href="#TCTypeKind"
@@ -231,7 +267,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -253,7 +289,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L74"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L74"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L74" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -262,25 +298,32 @@ class="link-seesrc" target="_blank">Source</a>
 <div id="BModuleList">
 <dt><pre><a href="cgendata.html#BModuleList"><span class="Identifier">BModuleList</span></a> <span class="Other">=</span> <span class="Keyword">ref</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">RootObj</span>
   <span class="Identifier">mainModProcs</span><span class="Operator">*</span><span class="Other">,</span> <span class="Identifier">mainModInit</span><span class="Operator">*</span><span class="Other">,</span> <span class="Identifier">otherModsInit</span><span class="Operator">*</span><span class="Other">,</span> <span class="Identifier">mainDatInit</span><span class="Operator">*</span><span class="Other">:</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a>
-  <span class="Identifier">mapping</span><span class="Operator">*</span><span class="Other">:</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a>
-  <span class="Identifier">modules</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="cgendata.html#BModule"><span class="Identifier">BModule</span></a><span class="Other">]</span>
-  <span class="Identifier">modulesClosed</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="cgendata.html#BModule"><span class="Identifier">BModule</span></a><span class="Other">]</span>
-  <span class="Identifier">forwardedProcs</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">]</span>
+  <span class="Identifier">mapping</span><span class="Operator">*</span><span class="Other">:</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a>             <span class="Comment">## the generated mapping file (if requested)</span>
+  <span class="Identifier">modules</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="cgendata.html#BModule"><span class="Identifier">BModule</span></a><span class="Other">]</span>     <span class="Comment">## list of all compiled modules</span>
+  <span class="Identifier">modulesClosed</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="cgendata.html#BModule"><span class="Identifier">BModule</span></a><span class="Other">]</span> <span class="Comment">## list of the same compiled modules, but in the order they were closed</span>
+  <span class="Identifier">forwardedProcs</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">]</span> <span class="Comment">## proc:s that did not yet have a body</span>
   <span class="Identifier">generatedHeader</span><span class="Operator">*</span><span class="Other">:</span> <a href="cgendata.html#BModule"><span class="Identifier">BModule</span></a>
   <span class="Identifier">typeInfoMarker</span><span class="Operator">*</span><span class="Other">:</span> <a href="cgendata.html#TypeCacheWithOwner"><span class="Identifier">TypeCacheWithOwner</span></a>
   <span class="Identifier">typeInfoMarkerV2</span><span class="Operator">*</span><span class="Other">:</span> <a href="cgendata.html#TypeCacheWithOwner"><span class="Identifier">TypeCacheWithOwner</span></a>
   <span class="Identifier">config</span><span class="Operator">*</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a>
   <span class="Identifier">graph</span><span class="Operator">*</span><span class="Other">:</span> <a href="../modules/modulegraphs.html#ModuleGraph"><span class="Identifier">ModuleGraph</span></a>
-  <span class="Identifier">strVersion</span><span class="Operator">*</span><span class="Other">,</span> <span class="Identifier">seqVersion</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">nimtv</span><span class="Operator">*</span><span class="Other">:</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a>
-  <span class="Identifier">nimtvDeps</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a><span class="Other">]</span>
-  <span class="Identifier">nimtvDeclared</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">IntSet</span>
-</pre></dt>
+  <span class="Identifier">strVersion</span><span class="Operator">*</span><span class="Other">,</span> <span class="Identifier">seqVersion</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Comment">## version of the string/seq implementation to use</span>
+  <span class="Identifier">nimtv</span><span class="Operator">*</span><span class="Other">:</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a>               <span class="Comment">## Nim thread vars; the struct body</span>
+  <span class="Identifier">nimtvDeps</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a><span class="Other">]</span>     <span class="Comment">## type deps: every module needs whole struct</span>
+  <span class="Identifier">nimtvDeclared</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">IntSet</span>     <span class="Comment">## so that every var/field exists only once</span>
+                             <span class="Comment">## in the struct</span>
+                             <span class="Comment">## 'nimtv' is incredibly hard to modularize! Best</span>
+                             <span class="Comment">## effort is to store all thread vars in a ROD</span>
+                             <span class="Comment">## section and with their type deps and load them</span>
+                             <span class="Comment">## unconditionally...</span>
+                             <span class="Comment">## nimtvDeps is VERY hard to cache because it's</span>
+                             <span class="Comment">## not a list of IDs nor can it be made to be one.</span>
+  </pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L137"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L137"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L137" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -292,7 +335,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L75"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L75"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L75" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -300,13 +343,20 @@ class="link-seesrc" target="_blank">Source</a>
 </div>
 <div id="CodegenFlag">
 <dt><pre><a href="cgendata.html#CodegenFlag"><span class="Identifier">CodegenFlag</span></a> <span class="Other">=</span> <span class="Keyword">enum</span>
-  <span class="Identifier">preventStackTrace</span><span class="Other">,</span> <span class="Identifier">usesThreadVars</span><span class="Other">,</span> <span class="Identifier">frameDeclared</span><span class="Other">,</span> <span class="Identifier">isHeaderFile</span><span class="Other">,</span>
-  <span class="Identifier">includesStringh</span><span class="Other">,</span> <span class="Identifier">objHasKidsValid</span><span class="Other">,</span> <span class="Identifier">useAliveDataFromDce</span></pre></dt>
+  <span class="Identifier">preventStackTrace</span><span class="Other">,</span>        <span class="Comment">## true if stack traces need to be prevented</span>
+  <span class="Identifier">usesThreadVars</span><span class="Other">,</span>           <span class="Comment">## true if the module uses a thread var</span>
+  <span class="Identifier">frameDeclared</span><span class="Other">,</span>            <span class="Comment">## hack for ROD support so that we don't declare</span>
+                             <span class="Comment">## a frame var twice in an init proc</span>
+  <span class="Identifier">isHeaderFile</span><span class="Other">,</span>             <span class="Comment">## C source file is the header file</span>
+  <span class="Identifier">includesStringh</span><span class="Other">,</span>          <span class="Comment">## C source file already includes ``&lt;string.h&gt;``</span>
+  <span class="Identifier">objHasKidsValid</span><span class="Other">,</span>          <span class="Comment">## whether we can rely on tfObjHasKids</span>
+  <span class="Identifier">useAliveDataFromDce</span>        <span class="Comment">## use the `alive: IntSet` field instead of</span>
+                             <span class="Comment">## computing alive data on our own.</span></pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L126"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L126"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L126" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -314,19 +364,20 @@ class="link-seesrc" target="_blank">Source</a>
 </div>
 <div id="TBlock">
 <dt><pre><a href="cgendata.html#TBlock"><span class="Identifier">TBlock</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">id</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">label</span><span class="Operator">*</span><span class="Other">:</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a>
-  <span class="Identifier">sections</span><span class="Operator">*</span><span class="Other">:</span> <a href="cgendata.html#TCProcSections"><span class="Identifier">TCProcSections</span></a>
-  <span class="Identifier">isLoop</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
-  <span class="Identifier">nestedTryStmts</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int16</span>
-  <span class="Identifier">nestedExceptStmts</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int16</span>
+  <span class="Identifier">id</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>                   <span class="Comment">## the ID of the label; positive means that it</span>
+  <span class="Identifier">label</span><span class="Operator">*</span><span class="Other">:</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a>               <span class="Comment">## generated text for the label</span>
+                             <span class="Comment">## nil if label is not used</span>
+  <span class="Identifier">sections</span><span class="Operator">*</span><span class="Other">:</span> <a href="cgendata.html#TCProcSections"><span class="Identifier">TCProcSections</span></a>  <span class="Comment">## the code belonging</span>
+  <span class="Identifier">isLoop</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>              <span class="Comment">## whether block is a loop</span>
+  <span class="Identifier">nestedTryStmts</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int16</span>     <span class="Comment">## how many try statements is it nested into</span>
+  <span class="Identifier">nestedExceptStmts</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int16</span>  <span class="Comment">## how many except statements is it nested into</span>
   <span class="Identifier">frameLen</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int16</span>
 </pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L76"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L76"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L76" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -334,15 +385,34 @@ class="link-seesrc" target="_blank">Source</a>
 </div>
 <div id="TCFileSection">
 <dt><pre><a href="cgendata.html#TCFileSection"><span class="Identifier">TCFileSection</span></a> <span class="Other">=</span> <span class="Keyword">enum</span>
-  <span class="Identifier">cfsMergeInfo</span><span class="Other">,</span> <span class="Identifier">cfsHeaders</span><span class="Other">,</span> <span class="Identifier">cfsFrameDefines</span><span class="Other">,</span> <span class="Identifier">cfsForwardTypes</span><span class="Other">,</span> <span class="Identifier">cfsTypes</span><span class="Other">,</span>
-  <span class="Identifier">cfsSeqTypes</span><span class="Other">,</span> <span class="Identifier">cfsFieldInfo</span><span class="Other">,</span> <span class="Identifier">cfsTypeInfo</span><span class="Other">,</span> <span class="Identifier">cfsProcHeaders</span><span class="Other">,</span> <span class="Identifier">cfsData</span><span class="Other">,</span> <span class="Identifier">cfsVars</span><span class="Other">,</span>
-  <span class="Identifier">cfsProcs</span><span class="Other">,</span> <span class="Identifier">cfsInitProc</span><span class="Other">,</span> <span class="Identifier">cfsDatInitProc</span><span class="Other">,</span> <span class="Identifier">cfsTypeInit1</span><span class="Other">,</span> <span class="Identifier">cfsTypeInit2</span><span class="Other">,</span>
-  <span class="Identifier">cfsTypeInit3</span><span class="Other">,</span> <span class="Identifier">cfsDebugInit</span><span class="Other">,</span> <span class="Identifier">cfsDynLibInit</span><span class="Other">,</span> <span class="Identifier">cfsDynLibDeinit</span></pre></dt>
+  <span class="Identifier">cfsMergeInfo</span><span class="Other">,</span>             <span class="Comment">## section containing merge information</span>
+  <span class="Identifier">cfsHeaders</span><span class="Other">,</span>               <span class="Comment">## section for C include file headers</span>
+  <span class="Identifier">cfsFrameDefines</span><span class="Other">,</span>          <span class="Comment">## section for nim frame macros</span>
+  <span class="Identifier">cfsForwardTypes</span><span class="Other">,</span>          <span class="Comment">## section for C forward typedefs</span>
+  <span class="Identifier">cfsTypes</span><span class="Other">,</span>                 <span class="Comment">## section for C typedefs</span>
+  <span class="Identifier">cfsSeqTypes</span><span class="Other">,</span>              <span class="Comment">## section for sequence types only</span>
+                             <span class="Comment">## this is needed for strange type generation</span>
+                             <span class="Comment">## reasons</span>
+  <span class="Identifier">cfsFieldInfo</span><span class="Other">,</span>             <span class="Comment">## section for field information</span>
+  <span class="Identifier">cfsTypeInfo</span><span class="Other">,</span>              <span class="Comment">## section for type information (ag ABI checks)</span>
+  <span class="Identifier">cfsProcHeaders</span><span class="Other">,</span>           <span class="Comment">## section for C procs prototypes</span>
+  <span class="Identifier">cfsData</span><span class="Other">,</span>                  <span class="Comment">## section for C constant data</span>
+  <span class="Identifier">cfsVars</span><span class="Other">,</span>                  <span class="Comment">## section for C variable declarations</span>
+  <span class="Identifier">cfsProcs</span><span class="Other">,</span>                 <span class="Comment">## section for C procs that are not inline</span>
+  <span class="Identifier">cfsInitProc</span><span class="Other">,</span>              <span class="Comment">## section for the C init proc</span>
+  <span class="Identifier">cfsDatInitProc</span><span class="Other">,</span>           <span class="Comment">## section for the C datInit proc</span>
+  <span class="Identifier">cfsTypeInit1</span><span class="Other">,</span>             <span class="Comment">## section 1 for declarations of type information</span>
+  <span class="Identifier">cfsTypeInit2</span><span class="Other">,</span>             <span class="Comment">## section 2 for init of type information</span>
+  <span class="Identifier">cfsTypeInit3</span><span class="Other">,</span>             <span class="Comment">## section 3 for init of type information</span>
+  <span class="Identifier">cfsDebugInit</span><span class="Other">,</span>             <span class="Comment">## section for init of debug information</span>
+  <span class="Identifier">cfsDynLibInit</span><span class="Other">,</span>            <span class="Comment">## section for init of dynamic library binding</span>
+  <span class="Identifier">cfsDynLibDeinit</span>            <span class="Comment">## section for deinitialization of dynamic</span>
+                             <span class="Comment">## libraries</span></pre></dt>
 <dd>
 
-
+the sections a generated C file consists of
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L37"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L37"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L37" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -352,9 +422,9 @@ class="link-seesrc" target="_blank">Source</a>
 <dt><pre><a href="cgendata.html#TCFileSections"><span class="Identifier">TCFileSections</span></a> <span class="Other">=</span> <span class="Identifier">array</span><span class="Other">[</span><span class="Identifier">TCFileSection</span><span class="Other">,</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a><span class="Other">]</span></pre></dt>
 <dd>
 
-
+represents a generated C file
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L68"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L68"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L68" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -368,7 +438,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L86"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L86"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L86" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -376,12 +446,14 @@ class="link-seesrc" target="_blank">Source</a>
 </div>
 <div id="TCProcSection">
 <dt><pre><a href="cgendata.html#TCProcSection"><span class="Identifier">TCProcSection</span></a> <span class="Other">=</span> <span class="Keyword">enum</span>
-  <span class="Identifier">cpsLocals</span><span class="Other">,</span> <span class="Identifier">cpsInit</span><span class="Other">,</span> <span class="Identifier">cpsStmts</span></pre></dt>
+  <span class="Identifier">cpsLocals</span><span class="Other">,</span>                <span class="Comment">## section of local variables for C proc</span>
+  <span class="Identifier">cpsInit</span><span class="Other">,</span>                  <span class="Comment">## section for init of variables for C proc</span>
+  <span class="Identifier">cpsStmts</span>                   <span class="Comment">## section of local statements for C proc</span></pre></dt>
 <dd>
 
-
+the sections a generated C proc consists of
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L69"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L69"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L69" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -393,7 +465,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L73"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L73"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L73" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -407,9 +479,9 @@ class="link-seesrc" target="_blank">Source</a>
   <span class="Identifier">ctCString</span></pre></dt>
 <dd>
 
-
+describes the type kind of a C type
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L61"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L61"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L61" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -419,9 +491,9 @@ class="link-seesrc" target="_blank">Source</a>
 <dt><pre><a href="cgendata.html#TLabel"><span class="Identifier">TLabel</span></a> <span class="Other">=</span> <a href="../utils/ropes.html#Rope"><span class="Identifier">Rope</span></a></pre></dt>
 <dd>
 
-
+for the C generator a label is just a rope
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L36"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L36"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L36" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -433,7 +505,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L122"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L122"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L122" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -445,7 +517,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L123"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L123"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L123" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -457,7 +529,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L124"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L124"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L124" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -474,7 +546,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L199"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L199"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L199" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -486,7 +558,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L222"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L222"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L222" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -498,7 +570,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L211"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L211"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L211" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -511,7 +583,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L207"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L207"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L207" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -523,7 +595,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L203"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L203"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L203" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -540,7 +612,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L226"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L226"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L226" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -557,7 +629,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L196"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L196"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L196" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -569,7 +641,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/1d3ff5c358917fd67d33b323c1049e8df7199c47/compiler/backend/cgendata.nim#L197"
+href="https://github.com/nim-works/nimskull/tree/42ebc548eb8fe012b01789700ed178713e566763/compiler/backend/cgendata.nim#L197"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgendata.nim#L197" class="link-seesrc" target="_blank" >Edit</a>
 
