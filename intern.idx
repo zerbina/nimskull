@@ -8,10 +8,6 @@ Errors (nkError)	intern.html#the-compiler-s-architecture-errors-nkerror	   Error
 Reports	intern.html#the-compiler-s-architecture-reports	   Reports	
 VM	intern.html#the-compiler-s-architecture-vm	   VM	
 Bisecting for regressions	intern.html#bisecting-for-regressions	  Bisecting for regressions	
-Debugging the compiler	intern.html#debugging-the-compiler	  Debugging the compiler	
-Special defines	intern.html#debugging-the-compiler-special-defines	   Special defines	
-Semantic analysis	intern.html#debugging-the-compiler-semantic-analysis	   Semantic analysis	
-VM codegen and execution	intern.html#debugging-the-compiler-vm-codegen-and-execution	   VM codegen and execution	
 Runtimes	intern.html#runtimes	  Runtimes	
 Coding Guidelines	intern.html#coding-guidelines	  Coding Guidelines	
 Porting to new platforms	intern.html#porting-to-new-platforms	  Porting to new platforms	

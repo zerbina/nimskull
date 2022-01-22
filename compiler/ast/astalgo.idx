@@ -1,7 +1,3 @@
-typekinds	ast/astalgo.html#typekinds,PType	astalgo: typekinds(t: PType)	
-debug	ast/astalgo.html#debug.t	astalgo: debug(x: PSym | PType | PNode)	
-debug	ast/astalgo.html#debug.t,auto	astalgo: debug(x: auto)	
-mdbg	ast/astalgo.html#mdbg.t	astalgo: mdbg(): bool	
 InvalidKey	ast/astalgo.html#InvalidKey	astalgo: InvalidKey	
 TIIPair	ast/astalgo.html#TIIPair	astalgo: TIIPair	
 TIIPairSeq	ast/astalgo.html#TIIPairSeq	astalgo: TIIPairSeq	
@@ -17,14 +13,6 @@ getSymFromList	ast/astalgo.html#getSymFromList,PNode,PIdent,int	astalgo: getSymF
 getNamedParamFromList	ast/astalgo.html#getNamedParamFromList,PNode,PIdent	astalgo: getNamedParamFromList(list: PNode; ident: PIdent): PSym	
 hashNode	ast/astalgo.html#hashNode,RootRef	astalgo: hashNode(p: RootRef): Hash	
 mustRehash	ast/astalgo.html#mustRehash,int,int	astalgo: mustRehash(length, counter: int): bool	
-makeYamlString	ast/astalgo.html#makeYamlString,string	astalgo: makeYamlString(s: string): Rope	
-lineInfoToStr	ast/astalgo.html#lineInfoToStr,ConfigRef,TLineInfo	astalgo: lineInfoToStr(conf: ConfigRef; info: TLineInfo): Rope	
-treeToYaml	ast/astalgo.html#treeToYaml,ConfigRef,PNode,int,int	astalgo: treeToYaml(conf: ConfigRef; n: PNode; indent: int = 0; maxRecDepth: int = -1): Rope	
-typeToYaml	ast/astalgo.html#typeToYaml,ConfigRef,PType,int,int	astalgo: typeToYaml(conf: ConfigRef; n: PType; indent: int = 0; maxRecDepth: int = -1): Rope	
-symToYaml	ast/astalgo.html#symToYaml,ConfigRef,PSym,int,int	astalgo: symToYaml(conf: ConfigRef; n: PSym; indent: int = 0; maxRecDepth: int = -1): Rope	
-debug	ast/astalgo.html#debug,PSym,ConfigRef	astalgo: debug(n: PSym; conf: ConfigRef = nil)	
-debug	ast/astalgo.html#debug,PType,ConfigRef	astalgo: debug(n: PType; conf: ConfigRef = nil)	
-debug	ast/astalgo.html#debug,PNode,ConfigRef	astalgo: debug(n: PNode; conf: ConfigRef = nil)	
 nextTry	ast/astalgo.html#nextTry,Hash,Hash	astalgo: nextTry(h, maxHash: Hash): Hash	
 objectSetContains	ast/astalgo.html#objectSetContains,TObjectSet,RootRef	astalgo: objectSetContains(t: TObjectSet; obj: RootRef): bool	
 objectSetIncl	ast/astalgo.html#objectSetIncl,TObjectSet,RootRef	astalgo: objectSetIncl(t: var TObjectSet; obj: RootRef)	

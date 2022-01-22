@@ -109,6 +109,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="isCompilerDebug(conf: ConfigRef): bool">isCompilerDebug(conf: ConfigRef): bool</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">isCompilerTraceDebug
+      <li><a class="reference" href="#isCompilerTraceDebug%2CConfigRef"
+    title="isCompilerTraceDebug(conf: ConfigRef): bool">isCompilerTraceDebug(conf: ConfigRef): bool</a></li>
+
+  </ul>
 
   </ul>
 </li>
@@ -124,6 +129,8 @@ window.addEventListener('DOMContentLoaded', main);
     title="addInNimDebugUtils(c: ConfigRef; action: string; n, r: PNode; flags: TExprFlags)">addInNimDebugUtils(c: ConfigRef; action: string; n, r: PNode; flags: TExprFlags)</a></li>
   <li><a class="reference" href="#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPNode%2CPType%2CPType"
     title="addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; prev, r: PType)">addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; prev, r: PType)</a></li>
+  <li><a class="reference" href="#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPNode%2CPSym"
+    title="addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; resSym: PSym)">addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; resSym: PSym)</a></li>
   <li><a class="reference" href="#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPType%2CPType%2CPType"
     title="addInNimDebugUtils(c: ConfigRef; action: string; x, y, r: PType)">addInNimDebugUtils(c: ConfigRef; action: string; x, y, r: PType)</a></li>
 
@@ -141,7 +148,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -163,6 +170,18 @@ class="link-seesrc" target="_blank">Source</a>
 <dt><pre><span class="Keyword">proc</span> <a href="#isCompilerDebug%2CConfigRef"><span class="Identifier">isCompilerDebug</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span class="Identifier">inline</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
+
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L24"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L24" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="isCompilerTraceDebug,ConfigRef">
+<dt><pre><span class="Keyword">proc</span> <a href="#isCompilerTraceDebug%2CConfigRef"><span class="Identifier">isCompilerTraceDebug</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
 <p>Provides a simple way for user code to enable/disable logging in the compiler in a granular way. This can then be used in the compiler as follows:</p>
 <p><pre class="listing"><span class="Keyword">if</span> <span class="Identifier">conf</span><span class="Operator">.</span><span class="Identifier">isCompilerDebug</span><span class="Punctuation">(</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
   <span class="Identifier">echo</span> <span class="Identifier">n</span><span class="Operator">.</span><span class="Identifier">sym</span><span class="Operator">.</span><span class="Identifier">typ</span><span class="Operator">.</span><span class="Identifier">len</span>
@@ -176,9 +195,9 @@ class="link-seesrc" target="_blank">Source</a>
   <span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">undef</span><span class="Punctuation">(</span><span class="Identifier">nimCompilerDebug</span><span class="Punctuation">)</span><span class="Operator">.</span><span class="Punctuation">}</span>
   <span class="Identifier">echo</span> <span class="CharLit">'x'</span></pre>
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L24"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L27"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L24" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L27" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -193,9 +212,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 add tracing to procs that are primarily <tt class="docutils literal"><span class="pre"><span class="Identifier">PType</span><span class="Punctuation">,</span> <span class="Identifier">PType</span> <span class="Operator">-&gt;</span> <span class="Identifier">PType</span></span></tt>, looking for a common type
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L291"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L324"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L291" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L324" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -205,9 +224,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 add tracing to procs that are primarily <tt class="docutils literal"><span class="pre"><span class="Identifier">PNode</span> <span class="Operator">-&gt;</span> <span class="Identifier">PNode</span></span></tt>, and can determine the type
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L172"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L176"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L172" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L176" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -218,9 +237,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 add tracing to procs that are primarily <tt class="docutils literal"><span class="pre"><span class="Identifier">PNode</span> <span class="Operator">-&gt;</span> <span class="Identifier">PNode</span></span></tt>, with expr flags and can determine the type
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L141"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L145"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L141" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L145" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -231,9 +250,21 @@ class="link-seesrc" target="_blank">Source</a>
 
 add tracing to procs that are primarily <tt class="docutils literal"><span class="pre"><span class="Identifier">PNode</span><span class="Punctuation">,</span> <span class="Identifier">PType</span><span class="Operator">|</span><span class="Keyword">nil</span> <span class="Operator">-&gt;</span> <span class="Identifier">PType</span></span></tt>, determining a type node, with a possible previous type.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L230"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L234"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L230" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L234" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="addInNimDebugUtils.t,ConfigRef,string,PNode,PSym">
+<dt><pre><span class="Keyword">template</span> <a href="#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPNode%2CPSym"><span class="Identifier">addInNimDebugUtils</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">;</span> <span class="Identifier">action</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">resSym</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">)</span></pre></dt>
+<dd>
+
+add tracing to procs that are primarily <tt class="docutils literal"><span class="pre"><span class="Identifier">PNode</span> <span class="Operator">-&gt;</span> <span class="Identifier">PSym</span></span></tt>,
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L266"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L266" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -243,9 +274,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 add tracing to procs that are primarily <tt class="docutils literal"><span class="pre"><span class="Identifier">PType</span><span class="Punctuation">,</span> <span class="Identifier">PType</span> <span class="Operator">-&gt;</span> <span class="Identifier">PType</span></span></tt>, looking for a common type
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L262"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L295"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L262" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L295" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -255,9 +286,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 add tracing error generation <tt class="docutils literal"><span class="pre"><span class="Identifier">PNode</span> <span class="Operator">-&gt;</span> <span class="Identifier">PNode</span></span></tt>
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/eaf1e8ac8acbd5eb348f2191fc8f543cc8e5ab54/compiler/utils/debugutils.nim#L201"
+href="https://github.com/nim-works/nimskull/tree/c58bb08363d3d3255ead928772c30fa9e9938867/compiler/utils/debugutils.nim#L205"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L201" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/debugutils.nim#L205" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>

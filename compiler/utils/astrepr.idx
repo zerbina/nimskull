@@ -1,0 +1,35 @@
+trfPositionIndexed	utils/astrepr.html#trfPositionIndexed	TReprFlag.trfPositionIndexed	
+trfReportInfo	utils/astrepr.html#trfReportInfo	TReprFlag.trfReportInfo	
+trfPackedFields	utils/astrepr.html#trfPackedFields	TReprFlag.trfPackedFields	
+trfSkipAuxError	utils/astrepr.html#trfSkipAuxError	TReprFlag.trfSkipAuxError	
+trfSymDefined	utils/astrepr.html#trfSymDefined	TReprFlag.trfSymDefined	
+trfShowSymFlags	utils/astrepr.html#trfShowSymFlags	TReprFlag.trfShowSymFlags	
+trfShowSymLineInfo	utils/astrepr.html#trfShowSymLineInfo	TReprFlag.trfShowSymLineInfo	
+trfShowSymTypes	utils/astrepr.html#trfShowSymTypes	TReprFlag.trfShowSymTypes	
+trfShowSymMagic	utils/astrepr.html#trfShowSymMagic	TReprFlag.trfShowSymMagic	
+trfShowSymKind	utils/astrepr.html#trfShowSymKind	TReprFlag.trfShowSymKind	
+trfShowSymOwner	utils/astrepr.html#trfShowSymOwner	TReprFlag.trfShowSymOwner	
+trfShowSymOptions	utils/astrepr.html#trfShowSymOptions	TReprFlag.trfShowSymOptions	
+trfShowSymPosition	utils/astrepr.html#trfShowSymPosition	TReprFlag.trfShowSymPosition	
+trfShowSymOffset	utils/astrepr.html#trfShowSymOffset	TReprFlag.trfShowSymOffset	
+trfShowSymBitsize	utils/astrepr.html#trfShowSymBitsize	TReprFlag.trfShowSymBitsize	
+trfShowSymAlignment	utils/astrepr.html#trfShowSymAlignment	TReprFlag.trfShowSymAlignment	
+trfShowTypeCallConv	utils/astrepr.html#trfShowTypeCallConv	TReprFlag.trfShowTypeCallConv	
+trfShowTypeFlags	utils/astrepr.html#trfShowTypeFlags	TReprFlag.trfShowTypeFlags	
+trfShowTypeSize	utils/astrepr.html#trfShowTypeSize	TReprFlag.trfShowTypeSize	
+trfShowTypeOwner	utils/astrepr.html#trfShowTypeOwner	TReprFlag.trfShowTypeOwner	
+trfShowTypeBaseId	utils/astrepr.html#trfShowTypeBaseId	TReprFlag.trfShowTypeBaseId	
+trfShowNodeLineInfo	utils/astrepr.html#trfShowNodeLineInfo	TReprFlag.trfShowNodeLineInfo	
+trfShowNodeFlags	utils/astrepr.html#trfShowNodeFlags	TReprFlag.trfShowNodeFlags	
+trfShowNodeIds	utils/astrepr.html#trfShowNodeIds	TReprFlag.trfShowNodeIds	
+trfShowNodeValue	utils/astrepr.html#trfShowNodeValue	TReprFlag.trfShowNodeValue	
+trfShowNodeComments	utils/astrepr.html#trfShowNodeComments	TReprFlag.trfShowNodeComments	
+trfShowNodeErrors	utils/astrepr.html#trfShowNodeErrors	TReprFlag.trfShowNodeErrors	
+trfShowNodeTypes	utils/astrepr.html#trfShowNodeTypes	TReprFlag.trfShowNodeTypes	
+TReprFlag	utils/astrepr.html#TReprFlag	astrepr: TReprFlag	
+treeReprAllFields	utils/astrepr.html#treeReprAllFields	astrepr: treeReprAllFields	
+defaultTreeReprFlags	utils/astrepr.html#defaultTreeReprFlags	astrepr: defaultTreeReprFlags	
+treeReprCompact	utils/astrepr.html#treeReprCompact	astrepr: treeReprCompact	
+treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PSym,set[TReprFlag],int	astrepr: treeRepr(conf: ConfigRef; sym: PSym;\n         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText	
+treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PType,set[TReprFlag],int	astrepr: treeRepr(conf: ConfigRef; typ: PType;\n         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText	
+treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PNode,set[TReprFlag],int,int,int,int	astrepr: treeRepr(conf: ConfigRef; pnode: PNode;\n         flags: set[TReprFlag] = defaultTreeReprFlags; maxDepth: int = 120;\n         maxLen: int = 30; maxPath: int = 1; indentIncrease: int = 0): ColText	

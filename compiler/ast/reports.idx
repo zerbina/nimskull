@@ -709,6 +709,7 @@ semstepEnter	ast/reports.html#semstepEnter	DebugSemStepDirection.semstepEnter
 semstepLeave	ast/reports.html#semstepLeave	DebugSemStepDirection.semstepLeave	
 DebugSemStepDirection	ast/reports.html#DebugSemStepDirection	reports: DebugSemStepDirection	
 stepNodeToNode	ast/reports.html#stepNodeToNode	DebugSemStepKind.stepNodeToNode	
+stepNodeToSym	ast/reports.html#stepNodeToSym	DebugSemStepKind.stepNodeToSym	
 stepNodeFlagsToNode	ast/reports.html#stepNodeFlagsToNode	DebugSemStepKind.stepNodeFlagsToNode	
 stepNodeTypeToNode	ast/reports.html#stepNodeTypeToNode	DebugSemStepKind.stepNodeTypeToNode	
 stepTypeTypeToType	ast/reports.html#stepTypeTypeToType	DebugSemStepKind.stepTypeTypeToType	

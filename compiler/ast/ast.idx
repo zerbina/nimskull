@@ -37,6 +37,7 @@ procDefs	ast/ast.html#procDefs	ast: procDefs
 callableDefs	ast/ast.html#callableDefs	ast: callableDefs	
 nkSymChoices	ast/ast.html#nkSymChoices	ast: nkSymChoices	
 nkStrKinds	ast/ast.html#nkStrKinds	ast: nkStrKinds	
+nkIntKinds	ast/ast.html#nkIntKinds	ast: nkIntKinds	
 skLocalVars	ast/ast.html#skLocalVars	ast: skLocalVars	
 skProcKinds	ast/ast.html#skProcKinds	ast: skProcKinds	
 defaultOffset	ast/ast.html#defaultOffset	ast: defaultOffset	
