@@ -40,7 +40,7 @@ fail	unittest.html#fail.t	unittest: fail()
 skip	unittest.html#skip.t	unittest: skip()	
 check	unittest.html#check.m,untyped	unittest: check(conditions: untyped): untyped	
 require	unittest.html#require.t,untyped	unittest: require(conditions: untyped)	
-expect	unittest.html#expect.m,varargs[typed],untyped	unittest: expect(exceptions: varargs[typed]; body: untyped): untyped	
+expect	unittest.html#expect.m,varargs[untyped]	unittest: expect(args: varargs[untyped]): untyped	
 disableParamFiltering	unittest.html#disableParamFiltering	unittest: disableParamFiltering()	
 Testament	unittest.html#testament	 Testament	
 Running a single test	unittest.html#running-a-single-test	 Running a single test	
