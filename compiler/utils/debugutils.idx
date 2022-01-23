@@ -1,5 +1,10 @@
 isCompilerDebug	utils/debugutils.html#isCompilerDebug,ConfigRef	debugutils: isCompilerDebug(conf: ConfigRef): bool	
 isCompilerTraceDebug	utils/debugutils.html#isCompilerTraceDebug,ConfigRef	debugutils: isCompilerTraceDebug(conf: ConfigRef): bool	
+StepParams	utils/debugutils.html#StepParams	debugutils: StepParams	
+stepParams	utils/debugutils.html#stepParams,ConfigRef,DebugSemStepKind,int,string	debugutils: stepParams(c: ConfigRef; kind: DebugSemStepKind; indentLevel: int;\n           action: string): StepParams	
+traceStepImpl	utils/debugutils.html#traceStepImpl.t,StepParams,DebugSemStepDirection,untyped	debugutils: traceStepImpl(params: StepParams; stepDirection: DebugSemStepDirection;\n              body: untyped)	
+traceEnterIt	utils/debugutils.html#traceEnterIt.t,StepParams,untyped,int	debugutils: traceEnterIt(params: StepParams; body: untyped; templateDepth: int = instDepth): untyped	
+traceLeaveIt	utils/debugutils.html#traceLeaveIt.t,StepParams,untyped,int	debugutils: traceLeaveIt(params: StepParams; body: untyped; templateDepth: int = instDepth): untyped	
 addInNimDebugUtils	utils/debugutils.html#addInNimDebugUtils.t,ConfigRef,string,PNode,PNode,TExprFlags	debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n, r: PNode; flags: TExprFlags)	
 addInNimDebugUtils	utils/debugutils.html#addInNimDebugUtils.t,ConfigRef,string,PNode,PNode	debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n, r: PNode)	
 addInNimDebugUtilsError	utils/debugutils.html#addInNimDebugUtilsError.t,ConfigRef,PNode,PNode	debugutils: addInNimDebugUtilsError(c: ConfigRef; n, e: PNode)	
