@@ -222,6 +222,7 @@ cnHintAsError	front/options.html#cnHintAsError	ConfNoteSet.cnHintAsError
 cnCmdline	front/options.html#cnCmdline	ConfNoteSet.cnCmdline	
 cnModifiedy	front/options.html#cnModifiedy	ConfNoteSet.cnModifiedy	
 ConfNoteSet	front/options.html#ConfNoteSet	options: ConfNoteSet	
+HackController	front/options.html#HackController	options: HackController	
 ConfigRef	front/options.html#ConfigRef	options: ConfigRef	
 incl	front/options.html#incl,ConfigRef,ConfNoteSet,ReportKind	options: incl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)	
 excl	front/options.html#excl,ConfigRef,ConfNoteSet,ReportKind	options: excl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)	
@@ -277,6 +278,11 @@ hasHint	front/options.html#hasHint,ConfigRef,ReportKind	options: hasHint(conf: C
 hasWarn	front/options.html#hasWarn,ConfigRef,ReportKind	options: hasWarn(conf: ConfigRef; note: ReportKind): bool	
 isEnabled	front/options.html#isEnabled,ConfigRef,ReportKind	options: isEnabled(conf: ConfigRef; report: ReportKind): bool	
 isEnabled	front/options.html#isEnabled,ConfigRef,Report	options: isEnabled(conf: ConfigRef; report: Report): bool	
+writeEnabled	front/options.html#writeEnabled	ReportWritabilityKind.writeEnabled	
+writeDisabled	front/options.html#writeDisabled	ReportWritabilityKind.writeDisabled	
+writeForceEnabled	front/options.html#writeForceEnabled	ReportWritabilityKind.writeForceEnabled	
+ReportWritabilityKind	front/options.html#ReportWritabilityKind	options: ReportWritabilityKind	
+writabilityKind	front/options.html#writabilityKind,ConfigRef,Report	options: writabilityKind(conf: ConfigRef; r: Report): ReportWritabilityKind	
 hcrOn	front/options.html#hcrOn,ConfigRef	options: hcrOn(conf: ConfigRef): bool	
 oldExperimentalFeatures	front/options.html#oldExperimentalFeatures	options: oldExperimentalFeatures	
 ChecksOptions	front/options.html#ChecksOptions	options: ChecksOptions	

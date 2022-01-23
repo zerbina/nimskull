@@ -1,4 +1,3 @@
-HackController	front/cli_reporter.html#HackController	cli_reporter: HackController	
 wrap	front/cli_reporter.html#wrap,ConfigRef,string,ForegroundColor,set[Style]	cli_reporter: wrap(conf: ConfigRef; str: string; color: ForegroundColor;\n     style: set[Style] = {}): string	
 formatTrace	front/cli_reporter.html#formatTrace,ConfigRef,seq[StackTraceEntry]	cli_reporter: formatTrace(conf: ConfigRef; trace: seq[StackTraceEntry]): string	
 addPragmaAndCallConvMismatch	front/cli_reporter.html#addPragmaAndCallConvMismatch,string,PType,PType,ConfigRef	cli_reporter: addPragmaAndCallConvMismatch(message: var string; formal, actual: PType;\n                             conf: ConfigRef)	
