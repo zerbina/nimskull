@@ -92,6 +92,7 @@ type
     inCurrentBatch*: bool
     targets*: set[TTarget]
     matrix*: seq[string]
+    nimoutSexp*: bool
     nimout*: string
     nimoutFull*: bool    # whether nimout is all compiler output or a subset
     parseErrors*: string # when the spec definition is invalid, this is not empty.
@@ -308,6 +309,17 @@ proc parseSpec*(filename: string): TSpec =
         #      incorporate it into the the actual test runner and output.
         # result.description = e.value
         discard
+      of "nimoutformat":
+        case e.value.normalize:
+          of "sexp":
+            result.nimoutSexp = true
+
+          of "text":
+            result.nimoutSexp = false
+
+          else:
+            result.parseErrors.addLine "unexpected nimout format: got ", e.value
+
       of "action":
         case e.value.normalize
         of "compile":
@@ -432,7 +444,7 @@ proc parseSpec*(filename: string): TSpec =
       of "knownissue":
         case e.value.normalize
         of "n", "no", "false", "0": discard
-        else: 
+        else:
             result.knownIssues.add e.value
             result.err = reDisabled
       else:

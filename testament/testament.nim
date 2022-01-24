@@ -11,14 +11,14 @@
 
 import std/[
   strutils, pegs, os, osproc, streams, json, exitprocs, parseopt, browsers,
-  terminal, algorithm, times, md5, intsets, macros
+  terminal, algorithm, times, md5, intsets, macros, sequtils
 ]
 import backend, azure, htmlgen, specs
 from std/sugar import dup
 import utils/nodejs
 import lib/stdtest/testutils
 from lib/stdtest/specialpaths import splitTestFile
-from std/private/gitutils import diffStrings
+import experimental/[sexp, sexp_diff, colortext, colordiff]
 
 proc trimUnitSep(x: var string) =
   let L = x.len
@@ -32,10 +32,55 @@ var optVerbose = false
 var useMegatest = true
 var optFailing = false
 
+import std/sugar
+
+proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
+  let a = a.split("\n")
+  let b = b.split("\n")
+  var maxA = 0
+  var maxB = 0
+  for line in a:
+    maxA = max(maxA, line.len)
+
+  for line in b:
+    maxB = max(maxB, line.len)
+
+  var fmt = diffFormatter[string]()
+  fmt.conf.sideBySide = maxA + maxB + 8 < terminalWidth()
+
+  let diff = myersDiff(a, b)
+  if len(diff) == 0:
+    result.same = true
+
+  else:
+    result.same = false
+    result.output = diff.shiftDiffed(a, b).
+      formatDiffed(a, b, fmt).toString(useColors)
+
+proc diffSexp*(expected, given: string): string =
+  var
+    conf = diffFormatter[string]().conf
+    res: ColText
+    first = true
+
+  for (expected, given) in zip(
+    expected.split('\n').filterIt(0 < it.len),
+    given.split('\n').filterIt(0 < it.len)
+  ):
+    let diff = diff(expected.parseSexp(), given.parseSexp())
+    if 0 < len(diff):
+      if not first: res.add "\n"
+      first = false
+      res.add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [expected, given]
+      res.add diff.describeDiff(conf).indent(2)
+
+  return res.toString(useColors)
+
+
 ## Blanket method to encaptsulate all echos while testament is detangled.
-## Using this means echo cannot be called with separation of args and must instead
-## pass a single concatenated string so that optional paramters can be
-## included
+## Using this means echo cannot be called with separation of args and must
+## instead pass a single concatenated string so that optional paramters can
+## be included
 type
   MessageType = enum
     Undefined,
@@ -280,12 +325,20 @@ Tests failed and allowed to fail: $3 / $1 <br />
 Tests skipped: $4 / $1 <br />
 """ % [$x.total, $x.passed, $x.failedButAllowed, $x.skipped]
 
-proc addResult(r: var TResults, test: TTest, target: TTarget,
-               expected, given: string, successOrig: TResultEnum, allowFailure = false, givenSpec: ptr TSpec = nil) =
-  # instead of `ptr TSpec` we could also use `Option[TSpec]`; passing `givenSpec` makes it easier to get what we need
-  # instead of having to pass individual fields, or abusing existing ones like expected vs given.
-  # test.name is easier to find than test.name.extractFilename
-  # A bit hacky but simple and works with tests/testament/tshould_not_work.nim
+proc addResult(
+    r: var TResults,
+    test: TTest,
+    target: TTarget,
+    expected, given: string,
+    successOrig: TResultEnum,
+    allowFailure = false,
+    givenSpec: ptr TSpec = nil,
+  ) =
+  # instead of `ptr TSpec` we could also use `Option[TSpec]`; passing
+  # `givenSpec` makes it easier to get what we need instead of having to
+  # pass individual fields, or abusing existing ones like expected vs
+  # given. test.name is easier to find than test.name.extractFilename A bit
+  # hacky but simple and works with tests/testament/tshould_not_work.nim
   var name = test.name.replace(DirSep, '/')
   name.add ' ' & $target
   if allowFailure:
@@ -328,11 +381,15 @@ proc addResult(r: var TResults, test: TTest, target: TTarget,
       # expected is empty, no reason to print it.
       msg Undefined: given
     else:
-      maybeStyledEcho fgYellow, "Expected:"
-      maybeStyledEcho styleBright, expected, "\n"
-      maybeStyledEcho fgYellow, "Gotten:"
-      maybeStyledEcho styleBright, given, "\n"
-      msg Undefined: diffStrings(expected, given).output
+      if test.spec.nimoutSexp:
+        msg Undefined: diffSexp(expected, given)
+
+      else:
+        maybeStyledEcho fgYellow, "Expected:"
+        maybeStyledEcho styleBright, expected, "\n"
+        maybeStyledEcho fgYellow, "Gotten:"
+        maybeStyledEcho styleBright, given, "\n"
+        msg Undefined: diffStrings(expected, given).output
 
   if backendLogging and (isAppVeyor or isAzure):
     let (outcome, msg) =
@@ -399,11 +456,27 @@ proc checkForInlineErrors(r: var TResults, expected, given: TSpec, test: TTest, 
 
 proc nimoutCheck(expected, given: TSpec): bool =
   result = true
-  if expected.nimoutFull:
-    if expected.nimout != given.nimout:
+  if expected.nimoutSexp:
+    if expected.nimout.len != given.nimout.len:
       result = false
-  elif expected.nimout.len > 0 and not greedyOrderedSubsetLines(expected.nimout, given.nimout):
-    result = false
+
+    else:
+      for (expected, given) in zip(
+        expected.nimout.split("\n"),
+        given.nimout.split("\n")
+      ):
+        # TODO handle output lines that cannot be parsed with `parseSexp()`
+        let diff = diff(expected.parseSexp(), given.parseSexp())
+
+        if 0 < len(diff):
+          return false
+
+  else:
+    if expected.nimoutFull:
+      if expected.nimout != given.nimout:
+        result = false
+    elif expected.nimout.len > 0 and not greedyOrderedSubsetLines(expected.nimout, given.nimout):
+      result = false
 
 proc cmpMsgs(r: var TResults, expected, given: TSpec, test: TTest, target: TTarget) =
   if expected.inlineErrors.len > 0:
@@ -472,8 +545,10 @@ proc compilerOutputTests(test: TTest, target: TTarget, given: var TSpec,
       givenmsg = given.nimout.strip
   else:
     givenmsg = "$ " & given.cmd & '\n' & given.nimout
-  if given.err == reSuccess: inc(r.passed)
-  r.addResult(test, target, expectedmsg, givenmsg, given.err)
+  if given.err == reSuccess:
+    inc(r.passed)
+
+  r.addResult(test, target, expectedmsg, givenmsg, given.err, givenSpec = addr given)
 
 proc getTestSpecTarget(): TTarget =
   if getEnv("NIM_COMPILE_TO_CPP", "false") == "true":
