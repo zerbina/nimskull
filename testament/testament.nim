@@ -52,86 +52,6 @@ type
     cantIgnoreGiven: bool
 
 
-type IdxCostMap* = Table[(int, int), int]
-
-proc stablematch[T](
-    lhs, rhs: seq[T],
-    weight: proc(a, b: int): int,
-    order: SortOrder = SortOrder.Ascending
-  ): tuple[lhsIgnore, rhsIgnore: seq[int], map: IdxCostMap] =
-  ## Do a weighted matching of the items in lhs and rhs sequences using
-  ## weight function. Return most cost-effective matching elements.
-
-  var lfree: seq[int]
-  var rfree: seq[int]
-  for idx in 0 ..< len(lhs): lfree.add idx
-  for idx in 0 ..< len(rhs): rfree.add idx
-
-  # Mappings necessary to compute list of unmapped rhs elements afterwards
-  var rmap: Table[int, (int, int)]
-  # Mapping from `l` to `(l, r)` - necessary for the algorithm
-  var lmap: Table[int, (int, int)]
-
-  proc getCost(l, r: int, res: var IdxCostMap): int =
-    if (l, r) notin res:
-      res[(l, r)] = weight(l, r)
-
-    res[(l, r)]
-
-  proc trySwap(
-      l, r, altL, altR: int, res: var IdxCostMap
-  ): Option[int] =
-    let tryCost = getCost(l, r, res)
-    let otherCost = getCost(l, altR, res)
-    let better =
-      if order == Ascending:
-        otherCost < tryCost
-      else:
-        otherCost > tryCost
-
-    if better:
-      result = some altL
-      echo "freeing ", result
-      res[(l, r)] = tryCost
-      rmap[r] = (l, r)
-      lmap[l] = (l, r)
-
-
-  while 0 < len(lfree) and 0 < len(rfree):
-    let r = rfree.pop()
-    let l = lfree.pop()
-    if l in lmap:
-      # `L` is already mapped to something - check if it's target is better
-      # that new attempt.
-      let free = trySwap(l, r, lmap[l][0], result.map)
-      if free.isSome():
-        lfree.add free.get()
-        lmap.del free.get()
-
-    else:
-      # Not in map, brand new pair, assigning weight and mapping.
-      result.map[(l, r)] = weight(l, r)
-      rmap[r] = (l, r)
-      lmap[l] = (l, r)
-
-  # while 0 < len(rfree):
-  #   let r = rfree.pop()
-  #   for l, otherPair in lmap:
-  #     let free = trySwap(l, r, otherPair, result.map)
-
-  # while 0 < len(lfree):
-  #   let l = lfree.pop()
-  #   for r, otherPair in rmap:
-  #     trySwap(l, r, otherPair, result.map)
-
-
-  for idx in 0 ..< len(rhs):
-    if idx notin rmap:
-      result.rhsIgnore.add idx
-
-  for idx in 0 ..< len(lhs):
-    if idx notin lmap:
-      result.lhsIgnore.add idx
 
 proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
   let a = a.split("\n")
@@ -726,25 +646,19 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
     # comparison speed isneeded, try starting with error kind, file, line
     # comparison, they doing a regular msg != msg compare and only then
     # deep structural diff.
-    echo "comparing reports >>>"
-    echo "exp: ", r.expectedReports[a].node
-    echo "giv: ", r.givenReports[b].node
     if r.expectedReports[a].node[0] != r.givenReports[b].node[0]:
       result += 10
 
     let diff = diff(r.expectedReports[a].node, r.givenReports[b].node)
     r.diffMap[(a, b)] = diff
     result += diff.len
-    echo "cost: ", result
-    echo "<<<"
 
-
-  var mapping: IdxCostMap
-  (r.ignoredExpected, r.ignoredGiven, mapping) = stablematch(
+  echo r.expectedReports
+  echo r.givenReports
+  (r.ignoredExpected, r.ignoredGiven, r.sortedMapping) = sortedStablematch(
     r.expectedReports,
     r.givenReports,
-    reportCmp,
-    SortOrder.Descending
+    reportCmp
   )
 
   for idx, r in r.expectedReports:
@@ -753,7 +667,6 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
   for idx, r in r.givenReports:
     echo "< ", idx, " " , r
 
-  r.sortedMapping = toSeq(pairs(mapping)).sortedByIt(-it[1])
 
   if 0 < r.sortedMapping[0].cost:
     r.match = false

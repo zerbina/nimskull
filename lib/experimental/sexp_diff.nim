@@ -4,10 +4,95 @@ import
   ./colordiff,
   std/[
     strformat,
+    sequtils,
     strutils,
     tables,
+    intsets,
     options,
+    algorithm
   ]
+
+type IdxCostMap* = Table[(int, int), int]
+
+proc stablematch*[T](
+    lhs, rhs: seq[T], weight: proc(a, b: int): int,
+    order: SortOrder = SortOrder.Ascending
+  ): tuple[lhsIgnore, rhsIgnore: seq[int], map: IdxCostMap] =
+  ## Do a weighted matching of the items in lhs and rhs sequences using
+  ## weight function. Return most cost-effective matching elements.
+
+  var lfree: seq[int]
+  var canTry: Table[int, seq[int]]
+  var rmap: Table[int, (int,int)]
+
+  for idx in 0 ..< len(lhs):
+    lfree.add idx
+
+  for l in lfree:
+    canTry[l] = @[]
+    for r in 0 ..< len(rhs):
+      canTry[l].add r
+
+  proc getCost(l, r: int, res: var IdxCostMap): int =
+    if (l, r) notin res:
+      res[(l, r)] = weight(l, r)
+
+    res[(l, r)]
+
+  var tmp: IdxCostMap
+  while 0 < len(lfree):
+    let l = lfree.pop()
+    if 0 < canTry[l].len:
+      let r = canTry[l].pop()
+      if r in rmap:
+        let (oldL, _) = rmap[r]
+        let tryCost = getCost(l, r, tmp)
+        let otherCost = getCost(oldL, r, tmp)
+        let better =
+          if order == Ascending:
+            otherCost < tryCost
+          else:
+            otherCost > tryCost
+
+        if better:
+          lfree.add oldL
+          rmap[r] = (l, r)
+
+        else:
+          lfree.add l
+
+      else:
+        discard getCost(l, r, tmp)
+        rmap[r] = (l, r)
+
+  var lset: IntSet
+  for idx in 0 ..< len(rhs):
+    if idx in rmap:
+      lset.incl rmap[idx][0]
+      result.map[rmap[idx]] = tmp[rmap[idx]]
+
+    else:
+      result.rhsIgnore.add idx
+
+  for idx in 0 ..< len(lhs):
+    if idx notin lset:
+      result.lhsIgnore.add idx
+
+
+proc sortedStablematch*[T](
+    lhs, rhs: seq[T], weight: proc(a, b: int): int,
+    order: SortOrder = SortOrder.Ascending
+  ): tuple[
+    lhsIgnore, rhsIgnore: seq[int],
+    ordered: seq[tuple[pair: (int, int), cost: int]]
+  ] =
+
+  var map: IdxCostMap
+  (result.lhsIgnore, result.rhsIgnore, map) = stablematch(
+    lhs, rhs, weight, order
+  )
+
+  result.ordered = toSeq(pairs(map)).sortedByIt(it[1])
 
 export `$`, toString
 
@@ -195,7 +280,81 @@ proc sdiff(target, input: string): Option[ColText] =
   if 0 < len(diff):
     return some diff.describeDiff(diffFormatter[string]().conf)
 
+proc sortd(r: tuple[expectedReports, givenReports: seq[SexpNode]]) =
+  var diffMap = TableRef[(int, int), seq[SexpMismatch]]()
+  proc reportCmp(a, b: int): int =
+    # Best place for further optimization and configuration - if more
+    # comparison speed isneeded, try starting with error kind, file, line
+    # comparison, they doing a regular msg != msg compare and only then
+    # deep structural diff.
+    echo "comparing reports >>>"
+    echo "exp: ", r.expectedReports[a]
+    echo "giv: ", r.givenReports[b]
+    if r.expectedReports[a][0] != r.givenReports[b][0]:
+      result += 10
+
+    let diff = diff(r.expectedReports[a], r.givenReports[b])
+    diffMap[(a, b)] = diff
+    result += diff.len
+    echo "cost: ", result
+    echo "<<<"
+
+  let (lhs, rhs, order) = sortedStablematch(
+    r.expectedReports, r.givenReports, reportCmp, Ascending)
+
+  var result: ColText
+  coloredResult()
+
+  var first = true
+  proc addl() =
+    if not first:
+      add "\n"
+
+    first = false
+
+
+  var
+    conf = diffFormatter[string]().conf
+
+  for (pair, weight) in order:
+    echo pair, weight
+    if 0 < weight:
+      addl()
+      addl()
+      add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [
+        r.expectedReports[pair[0]].toLine(),
+        r.givenReports[pair[1]].toLine()
+      ]
+
+      add diffMap[pair].describeDiff(conf).indent(2)
+
+  for exp in lhs:
+    addl()
+    addl()
+    add "Missing expected annotation:\n\n"
+    add "? ", r.expectedReports[exp].toLine()
+    add "\n\n"
+
+  for give in rhs:
+    addl()
+    addl()
+    add "Unexpected given annotation:\n\n"
+    add "? ", r.expectedReports[give].toLine()
+    add "\n\n"
+
+  echo result
+
+
 when isMainModule:
+  sortd(( @[
+    parseSexp("""(User :str "Another hint" :location ("tfile.nim" 11 7) :severity Hint)"""),
+    parseSexp("""(User :str "User hint" :location ("tfile.nim" 8 _))""")
+  ], @[
+    parseSexp("""(User :severity Hint :str "User hint" :location ("tfile.nim" 9 6))"""),
+    parseSexp("""(User :severity Hint :str "Another hint" :location ("tfile.nim" 11 6))""")
+  ] ))
+
+when isMainModule and false:
   for str in @[
     ("1", "2"),
     ("(:line 12 :col 10)", "(:line 30 :col 30)"),
