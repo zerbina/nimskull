@@ -11,7 +11,8 @@
 
 import std/[
   strutils, pegs, os, osproc, streams, json, exitprocs, parseopt, browsers,
-  terminal, algorithm, times, md5, intsets, macros, sequtils, tables
+  terminal, algorithm, times, md5, intsets, macros, sequtils, tables,
+  options
 ]
 import backend, azure, htmlgen, specs
 from std/sugar import dup
@@ -66,7 +67,9 @@ proc stablematch[T](
   for idx in 0 ..< len(lhs): lfree.add idx
   for idx in 0 ..< len(rhs): rfree.add idx
 
+  # Mappings necessary to compute list of unmapped rhs elements afterwards
   var rmap: Table[int, (int, int)]
+  # Mapping from `l` to `(l, r)` - necessary for the algorithm
   var lmap: Table[int, (int, int)]
 
   proc getCost(l, r: int, res: var IdxCostMap): int =
@@ -75,13 +78,11 @@ proc stablematch[T](
 
     res[(l, r)]
 
-  proc getCost(pair: (int, int), res: var IdxCostMap): int =
-    getCost(pair[0], pair[1], res)
-
-  proc trySwap(l, r: int, otherPair: (int, int), res: var IdxCostMap) =
-    echo "  trying to swap ", l, " and ", r
+  proc trySwap(
+      l, r, altL, altR: int, res: var IdxCostMap
+  ): Option[int] =
     let tryCost = getCost(l, r, res)
-    let otherCost = getCost(otherPair, res)
+    let otherCost = getCost(l, altR, res)
     let better =
       if order == Ascending:
         otherCost < tryCost
@@ -89,6 +90,8 @@ proc stablematch[T](
         otherCost > tryCost
 
     if better:
+      result = some altL
+      echo "freeing ", result
       res[(l, r)] = tryCost
       rmap[r] = (l, r)
       lmap[l] = (l, r)
@@ -97,25 +100,29 @@ proc stablematch[T](
   while 0 < len(lfree) and 0 < len(rfree):
     let r = rfree.pop()
     let l = lfree.pop()
-    if r in rmap:
-      # If already tried combination and it is a known fail, discard
-      # attempt
-      trySwap(l, r, rmap[r], result.map)
+    if l in lmap:
+      # `L` is already mapped to something - check if it's target is better
+      # that new attempt.
+      let free = trySwap(l, r, lmap[l][0], result.map)
+      if free.isSome():
+        lfree.add free.get()
+        lmap.del free.get()
 
     else:
+      # Not in map, brand new pair, assigning weight and mapping.
       result.map[(l, r)] = weight(l, r)
       rmap[r] = (l, r)
       lmap[l] = (l, r)
 
-  while 0 < len(rfree):
-    let r = rfree.pop()
-    for l, otherPair in lmap:
-      trySwap(l, r, otherPair, result.map)
+  # while 0 < len(rfree):
+  #   let r = rfree.pop()
+  #   for l, otherPair in lmap:
+  #     let free = trySwap(l, r, otherPair, result.map)
 
-  while 0 < len(lfree):
-    let l = lfree.pop()
-    for r, otherPair in rmap:
-      trySwap(l, r, otherPair, result.map)
+  # while 0 < len(lfree):
+  #   let l = lfree.pop()
+  #   for r, otherPair in rmap:
+  #     trySwap(l, r, otherPair, result.map)
 
 
   for idx in 0 ..< len(rhs):
