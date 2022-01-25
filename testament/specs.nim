@@ -159,7 +159,6 @@ const
   inlineErrorMarker = "#[tt."
 
 proc extractErrorMsg(s: string; i: int; line: var int; col: var int; spec: var TSpec): int =
-  echo "extracting error message at ", s[i ..< min(s.len, i + 10)]
   result = i + len(inlineErrorMarker)
   inc col, len(inlineErrorMarker)
   var kind = ""
@@ -200,7 +199,6 @@ proc extractErrorMsg(s: string; i: int; line: var int; col: var int; spec: var T
       inc col, 2
       if kind == "Error": spec.action = actionReject
       spec.unjoinable = true
-      echo "Added inline error"
       spec.inlineErrors.add InlineError(kind: kind, msg: msg, line: caret[0], col: caret[1])
       break
     else:

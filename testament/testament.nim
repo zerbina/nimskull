@@ -44,16 +44,19 @@ type
     match: bool
     expectedReports: seq[TOutReport]
     givenReports: seq[TOutReport]
-    sortedMapping: seq[((int, int), int)]
+    sortedMapping: seq[tuple[pair: (int, int), cost: int]]
     diffMap: Table[(int, int), seq[SexpMismatch]]
     ignoredExpected: seq[int]
     ignoredGiven: seq[int]
+    cantIgnoreGiven: bool
 
 
 type IdxCostMap* = Table[(int, int), int]
 
 proc stablematch[T](
-    lhs, rhs: seq[T], weight: proc(a, b: int): int
+    lhs, rhs: seq[T],
+    weight: proc(a, b: int): int,
+    order: SortOrder = SortOrder.Ascending
   ): tuple[lhsIgnore, rhsIgnore: seq[int], map: IdxCostMap] =
   ## Do a weighted matching of the items in lhs and rhs sequences using
   ## weight function. Return most cost-effective matching elements.
@@ -68,7 +71,7 @@ proc stablematch[T](
 
   proc getCost(l, r: int, res: var IdxCostMap): int =
     if (l, r) notin res:
-      res[(l, r)] = weight(lhs[l], rhs[r])
+      res[(l, r)] = weight(l, r)
 
     res[(l, r)]
 
@@ -76,9 +79,16 @@ proc stablematch[T](
     getCost(pair[0], pair[1], res)
 
   proc trySwap(l, r: int, otherPair: (int, int), res: var IdxCostMap) =
+    echo "  trying to swap ", l, " and ", r
     let tryCost = getCost(l, r, res)
     let otherCost = getCost(otherPair, res)
-    if otherCost < tryCost:
+    let better =
+      if order == Ascending:
+        otherCost < tryCost
+      else:
+        otherCost > tryCost
+
+    if better:
       res[(l, r)] = tryCost
       rmap[r] = (l, r)
       lmap[l] = (l, r)
@@ -93,7 +103,7 @@ proc stablematch[T](
       trySwap(l, r, rmap[r], result.map)
 
     else:
-      result.map[(l, r)] = weight(lhs[l], rhs[r])
+      result.map[(l, r)] = weight(l, r)
       rmap[r] = (l, r)
       lmap[l] = (l, r)
 
@@ -139,7 +149,7 @@ proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
     result.output = diff.shiftDiffed(a, b).
       formatDiffed(a, b, fmt).toString(useColors)
 
-proc format(cmp: TOutCompare): ColText =
+proc format(tcmp: TOutCompare, ): ColText =
   var
     conf = diffFormatter[string]().conf
     res: ColText
@@ -148,26 +158,37 @@ proc format(cmp: TOutCompare): ColText =
 
   var first = true
   proc addl() =
-    if first:
+    if not first:
       add "\n"
 
     first = false
 
-  for (pair, weight) in cmp.sortedMapping:
+  for (pair, weight) in tcmp.sortedMapping:
+    echo pair, weight
     if 0 < weight:
       addl()
+      addl()
       add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [
-        cmp.expectedReports[pair[0]].node.toLine(),
-        cmp.givenReports[pair[1]].node.toLine()
+        tcmp.expectedReports[pair[0]].node.toLine(),
+        tcmp.givenReports[pair[1]].node.toLine()
       ]
 
-      add cmp.diffMap[pair].describeDiff(conf).indent(2)
+      add tcmp.diffMap[pair].describeDiff(conf).indent(2)
 
-  for exp in cmp.ignoredExpected:
+  for exp in tcmp.ignoredExpected:
+    addl()
     addl()
     add "Missing expected annotation:\n\n"
-    add "? ", cmp.expectedReports[exp].node.toLine()
+    add "? ", tcmp.expectedReports[exp].node.toLine()
     add "\n\n"
+
+  if tcmp.cantIgnoreGiven:
+    for give in tcmp.ignoredGiven:
+      addl()
+      addl()
+      add "Unexpected given annotation:\n\n"
+      add "? ", tcmp.expectedReports[give].node.toLine()
+      add "\n\n"
 
 ## Blanket method to encaptsulate all echos while testament is detangled.
 ## Using this means echo cannot be called with separation of args and must
@@ -440,23 +461,27 @@ type
 
 proc logToConsole(
     test: TTest,
-    param: ReportParams
+    param: ReportParams,
+    givenSpec: ptr TSpec = nil
   ) =
 
   ## Format test infomation to the console. `test` contains information
   ## about the test itself, `param` contains additional data about test
   ## execution.
 
-  let durationStr = param.duration.formatFloat(ffDecimal, precision = 2).align(5)
+  let durationStr = param.duration.formatFloat(
+    ffDecimal, precision = 2).align(5)
+
   template dispNonSkipped(color, outcome) =
     if not optFailing or color == fgRed:
       maybeStyledEcho(
-        color, outcome, fgCyan, test.debugInfo, alignLeft(name, 60),
+        color, outcome, fgCyan, test.debugInfo, alignLeft(param.name, 60),
         fgBlue, " (", durationStr, " sec)")
 
   template disp(msg) =
     if not optFailing:
-      maybeStyledEcho(styleDim, fgYellow, msg & ' ', styleBright, fgCyan, param.name):
+      maybeStyledEcho(
+        styleDim, fgYellow, msg & ' ', styleBright, fgCyan, param.name)
 
   if param.success == reSuccess:
     dispNonSkipped(fgGreen, "PASS: ")
@@ -474,33 +499,39 @@ proc logToConsole(
   else:
     dispNonSkipped(fgRed, failString)
     maybeStyledEcho(
-      styleBright, fgCyan, "Test \"", test.name, "\"", " in category \"", test.cat.string, "\"")
+      styleBright, fgCyan, "Test \"", test.name, "\"",
+      " in category \"", test.cat.string, "\"")
 
     maybeStyledEcho styleBright, fgRed, "Failure: ", $param.success
     if givenSpec != nil and givenSpec.debugInfo.len > 0:
       msg Undefined: "debugInfo: " & givenSpec.debugInfo
 
-    if success in {reBuildFailed, reNimcCrash, reInstallFailed}:
+    if param.success in {reBuildFailed, reNimcCrash, reInstallFailed}:
       # expected is empty, no reason to print it.
-      msg Undefined: given
+      msg Undefined: param.given
 
     else:
       if not isNil(param.outCompare):
+        echo "Formatting out compare parameters"
         msg Undefined:
-          param.outCompare().toString(useColors)
+          param.outCompare.format().toString(useColors)
 
       else:
+        # REFACTOR error message formatting should be based on the
+        # `TestReport` data structure that contains all the necessary
+        # inforamtion that is necessary in order to generate error message.
         maybeStyledEcho fgYellow, "Expected:"
-        maybeStyledEcho styleBright, expected, "\n"
+        maybeStyledEcho styleBright, param.expected, "\n"
         maybeStyledEcho fgYellow, "Gotten:"
-        maybeStyledEcho styleBright, given, "\n"
-        msg Undefined: diffStrings(expected, given).output
+        maybeStyledEcho styleBright, param.given, "\n"
+        msg Undefined:
+          diffStrings(param.expected, param.given).output
 
 
 proc logToBackend(
     test: TTest,
     param: ReportParams
-  )
+  ) = 
 
   let (outcome, msg) =
     case param.success
@@ -509,10 +540,10 @@ proc logToBackend(
     of reDisabled, reJoined:
       ("Skipped", "")
     of reBuildFailed, reNimcCrash, reInstallFailed:
-      ("Failed", "Failure: " & $param.success & '\n' & given)
+      ("Failed", "Failure: " & $param.success & '\n' & param.given)
     else:
       ("Failed", "Failure: " & $param.success & "\nExpected:\n" &
-        param.expected & "\n\n" & "Gotten:\n" & given)
+        param.expected & "\n\n" & "Gotten:\n" & param.given)
   if isAzure:
     azure.addTestResult(
       param.name, test.cat.string, int(param.duration * 1000), msg, param.success)
@@ -553,8 +584,12 @@ proc addResult(
   param.given = given
   param.outCompare = outCompare
   param.duration = epochTime() - test.startTime
-  let success = if test.spec.timeout > 0.0 and duration > test.spec.timeout: reTimeout
-                else: successOrig
+  param.success =
+    if test.spec.timeout > 0.0 and param.duration > test.spec.timeout:
+      reTimeout
+    else:
+      successOrig
+
 
   param.name = test.getName(target, allowFailure)
 
@@ -563,16 +598,19 @@ proc addResult(
                             category = test.cat.string,
                             target = $target,
                             action = $test.spec.action,
-                            result = $success,
+                            result = $param.success,
                             expected = expected,
                             given = given)
 
-  r.data.addf("$#\t$#\t$#\t$#", name, expected, given, $success)
+  # TODO DOC what is this
+  r.data.addf("$#\t$#\t$#\t$#", param.name, expected, given, $param.success)
 
 
-  logToConsole(test, param)
+  # Write to console
+  logToConsole(test, param, givenSpec)
 
   if backendLogging and (isAppVeyor or isAzure):
+    # Write to logger
     logToBackend(test, param)
 
 proc checkForInlineErrors(r: var TResults, expected, given: TSpec, test: TTest, target: TTarget) =
@@ -654,8 +692,9 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
   ## about all the mismatches that can be formatted as needed.
   ## This procedure determines whether `given` spec matches `expected` test
   ## results.
-  new(result)
-  var map = result.diffMap
+  var r = TOutCompare()
+  r.cantIgnoreGiven = expected.nimoutFull
+  var map = r.diffMap
 
   for exp in expected.inlineErrors:
     var parsed = parseSexp(exp.msg)
@@ -665,55 +704,132 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
 
     parsed.addField("location", loc)
     parsed.addField("severity", newSSymbol(exp.kind))
-    result.expectedReports.add TOutReport(inline: true, node: parsed)
+    r.expectedReports.add TOutReport(inline: true, node: parsed)
 
   for line in splitLines(expected.nimout):
-    result.expectedReports.add TOutReport(node: parseSexp(line))
+    if 0 < line.len:
+      r.expectedReports.add TOutReport(node: parseSexp(line))
 
   for line in splitLines(given.nimout):
-    result.givenReports.add TOutReport(node: parseSexp(line))
+    if 0 < line.len:
+      r.givenReports.add TOutReport(node: parseSexp(line))
 
-  proc cmp(a, b: int): int =
+  proc reportCmp(a, b: int): int =
     # Best place for further optimization and configuration - if more
     # comparison speed isneeded, try starting with error kind, file, line
     # comparison, they doing a regular msg != msg compare and only then
     # deep structural diff.
-    if result.expectedReports[a][0] != result.givenReports[b][0]:
-      result -= 10
+    echo "comparing reports >>>"
+    echo "exp: ", r.expectedReports[a].node
+    echo "giv: ", r.givenReports[b].node
+    if r.expectedReports[a].node[0] != r.givenReports[b].node[0]:
+      result += 10
 
-    let diff = diff(expected[a].node, given[b].node)
-    result.diffMap[(a, b)] = diff
-    result -= diff.len
+    let diff = diff(r.expectedReports[a].node, r.givenReports[b].node)
+    r.diffMap[(a, b)] = diff
+    result += diff.len
+    echo "cost: ", result
+    echo "<<<"
 
 
-  let (result.ignoredExpected, result.ignoredGiven, mapping) = stablematch(
-    result.expectedReports,
-    result.givenReports,
-    cmp
+  var mapping: IdxCostMap
+  (r.ignoredExpected, r.ignoredGiven, mapping) = stablematch(
+    r.expectedReports,
+    r.givenReports,
+    reportCmp,
+    SortOrder.Descending
   )
 
-  result.sortedMapping = toSeq(pairs(mapping)).sortedByIt(-it[0])
+  for idx, r in r.expectedReports:
+    echo "> ", idx, " ", r
 
-  if 0 < sortedMapping[0]:
-    result.match = false
+  for idx, r in r.givenReports:
+    echo "< ", idx, " " , r
 
-  elif result.ignoredGiven and expected.nimoutFull:
-    result.match = false
+  r.sortedMapping = toSeq(pairs(mapping)).sortedByIt(-it[1])
 
-proc cmpMsgs(r: var TResults, expected, given: TSpec, test: TTest, target: TTarget) =
-  if expected.inlineErrors.len > 0:
+  if 0 < r.sortedMapping[0].cost:
+    r.match = false
+
+  elif 0 < r.ignoredGiven.len and expected.nimoutFull:
+    r.match = false
+
+  return r
+
+proc cmpMsgs(
+    r: var TResults, expected, given: TSpec, test: TTest, target: TTarget
+  ) =
+  ## Compare all test output messages. This proc does structured or
+  ## unstructured comparison comparison and immediately reports it's
+  ## results.
+  ##
+  ## It is used to for performting 'reject' action checks - it compares
+  ## both inline and regular messages - in addition to `nimoutCheck`
+
+  # If structural comparison is requested - drop directly to it and handle
+  # the success/failure modes in the branch
+  if expected.nimoutSexp:
+    let outCompare = test.sexpCheck(expected, given)
+    # Full match of the output results.
+    if outCompare.match:
+      r.addResult(test, target, expected.msg, given.msg, reSuccess)
+      inc(r.passed)
+
+    else:
+      # Write out error message.
+      r.addResult(
+        test, target, expected.msg, given.msg, reMsgsDiffer,
+        givenSpec = unsafeAddr given,
+        outCompare = outCompare
+      )
+
+
+  # Checking for inline errors.
+  elif expected.inlineErrors.len > 0:
+    # QUESTION - `checkForInlineErrors` does not perform any comparisons
+    # for the regular message spec, it just compares annotated messages.
+    # How can it report anything properly then?
+    #
+    # MAYBE it is related the fact testament misuses the `inlineErrors`,
+    # and wrongly assumes they are /only/ errors, despite actually parsing
+    # anything that starts with `#[tt.` as inline annotation? Even in this
+    # case this does not make any sense, because comparisons is done only
+    # for inline error messages.
+    #
+    # MAYBE this is just a way to mitigate the more complex problem of
+    # mixing in inline error messages and regular `.nimout`? I 'solved' it
+    # using `stablematch` and weighted ordering, so most likely the person
+    # who wrote this solved the same problem using "I don't care" approach.
+    #
+    # https://github.com/nim-lang/Nim/commit/9a110047cbe2826b1d4afe63e3a1f5a08422b73f#diff-a161d4667e86146f2f8003f08f765b8d9580ae92ec5fb6679c80c07a5310a551R362-R364
     checkForInlineErrors(r, expected, given, test, target)
+
+  # Check for `.errormsg` in expected and given spec first
   elif strip(expected.msg) notin strip(given.msg):
     r.addResult(test, target, expected.msg, given.msg, reMsgsDiffer)
+
+  # Compare expected and resulted spec messages
   elif not nimoutCheck(expected, given):
+    # Report general message mismatch error
     r.addResult(test, target, expected.nimout, given.nimout, reMsgsDiffer)
+
+  # Check for filename mismatches
   elif extractFilename(expected.file) != extractFilename(given.file) and
       "internal error:" notin expected.msg:
+    # Report error for the the error file mismatch
     r.addResult(test, target, expected.file, given.file, reFilesDiffer)
-  elif expected.line != given.line and expected.line != 0 or
-       expected.column != given.column and expected.column != 0:
+
+  # Check for produced and given error message locations
+  elif expected.line != given.line and
+       expected.line != 0 or
+       expected.column != given.column and
+       expected.column != 0:
+    # Report error for the location mismatch
     r.addResult(test, target, $expected.line & ':' & $expected.column,
                       $given.line & ':' & $given.column, reLinesDiffer)
+
+  # None of the unstructructured checks found mismatches, reporting thest
+  # as passed.
   else:
     r.addResult(test, target, expected.msg, given.msg, reSuccess)
     inc(r.passed)
@@ -758,24 +874,45 @@ proc compilerOutputTests(test: TTest, target: TTarget, given: var TSpec,
   ## Test output of the compiler for correctness
   var expectedmsg: string = ""
   var givenmsg: string = ""
+  var outCompare: TOutCompare
   if given.err == reSuccess:
-    # Check size??? of the genrated C code. If fails then add error message.
+    # Check size??? of the generated C code. If fails then add error
+    # message.
     if expected.needsCodegenCheck:
       codegenCheck(test, target, expected, expectedmsg, given)
       givenmsg = given.msg
 
-    # Try unstructured data comparison for the expected and given outputs
-    if not nimoutCheck(expected, given):
-      given.err = reMsgsDiffer
-      expectedmsg = expected.nimout
-      givenmsg = given.nimout.strip
+    if expected.nimoutSexp:
+      # If test requires structural comparison - run it and then check
+      # output results for any failures.
+      outCompare = test.sexpCheck(expected, given)
+      if not outCompare.match:
+        given.err = reMsgsDiffer
+
+    else:
+      # Use unstructured data comparison for the expected and given outputs
+      if not nimoutCheck(expected, given):
+        given.err = reMsgsDiffer
+
+        # Just like unstructured comparison - assign expected/given pair.
+        # In that case deep structural comparison is not necessary so we
+        # are just pasing strings around, they will be diffed only on
+        # reporting.
+        expectedmsg = expected.nimout
+        givenmsg = given.nimout.strip
+
   else:
     givenmsg = "$ " & given.cmd & '\n' & given.nimout
   if given.err == reSuccess:
     inc(r.passed)
 
-  # Add 
-  r.addResult(test, target, expectedmsg, givenmsg, given.err, givenSpec = addr given)
+  # Write out results of the compiler output testing
+  r.addResult(
+    test, target, expectedmsg, givenmsg, given.err,
+    givenSpec = addr given,
+    # Supply results of the optional structured comparison.
+    outCompare = outCompare
+  )
 
 proc getTestSpecTarget(): TTarget =
   if getEnv("NIM_COMPILE_TO_CPP", "false") == "true":
