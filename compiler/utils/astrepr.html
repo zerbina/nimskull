@@ -137,7 +137,37 @@ window.addEventListener('DOMContentLoaded', main);
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
-      <ul class="simple nested-toc-section">treeRepr
+      <ul class="simple nested-toc-section">debug
+      <li><a class="reference" href="#debug%2CConfigRef%2CPNode"
+    title="debug(conf: ConfigRef; it: PNode)">debug(conf: ConfigRef; it: PNode)</a></li>
+  <li><a class="reference" href="#debug%2CConfigRef%2CPSym"
+    title="debug(conf: ConfigRef; it: PSym)">debug(conf: ConfigRef; it: PSym)</a></li>
+  <li><a class="reference" href="#debug%2CConfigRef%2CPType"
+    title="debug(conf: ConfigRef; it: PType)">debug(conf: ConfigRef; it: PType)</a></li>
+  <li><a class="reference" href="#debug%2CPNode"
+    title="debug(it: PNode)">debug(it: PNode)</a></li>
+  <li><a class="reference" href="#debug%2CPSym"
+    title="debug(it: PSym)">debug(it: PSym)</a></li>
+  <li><a class="reference" href="#debug%2CPType"
+    title="debug(it: PType)">debug(it: PType)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">debugAst
+      <li><a class="reference" href="#debugAst%2CPNode"
+    title="debugAst(it: PNode)">debugAst(it: PNode)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">debugSym
+      <li><a class="reference" href="#debugSym%2CPSym"
+    title="debugSym(it: PSym)">debugSym(it: PSym)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">debugType
+      <li><a class="reference" href="#debugType%2CPType"
+    title="debugType(it: PType)">debugType(it: PType)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">treeRepr
       <li><a class="reference" href="#treeRepr%2CConfigRef%2CPNode%2Cset%5BTReprFlag%5D%2Cint%2Cint%2Cint%2Cint"
     title="treeRepr(conf: ConfigRef; pnode: PNode;
          flags: set[TReprFlag] = defaultTreeReprFlags; maxDepth: int = 120;
@@ -162,7 +192,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -173,7 +203,7 @@ class="link-seesrc" target="_blank">Source</a>
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
-<a class="reference external" href="../ast/ast.html">../ast/ast</a>, <a class="reference external" href="../ast/reports.html">../ast/reports</a>, <a class="reference external" href="../ast/renderer.html">../ast/renderer</a>, <a class="reference external" href="../ast/lineinfos.html">../ast/lineinfos</a>, <a class="reference external" href="../front/options.html">../front/options</a>, <a class="reference external" href="../front/msgs.html">../front/msgs</a>
+<a class="reference external" href="../ast/ast.html">../ast/ast</a>, <a class="reference external" href="../ast/reports.html">../ast/reports</a>, <a class="reference external" href="../ast/renderer.html">../ast/renderer</a>, <a class="reference external" href="../ast/lineinfos.html">../ast/lineinfos</a>, <a class="reference external" href="../ast/errorhandling.html">../ast/errorhandling</a>, <a class="reference external" href="../front/options.html">../front/options</a>, <a class="reference external" href="../front/msgs.html">../front/msgs</a>
 </dl></div>
 <div class="section" id="7">
 <h1><a class="toc-backref" href="#7">Types</a></h1>
@@ -191,9 +221,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L24"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L25"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L24" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L25" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -211,9 +241,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L62"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L63"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L62" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L63" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -223,9 +253,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L60"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L61"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L60" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L61" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -238,9 +268,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L72"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L73"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L72" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L73" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -249,6 +279,124 @@ class="link-seesrc" target="_blank">Source</a>
 <div class="section" id="12">
 <h1><a class="toc-backref" href="#12">Procs</a></h1>
 <dl class="item">
+<div id="debug,ConfigRef,PNode">
+<dt><pre><span class="Keyword">proc</span> <a href="#debug%2CConfigRef%2CPNode"><span class="Identifier">debug</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">;</span> <span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Print tree representation of the AST
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L480"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L480" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debug,ConfigRef,PSym">
+<dt><pre><span class="Keyword">proc</span> <a href="#debug%2CConfigRef%2CPSym"><span class="Identifier">debug</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">;</span> <span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                                        <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Print tree reprsentation of the symbol
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L488"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L488" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debug,ConfigRef,PType">
+<dt><pre><span class="Keyword">proc</span> <a href="#debug%2CConfigRef%2CPType"><span class="Identifier">debug</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">;</span> <span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Print tree representation of the type
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L484"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L484" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debug,PNode">
+<dt><pre><span class="Keyword">proc</span> <a href="#debug%2CPNode"><span class="Identifier">debug</span></a><span class="Other">(</span><span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+                        <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Convenience overload of <tt class="docutils literal"><span class="pre"><span class="Identifier">debugAst</span></span></tt>
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L468"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L468" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debug,PSym">
+<dt><pre><span class="Keyword">proc</span> <a href="#debug%2CPSym"><span class="Identifier">debug</span></a><span class="Other">(</span><span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                       <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Convenience overload of <tt class="docutils literal"><span class="pre"><span class="Identifier">debugSym</span></span></tt>
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L476"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L476" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debug,PType">
+<dt><pre><span class="Keyword">proc</span> <a href="#debug%2CPType"><span class="Identifier">debug</span></a><span class="Other">(</span><span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Convenience overload of <tt class="docutils literal"><span class="pre"><span class="Identifier">debugType</span></span></tt>
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L472"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L472" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debugAst,PNode">
+<dt><pre><span class="Keyword">proc</span> <a href="#debugAst%2CPNode"><span class="Identifier">debugAst</span></a><span class="Other">(</span><span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+                           <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Print out tree representation of the AST node.<div class="admonition admonition-info"><span class="admonition-info-text"><b>Note:</b></span>
+there is no <tt class="docutils literal"><span class="pre"><span class="Identifier">ConfigRef</span></span></tt> argument, and because of that some information cannot be fully retrieved from the AST (such as full paths of the FileIndex entries).</div>
+<div class="admonition admonition-info"><span class="admonition-info-text"><b>Tip:</b></span>
+This proc is annotated with <tt class="docutils literal"><span class="pre"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">exportc</span><span class="Operator">.</span><span class="Punctuation">}</span></span></tt> which means it's mangled name exactly the same - <tt class="docutils literal"><span class="pre"><span class="Identifier">debugAst</span></span></tt> and you can call it from the <tt class="docutils literal"><span class="pre"><span class="Identifier">gdb</span></span></tt> debugging session.</div>
+
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L446"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L446" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debugSym,PSym">
+<dt><pre><span class="Keyword">proc</span> <a href="#debugSym%2CPSym"><span class="Identifier">debugSym</span></a><span class="Other">(</span><span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                          <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Print out tree represntation of the symbol. Can also be used in gdb debugging session due to <tt class="docutils literal"><span class="pre"><span class="Operator">.</span><span class="Identifier">exportc</span><span class="Operator">.</span></span></tt> annotation
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L463"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L463" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="debugType,PType">
+<dt><pre><span class="Keyword">proc</span> <a href="#debugType%2CPType"><span class="Identifier">debugType</span></a><span class="Other">(</span><span class="Identifier">it</span><span class="Other">:</span> <a href="../ast/ast_types.html#PType"><span class="Identifier">PType</span></a><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Print out tree represntation of the type. Can also be used in gdb debugging session due to <tt class="docutils literal"><span class="pre"><span class="Operator">.</span><span class="Identifier">exportc</span><span class="Operator">.</span></span></tt> annotation
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L458"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L458" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
 <div id="treeRepr,ConfigRef,PNode,set[TReprFlag],int,int,int,int">
 <dt><pre><span class="Keyword">proc</span> <a href="#treeRepr%2CConfigRef%2CPNode%2Cset%5BTReprFlag%5D%2Cint%2Cint%2Cint%2Cint"><span class="Identifier">treeRepr</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">;</span> <span class="Identifier">pnode</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span>
               <span class="Identifier">flags</span><span class="Other">:</span> <span class="Identifier">set</span><span class="Other">[</span><a href="astrepr.html#TReprFlag"><span class="Identifier">TReprFlag</span></a><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">defaultTreeReprFlags</span><span class="Other">;</span> <span class="Identifier">maxDepth</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">120</span><span class="Other">;</span>
@@ -258,9 +406,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L247"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L246"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L247" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L246" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -272,9 +420,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L178"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L177"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L178" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L177" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -286,9 +434,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/cc7e3edc41ea06f7e03aee1d0f0f9fe50db2c5a2/compiler/utils/astrepr.nim#L215"
+href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/utils/astrepr.nim#L214"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L215" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/utils/astrepr.nim#L214" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>

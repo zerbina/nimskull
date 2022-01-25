@@ -32,6 +32,7 @@ toProjPath	front/msgs.html#toProjPath.t,ConfigRef,TLineInfo	msgs: toProjPath(con
 toFullPath	front/msgs.html#toFullPath.t,ConfigRef,TLineInfo	msgs: toFullPath(conf: ConfigRef; info: TLineInfo): string	
 toFullPathConsiderDirty	front/msgs.html#toFullPathConsiderDirty.t,ConfigRef,TLineInfo	msgs: toFullPathConsiderDirty(conf: ConfigRef; info: TLineInfo): string	
 toFilenameOption	front/msgs.html#toFilenameOption,ConfigRef,FileIndex,FilenameOption	msgs: toFilenameOption(conf: ConfigRef; fileIdx: FileIndex; opt: FilenameOption): string	
+formatPath	front/msgs.html#formatPath,ConfigRef,string	msgs: formatPath(conf: ConfigRef; path: string): string	
 toMsgFilename	front/msgs.html#toMsgFilename,ConfigRef,FileIndex	msgs: toMsgFilename(conf: ConfigRef; fileIdx: FileIndex): string	
 toMsgFilename	front/msgs.html#toMsgFilename.t,ConfigRef,TLineInfo	msgs: toMsgFilename(conf: ConfigRef; info: TLineInfo): string	
 toLinenumber	front/msgs.html#toLinenumber,TLineInfo	msgs: toLinenumber(info: TLineInfo): int	
