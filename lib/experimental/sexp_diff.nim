@@ -70,7 +70,11 @@ func diff*(target, input: SexpNode): seq[SexpMismatch] =
       mismatches: var seq[SexpMismatch]
     ) =
 
-    if target.kind != input.kind:
+    if target.kind == SSymbol and target.getSymbol() == "_":
+      # `_` matches against everything and does not produce diffs
+      return
+
+    elif target.kind != input.kind:
       mismatches.add mismatch(smKindMismatch, path, target, input)
 
     else:

@@ -11,7 +11,7 @@
 
 import std/[
   strutils, pegs, os, osproc, streams, json, exitprocs, parseopt, browsers,
-  terminal, algorithm, times, md5, intsets, macros, sequtils
+  terminal, algorithm, times, md5, intsets, macros, sequtils, tables
 ]
 import backend, azure, htmlgen, specs
 from std/sugar import dup
@@ -33,6 +33,88 @@ var useMegatest = true
 var optFailing = false
 
 import std/sugar
+
+type
+  TOutReport = object
+    inline: bool
+    node: SexpNode
+
+  TOutCompare = ref object
+    ## Result of comparing two data outputs for a given spec
+    match: bool
+    expectedReports: seq[TOutReport]
+    givenReports: seq[TOutReport]
+    sortedMapping: seq[((int, int), int)]
+    diffMap: Table[(int, int), seq[SexpMismatch]]
+    ignoredExpected: seq[int]
+    ignoredGiven: seq[int]
+
+
+type IdxCostMap* = Table[(int, int), int]
+
+proc stablematch[T](
+    lhs, rhs: seq[T], weight: proc(a, b: int): int
+  ): tuple[lhsIgnore, rhsIgnore: seq[int], map: IdxCostMap] =
+  ## Do a weighted matching of the items in lhs and rhs sequences using
+  ## weight function. Return most cost-effective matching elements.
+
+  var lfree: seq[int]
+  var rfree: seq[int]
+  for idx in 0 ..< len(lhs): lfree.add idx
+  for idx in 0 ..< len(rhs): rfree.add idx
+
+  var rmap: Table[int, (int, int)]
+  var lmap: Table[int, (int, int)]
+
+  proc getCost(l, r: int, res: var IdxCostMap): int =
+    if (l, r) notin res:
+      res[(l, r)] = weight(lhs[l], rhs[r])
+
+    res[(l, r)]
+
+  proc getCost(pair: (int, int), res: var IdxCostMap): int =
+    getCost(pair[0], pair[1], res)
+
+  proc trySwap(l, r: int, otherPair: (int, int), res: var IdxCostMap) =
+    let tryCost = getCost(l, r, res)
+    let otherCost = getCost(otherPair, res)
+    if otherCost < tryCost:
+      res[(l, r)] = tryCost
+      rmap[r] = (l, r)
+      lmap[l] = (l, r)
+
+
+  while 0 < len(lfree) and 0 < len(rfree):
+    let r = rfree.pop()
+    let l = lfree.pop()
+    if r in rmap:
+      # If already tried combination and it is a known fail, discard
+      # attempt
+      trySwap(l, r, rmap[r], result.map)
+
+    else:
+      result.map[(l, r)] = weight(lhs[l], rhs[r])
+      rmap[r] = (l, r)
+      lmap[l] = (l, r)
+
+  while 0 < len(rfree):
+    let r = rfree.pop()
+    for l, otherPair in lmap:
+      trySwap(l, r, otherPair, result.map)
+
+  while 0 < len(lfree):
+    let l = lfree.pop()
+    for r, otherPair in rmap:
+      trySwap(l, r, otherPair, result.map)
+
+
+  for idx in 0 ..< len(rhs):
+    if idx notin rmap:
+      result.rhsIgnore.add idx
+
+  for idx in 0 ..< len(lhs):
+    if idx notin lmap:
+      result.lhsIgnore.add idx
 
 proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
   let a = a.split("\n")
@@ -57,25 +139,35 @@ proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
     result.output = diff.shiftDiffed(a, b).
       formatDiffed(a, b, fmt).toString(useColors)
 
-proc diffSexp*(expected, given: string): string =
+proc format(cmp: TOutCompare): ColText =
   var
     conf = diffFormatter[string]().conf
     res: ColText
-    first = true
 
-  for (expected, given) in zip(
-    expected.split('\n').filterIt(0 < it.len),
-    given.split('\n').filterIt(0 < it.len)
-  ):
-    let diff = diff(expected.parseSexp(), given.parseSexp())
-    if 0 < len(diff):
-      if not first: res.add "\n"
-      first = false
-      res.add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [expected, given]
-      res.add diff.describeDiff(conf).indent(2)
+  coloredResult()
 
-  return res.toString(useColors)
+  var first = true
+  proc addl() =
+    if first:
+      add "\n"
 
+    first = false
+
+  for (pair, weight) in cmp.sortedMapping:
+    if 0 < weight:
+      addl()
+      add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [
+        cmp.expectedReports[pair[0]].node.toLine(),
+        cmp.givenReports[pair[1]].node.toLine()
+      ]
+
+      add cmp.diffMap[pair].describeDiff(conf).indent(2)
+
+  for exp in cmp.ignoredExpected:
+    addl()
+    add "Missing expected annotation:\n\n"
+    add "? ", cmp.expectedReports[exp].node.toLine()
+    add "\n\n"
 
 ## Blanket method to encaptsulate all echos while testament is detangled.
 ## Using this means echo cannot be called with separation of args and must
@@ -325,64 +417,77 @@ Tests failed and allowed to fail: $3 / $1 <br />
 Tests skipped: $4 / $1 <br />
 """ % [$x.total, $x.passed, $x.failedButAllowed, $x.skipped]
 
-proc addResult(
-    r: var TResults,
-    test: TTest,
-    target: TTarget,
-    expected, given: string,
-    successOrig: TResultEnum,
-    allowFailure = false,
-    givenSpec: ptr TSpec = nil,
-  ) =
-  # instead of `ptr TSpec` we could also use `Option[TSpec]`; passing
-  # `givenSpec` makes it easier to get what we need instead of having to
-  # pass individual fields, or abusing existing ones like expected vs
-  # given. test.name is easier to find than test.name.extractFilename A bit
-  # hacky but simple and works with tests/testament/tshould_not_work.nim
+proc getName(test: TTest, target: TTarget, allowFailure: bool): string =
   var name = test.name.replace(DirSep, '/')
   name.add ' ' & $target
   if allowFailure:
     name.add " (allowed to fail) "
-  if test.options.len > 0: name.add ' ' & test.options
+  if test.options.len > 0:
+    name.add ' ' & test.options
 
-  let duration = epochTime() - test.startTime
-  let success = if test.spec.timeout > 0.0 and duration > test.spec.timeout: reTimeout
-                else: successOrig
+  return name
 
-  let durationStr = duration.formatFloat(ffDecimal, precision = 2).align(5)
-  if backendLogging:
-    backend.writeTestResult(name = name,
-                            category = test.cat.string,
-                            target = $target,
-                            action = $test.spec.action,
-                            result = $success,
-                            expected = expected,
-                            given = given)
-  r.data.addf("$#\t$#\t$#\t$#", name, expected, given, $success)
+
+type
+  ReportParams = object
+    ## Contains additional data about report execution state.
+    duration: float
+    name: string
+    outCompare: TOutCompare
+    success: TResultEnum
+
+    expected, given: string
+
+proc logToConsole(
+    test: TTest,
+    param: ReportParams
+  ) =
+
+  ## Format test infomation to the console. `test` contains information
+  ## about the test itself, `param` contains additional data about test
+  ## execution.
+
+  let durationStr = param.duration.formatFloat(ffDecimal, precision = 2).align(5)
   template dispNonSkipped(color, outcome) =
     if not optFailing or color == fgRed:
-      maybeStyledEcho color, outcome, fgCyan, test.debugInfo, alignLeft(name, 60), fgBlue, " (", durationStr, " sec)"
+      maybeStyledEcho(
+        color, outcome, fgCyan, test.debugInfo, alignLeft(name, 60),
+        fgBlue, " (", durationStr, " sec)")
+
   template disp(msg) =
     if not optFailing:
-      maybeStyledEcho styleDim, fgYellow, msg & ' ', styleBright, fgCyan, name
-  if success == reSuccess:
+      maybeStyledEcho(styleDim, fgYellow, msg & ' ', styleBright, fgCyan, param.name):
+
+  if param.success == reSuccess:
     dispNonSkipped(fgGreen, "PASS: ")
-  elif success == reDisabled:
-    if test.spec.inCurrentBatch: disp("SKIP:")
-    else: disp("NOTINBATCH:")
-  elif success == reJoined: disp("JOINED:")
+
+  elif param.success == reDisabled:
+    if test.spec.inCurrentBatch:
+      disp("SKIP:")
+
+    else:
+      disp("NOTINBATCH:")
+
+  elif param.success == reJoined:
+    disp("JOINED:")
+
   else:
     dispNonSkipped(fgRed, failString)
-    maybeStyledEcho styleBright, fgCyan, "Test \"", test.name, "\"", " in category \"", test.cat.string, "\""
-    maybeStyledEcho styleBright, fgRed, "Failure: ", $success
+    maybeStyledEcho(
+      styleBright, fgCyan, "Test \"", test.name, "\"", " in category \"", test.cat.string, "\"")
+
+    maybeStyledEcho styleBright, fgRed, "Failure: ", $param.success
     if givenSpec != nil and givenSpec.debugInfo.len > 0:
       msg Undefined: "debugInfo: " & givenSpec.debugInfo
+
     if success in {reBuildFailed, reNimcCrash, reInstallFailed}:
       # expected is empty, no reason to print it.
       msg Undefined: given
+
     else:
-      if test.spec.nimoutSexp:
-        msg Undefined: diffSexp(expected, given)
+      if not isNil(param.outCompare):
+        msg Undefined:
+          param.outCompare().toString(useColors)
 
       else:
         maybeStyledEcho fgYellow, "Expected:"
@@ -391,34 +496,95 @@ proc addResult(
         maybeStyledEcho styleBright, given, "\n"
         msg Undefined: diffStrings(expected, given).output
 
-  if backendLogging and (isAppVeyor or isAzure):
-    let (outcome, msg) =
-      case success
-      of reSuccess:
-        ("Passed", "")
-      of reDisabled, reJoined:
-        ("Skipped", "")
-      of reBuildFailed, reNimcCrash, reInstallFailed:
-        ("Failed", "Failure: " & $success & '\n' & given)
-      else:
-        ("Failed", "Failure: " & $success & "\nExpected:\n" & expected & "\n\n" & "Gotten:\n" & given)
-    if isAzure:
-      azure.addTestResult(name, test.cat.string, int(duration * 1000), msg, success)
+
+proc logToBackend(
+    test: TTest,
+    param: ReportParams
+  )
+
+  let (outcome, msg) =
+    case param.success
+    of reSuccess:
+      ("Passed", "")
+    of reDisabled, reJoined:
+      ("Skipped", "")
+    of reBuildFailed, reNimcCrash, reInstallFailed:
+      ("Failed", "Failure: " & $param.success & '\n' & given)
     else:
-      var p = startProcess("appveyor", args = ["AddTest", test.name.replace("\\", "/") & test.options,
-                           "-Framework", "nim-testament", "-FileName",
-                           test.cat.string,
-                           "-Outcome", outcome, "-ErrorMessage", msg,
-                           "-Duration", $(duration * 1000).int],
-                           options = {poStdErrToStdOut, poUsePath, poParentStreams})
-      discard waitForExit(p)
-      close(p)
+      ("Failed", "Failure: " & $param.success & "\nExpected:\n" &
+        param.expected & "\n\n" & "Gotten:\n" & given)
+  if isAzure:
+    azure.addTestResult(
+      param.name, test.cat.string, int(param.duration * 1000), msg, param.success)
+
+  else:
+    var p = startProcess("appveyor", args = ["AddTest", test.name.replace("\\", "/") & test.options,
+                         "-Framework", "nim-testament", "-FileName",
+                         test.cat.string,
+                         "-Outcome", outcome, "-ErrorMessage", msg,
+                         "-Duration", $(param.duration * 1000).int],
+                         options = {poStdErrToStdOut, poUsePath, poParentStreams})
+    discard waitForExit(p)
+    close(p)
+
+
+proc addResult(
+    r: var TResults,
+    test: TTest,
+    target: TTarget,
+    expected, given: string,
+    successOrig: TResultEnum,
+    allowFailure = false,
+    givenSpec: ptr TSpec = nil,
+    outCompare: TOutCompare = nil
+  ) =
+  ## Report final test results to backend, end user (write to command-line)
+  ## and so on.
+  # instead of `ptr TSpec` we could also use `Option[TSpec]`; passing
+  # `givenSpec` makes it easier to get what we need instead of having to
+  # pass individual fields, or abusing existing ones like expected vs
+  # given. test.name is easier to find than test.name.extractFilename A bit
+  # hacky but simple and works with tests/testament/tshould_not_work.nim
+
+  # Compute test test duration, final success status, prepare formatting variables
+  var param: ReportParams
+
+  param.expected = expected
+  param.given = given
+  param.outCompare = outCompare
+  param.duration = epochTime() - test.startTime
+  let success = if test.spec.timeout > 0.0 and duration > test.spec.timeout: reTimeout
+                else: successOrig
+
+  param.name = test.getName(target, allowFailure)
+
+  if backendLogging:
+    backend.writeTestResult(name = param.name,
+                            category = test.cat.string,
+                            target = $target,
+                            action = $test.spec.action,
+                            result = $success,
+                            expected = expected,
+                            given = given)
+
+  r.data.addf("$#\t$#\t$#\t$#", name, expected, given, $success)
+
+
+  logToConsole(test, param)
+
+  if backendLogging and (isAppVeyor or isAzure):
+    logToBackend(test, param)
 
 proc checkForInlineErrors(r: var TResults, expected, given: TSpec, test: TTest, target: TTarget) =
+  ## Check for inline error annotations in the nimout results, comparing
+  ## them with the output of the compiler.
+
   let pegLine = peg"{[^(]*} '(' {\d+} ', ' {\d+} ') ' {[^:]*} ':' \s* {.*}"
   var covered = initIntSet()
   for line in splitLines(given.nimout):
+    # Iterate over each line in the output
 
+    # Searching for the `file(line, col) Severity: text` pattern
     if line =~ pegLine:
       let file = extractFilename(matches[0])
       let line = try: parseInt(matches[1]) except: -1
@@ -427,26 +593,44 @@ proc checkForInlineErrors(r: var TResults, expected, given: TSpec, test: TTest, 
       let msg = matches[4]
 
       if file == extractFilename test.name:
+        # If annotation comes from the target file
         var i = 0
         for x in expected.inlineErrors:
           if x.line == line and (x.col == col or x.col < 0) and
               x.kind == kind and x.msg in msg:
+            # And annotaiton has matching line, column and message
+            # information, register it as 'covered'
             covered.incl i
           inc i
 
   block coverCheck:
     for j in 0..high(expected.inlineErrors):
+      #  For each output message that was not covered by annotations, add it
+      # to the output as 'missing'
       if j notin covered:
-        var e = test.name
-        e.add '('
-        e.addInt expected.inlineErrors[j].line
-        if expected.inlineErrors[j].col > 0:
-          e.add ", "
-          e.addInt expected.inlineErrors[j].col
-        e.add ") "
-        e.add expected.inlineErrors[j].kind
-        e.add ": "
-        e.add expected.inlineErrors[j].msg
+        var e: string
+        let exp = expected.inlineErrors[j]
+        if expected.nimoutSexp:
+          var parsed = parseSexp(exp.msg)
+          var loc = convertSexp([sexp(test.name), sexp(exp.line)])
+          if exp.col > 0:
+            loc.add sexp(exp.col)
+
+          parsed.addField("location", loc)
+          parsed.addField("severity", newSSymbol(exp.kind))
+          e = parsed.toLine()
+
+        else:
+          e = test.name
+          e.add '('
+          e.addInt exp.line
+          if exp.col > 0:
+            e.add ", "
+            e.addInt exp.col
+          e.add ") "
+          e.add exp.kind
+          e.add ": "
+          e.add exp.msg
 
         r.addResult(test, target, e, given.nimout, reMsgsDiffer)
         break coverCheck
@@ -455,28 +639,66 @@ proc checkForInlineErrors(r: var TResults, expected, given: TSpec, test: TTest, 
     inc(r.passed)
 
 proc nimoutCheck(expected, given: TSpec): bool =
+  ## Check if expected nimout values match with specified ones. This check
+  ## implements comparison of the unstructured data.
   result = true
-  if expected.nimoutSexp:
-    if expected.nimout.len != given.nimout.len:
+  if expected.nimoutFull:
+    if expected.nimout != given.nimout:
       result = false
+  elif expected.nimout.len > 0 and not greedyOrderedSubsetLines(expected.nimout, given.nimout):
+    result = false
 
-    else:
-      for (expected, given) in zip(
-        expected.nimout.split("\n"),
-        given.nimout.split("\n")
-      ):
-        # TODO handle output lines that cannot be parsed with `parseSexp()`
-        let diff = diff(expected.parseSexp(), given.parseSexp())
+proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
+  ## Check if expected nimout values match with specified ones. Thish check
+  ## implements a structured comparison of the data and returns full report
+  ## about all the mismatches that can be formatted as needed.
+  ## This procedure determines whether `given` spec matches `expected` test
+  ## results.
+  new(result)
+  var map = result.diffMap
 
-        if 0 < len(diff):
-          return false
+  for exp in expected.inlineErrors:
+    var parsed = parseSexp(exp.msg)
+    var loc = convertSexp([sexp(test.name), sexp(exp.line)])
+    if exp.col > 0:
+      loc.add sexp(exp.col)
 
-  else:
-    if expected.nimoutFull:
-      if expected.nimout != given.nimout:
-        result = false
-    elif expected.nimout.len > 0 and not greedyOrderedSubsetLines(expected.nimout, given.nimout):
-      result = false
+    parsed.addField("location", loc)
+    parsed.addField("severity", newSSymbol(exp.kind))
+    result.expectedReports.add TOutReport(inline: true, node: parsed)
+
+  for line in splitLines(expected.nimout):
+    result.expectedReports.add TOutReport(node: parseSexp(line))
+
+  for line in splitLines(given.nimout):
+    result.givenReports.add TOutReport(node: parseSexp(line))
+
+  proc cmp(a, b: int): int =
+    # Best place for further optimization and configuration - if more
+    # comparison speed isneeded, try starting with error kind, file, line
+    # comparison, they doing a regular msg != msg compare and only then
+    # deep structural diff.
+    if result.expectedReports[a][0] != result.givenReports[b][0]:
+      result -= 10
+
+    let diff = diff(expected[a].node, given[b].node)
+    result.diffMap[(a, b)] = diff
+    result -= diff.len
+
+
+  let (result.ignoredExpected, result.ignoredGiven, mapping) = stablematch(
+    result.expectedReports,
+    result.givenReports,
+    cmp
+  )
+
+  result.sortedMapping = toSeq(pairs(mapping)).sortedByIt(-it[0])
+
+  if 0 < sortedMapping[0]:
+    result.match = false
+
+  elif result.ignoredGiven and expected.nimoutFull:
+    result.match = false
 
 proc cmpMsgs(r: var TResults, expected, given: TSpec, test: TTest, target: TTarget) =
   if expected.inlineErrors.len > 0:
@@ -533,12 +755,16 @@ proc codegenCheck(test: TTest, target: TTarget, spec: TSpec, expectedMsg: var st
 
 proc compilerOutputTests(test: TTest, target: TTarget, given: var TSpec,
                          expected: TSpec; r: var TResults) =
+  ## Test output of the compiler for correctness
   var expectedmsg: string = ""
   var givenmsg: string = ""
   if given.err == reSuccess:
+    # Check size??? of the genrated C code. If fails then add error message.
     if expected.needsCodegenCheck:
       codegenCheck(test, target, expected, expectedmsg, given)
       givenmsg = given.msg
+
+    # Try unstructured data comparison for the expected and given outputs
     if not nimoutCheck(expected, given):
       given.err = reMsgsDiffer
       expectedmsg = expected.nimout
@@ -548,6 +774,7 @@ proc compilerOutputTests(test: TTest, target: TTarget, given: var TSpec,
   if given.err == reSuccess:
     inc(r.passed)
 
+  # Add 
   r.addResult(test, target, expectedmsg, givenmsg, given.err, givenSpec = addr given)
 
 proc getTestSpecTarget(): TTarget =

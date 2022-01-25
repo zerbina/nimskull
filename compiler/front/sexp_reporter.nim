@@ -97,17 +97,14 @@ proc addFields[T](s: var SexpNode, r: T, ignore: seq[string] = @[]) =
     s.add item
 
 proc sexp*(i: ReportLineInfo): SexpNode =
-  result = newSList()
-  result.addFields(i, @["file"])
-  result.add newSKeyword(
-    "file", writeConf.formatPath(i.file).sexp())
+  convertSexp([
+    writeConf.formatPath(i.file).sexp(),
+    sexp(i.line),
+    sexp(i.col)
+  ])
 
 proc sexp*(i: TLineInfo): SexpNode =
-  convertSexp([
-    file = sexp(i.fileIndex),
-    line = sexp(i.line),
-    col = sexp(i.col)
-  ])
+  convertSexp([sexp(i.fileIndex), sexp(i.line), sexp(i.col)])
 
 proc sexp*(e: StackTraceEntry): SexpNode =
   result = newSList()
@@ -145,42 +142,6 @@ proc sexp*(t: PSym): SexpNode =
     info = sexp(t.info)
   ])
 
-proc format(s: SexpNode): string =
-  var r = addr result
-  template add(arg: string): untyped =
-    r[].add arg
-
-  proc aux(s: SexpNode) =
-    if s.isNil: return
-    case s.kind:
-      of SInt: add $s.getNum()
-      of SString: add "\"" & s.getStr() & "\""
-      of SFloat: add $s.getFNum()
-      of SNil: add "nil"
-      of SSymbol: add s.getSymbol()
-      of SCons:
-        add "("
-        aux(s.car)
-        add " . "
-        aux(s.cdr)
-        add ")"
-      of SKeyword:
-        add ":"
-        add s.getKey()
-        add " "
-        aux(s.value)
-
-      of SList:
-        add "("
-        var first = true
-        for item in items(s):
-          if not first: add " "
-          first = false
-          aux(item)
-
-        add ")"
-
-  aux(s)
 
 proc reportHook*(conf: ConfigRef, r: Report): TErrorHandling =
   writeConf = conf
@@ -222,7 +183,7 @@ proc reportHook*(conf: ConfigRef, r: Report): TErrorHandling =
       of repExternal: s.addFields(r.externalReport)
 
     if wkind == writeForceEnabled:
-      echo s.format()
+      echo s.toLine()
 
     else:
-      conf.writeln(s.format())
+      conf.writeln(s.toLine())

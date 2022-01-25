@@ -508,6 +508,20 @@ proc add*(father, child: SexpNode) =
   assert father.kind == SList
   father.elems.add(child)
 
+proc addField*(node: SexpNode, name: string, value: SexpNode) =
+  ## Add `:name value` keyword pair to the `node`
+  node.add(newSKeyword(name, value))
+
+proc getField*(
+    node: SexpNode, name: string, default: SexpNode = nil
+  ): SexpNode =
+  ## Iterate over direct subnodes of `node`, searching for the SKeyword
+  ## with name set to `name`. If found return it's `.value`, otherwise
+  ## return `default`
+  for field in node.elems:
+    if field.kind == SKeyword and field.getKey() == name:
+      return field.value
+
 # ------------- pretty printing ----------------------------------------------
 
 proc indent(s: var string, i: int) =
@@ -609,6 +623,7 @@ proc toPretty(result: var string, node: SexpNode, indent = 2, ml = true,
         true, newIndent(currIndent, indent, ml))
     result.add(")")
 
+
 proc pretty*(node: SexpNode, indent = 2): string =
   ## Converts `node` to its Sexp Representation, with indentation and
   ## on multiple lines.
@@ -691,6 +706,43 @@ proc treeRepr*(node: SexpNode): string =
 
 
   aux(node, 0, result)
+
+proc toLine*(s: SexpNode): string =
+  var r = addr result
+  template add(arg: string): untyped =
+    r[].add arg
+
+  proc aux(s: SexpNode) =
+    if s.isNil: return
+    case s.kind:
+      of SInt:    add $s.getNum()
+      of SString: add "\"" & s.getStr() & "\""
+      of SFloat:  add $s.getFNum()
+      of SNil:    add "nil"
+      of SSymbol: add s.getSymbol()
+      of SCons:
+        add "("
+        aux(s.car)
+        add " . "
+        aux(s.cdr)
+        add ")"
+      of SKeyword:
+        add ":"
+        add s.getKey()
+        add " "
+        aux(s.value)
+
+      of SList:
+        add "("
+        var first = true
+        for item in items(s):
+          if not first: add " "
+          first = false
+          aux(item)
+
+        add ")"
+
+  aux(s)
 
 
 
