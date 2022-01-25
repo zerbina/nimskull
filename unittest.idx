@@ -33,8 +33,8 @@ testStarted	unittest.html#testStarted.e,JUnitOutputFormatter,string	unittest: te
 failureOccurred	unittest.html#failureOccurred.e,JUnitOutputFormatter,seq[string],string	unittest: failureOccurred(formatter: JUnitOutputFormatter; checkpoints: seq[string];\n                stackTrace: string)	
 testEnded	unittest.html#testEnded.e,JUnitOutputFormatter,TestResult	unittest: testEnded(formatter: JUnitOutputFormatter; testResult: TestResult)	
 suiteEnded	unittest.html#suiteEnded.e,JUnitOutputFormatter	unittest: suiteEnded(formatter: JUnitOutputFormatter)	
-suite	unittest.html#suite.t,,	unittest: suite(name, body)	
-test	unittest.html#test.t,,	unittest: test(name, body)	
+suite	unittest.html#suite.m,string,untyped	unittest: suite(name: string; body: untyped): untyped	
+test	unittest.html#test.t,string,untyped	unittest: test(name: string; body: untyped)	
 checkpoint	unittest.html#checkpoint,string	unittest: checkpoint(msg: string)	
 fail	unittest.html#fail.t	unittest: fail()	
 skip	unittest.html#skip.t	unittest: skip()	
