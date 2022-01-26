@@ -38,11 +38,9 @@ type
     groupInline*: bool ## For inline edit operations - group cosecutive
     ## edit operations into single chunks.
 
-  DiffFormatter[T] = object
+  DiffFormatter* = object
     ## Item diff formatter - convert input value into formattable string,
     ## provide comparison proc for the the `diff` implementation.
-    strConv*: proc(arg: T): string ## Convert item to **single** line
-    eqCmp*: proc(a, b: T): bool ## Compare items for equality
     conf*: DiffFormatConf ## Text formatting configuration
 
 proc chunk(
@@ -251,7 +249,7 @@ func hasInvisibleChanges(diff: seq[SeqEdit], oldSeq, newSeq: seq[string]): bool 
 
     dec idx
 
-func diffFormatter*[T](): DiffFormatter[T] =
+func diffFormatter*(): DiffFormatter =
   ## Default implementation of the diff formatter
   ##
   ## - split lines by whitespace
@@ -260,11 +258,7 @@ func diffFormatter*[T](): DiffFormatter[T] =
   ## - explain invisible differences with unicode
   ## - convert to string using `$arg`
   ## - compare for equality using `==`
-  DiffFormatter[T](
-    # Convert to string using `$arg`
-    strConv:            (proc(arg:  T):      string = $arg),
-    # Compare with `==`
-    eqCmp:              (proc(a, b: T):      bool = (a == b)),
+  DiffFormatter(
     conf: DiffFormatConf(
       # Don't hide inline edit lines
       maxUnchanged:       high(int),
@@ -458,17 +452,11 @@ proc formatInlineDiff*(
   return formatInlineDiff(
     src, target, levenshteinDistance[string](src, target).operations, conf)
 
-proc formatDiffed*[T](
+proc formatDiffed*(
     shifted: ShiftedDiff,
-    oldSeq, newSeq: openarray[T],
-    fmt: DiffFormatter[T] = diffFormatter[T]()
+    oldSeq, newSeq: openarray[string],
+    fmt: DiffFormatter = diffFormatter()
   ): ColText =
-
-  ##[
-
-Format multiline diff operation
-
-  ]##
 
   var
     oldText, newText: seq[tuple[text: ColText, changed: bool]]
@@ -545,8 +533,8 @@ Format multiline diff operation
        rhs.kind == sekInsert:
 
       let (oldLine, newLine) = formatLineDiff(
-        fmt.strConv(oldSeq[lhs.item]),
-        fmt.strConv(newSeq[rhs.item]),
+        oldSeq[lhs.item],
+        newSeq[rhs.item],
         conf
       )
 
@@ -555,7 +543,7 @@ Format multiline diff operation
 
 
     elif rhs.kind == sekInsert:
-      let tmp = fmt.strConv(newSeq[rhs.item])
+      let tmp = newSeq[rhs.item]
       rhsEmpty = tmp.len == 0
       newText[^1].text.add conf.chunk(tmp, sekInsert)
 
@@ -565,11 +553,11 @@ Format multiline diff operation
       oldText[^1].text.add conf.chunk(tmp, sekDelete)
 
     else:
-      let ltmp = fmt.strConv(oldSeq[lhs.item])
+      let ltmp = oldSeq[lhs.item]
       lhsEmpty = ltmp.len == 0
       oldText[^1].text.add conf.chunk(ltmp, lhs.kind)
 
-      let rtmp = fmt.strConv(newSeq[rhs.item])
+      let rtmp = newSeq[rhs.item]
       rhsEmpty = rtmp.len == 0
       newText[^1].text.add conf.chunk(rtmp, rhs.kind)
 
@@ -601,17 +589,22 @@ Format multiline diff operation
 
 proc formatDiffed*[T](
     oldSeq, newSeq: openarray[T],
-    fmt: DiffFormatter[T] = diffFormatter[T]()
+    fmt: DiffFormatter,
+    eqCmp: proc(a, b: T): bool = (proc(a, b: T): bool = a == b),
+    strConv: proc(a: T): string = (proc(a: T): string = $a)
   ): ColText =
 
-  myersDiff(oldSeq, newSeq, fmt.eqCmp).
-    shiftDiffed(oldSeq, newSeq).
-    formatDiffed(oldSeq, newSeq, fmt)
+  formatDiffed(
+    myersDiff(oldSeq, newSeq, eqCmp).shiftDiffed(oldSeq, newSeq),
+    mapIt(oldSeq, strConv($it)),
+    mapIt(newSeq, strConv(it)),
+    fmt
+  )
 
 
 proc formatDiffed*(
     text1, text2: string,
-    fmt: DiffFormatter[string] = diffFormatter[string]()
+    fmt: DiffFormatter = diffFormatter()
   ): ColText =
   ## Format diff of two text blocks via newline split and default
   ## `formatDiffed` implementation
@@ -629,7 +622,7 @@ when isMainModule:
       ("", "\n"),
     ]:
       echo ">>>>"
-      var fmt = diffFormatter[string]()
+      var fmt = diffFormatter()
       # fmt.explainWithUnicode = false
       fmt.conf.lineSplit = proc(line: string): seq[string] = mapIt(line, $it)
       fmt.conf.inlineDiffSeparator = clt(" ")
@@ -659,7 +652,7 @@ when isMainModule:
   tundeclared_routine.nim(54, 15) Error: expression has no type: bad5(1)""")
     ]:
       echo ">>>>"
-      var fmt = diffFormatter[string]()
+      var fmt = diffFormatter()
       fmt.conf.lineSplit = proc(line: string): seq[string] = mapIt(line, $it)
       let prev = fmt.conf.formatChunk
       fmt.conf.formatChunk = proc(text: string, mode, secondary: SeqEditKind): ColText =
@@ -677,7 +670,7 @@ when isMainModule:
   # Delete/Insert/Replace/Keep respectively, and wrapped in the `[]`. Line
   # split is done on each whitespace and elements are joined using `#`
   # character.
-  var fmt = diffFormatter[string]()
+  var fmt = diffFormatter()
   fmt.conf.explainWithUnicode = false
   fmt.conf.inlineDiffSeparator = clt("#")
   fmt.conf.formatChunk = proc(
