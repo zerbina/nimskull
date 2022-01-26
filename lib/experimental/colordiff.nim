@@ -28,8 +28,6 @@ type
     explainInvisible*: bool ## If diff contains invisible characters -
     ## trailing whitespaces, control characters, escapes and ANSI SGR
     ## formatting - show them directly.
-    explainWithUnicode*: bool ## Show mismatched characters as uicode
-    ## equivalents or use ascii for formatting.
     inlineDiffSeparator*: ColText ## Text to separate words in the inline split
     formatChunk*: proc(text: string, mode, secondary: SeqEditKind): ColText ##  Format
     ## mismatched text. `mode` is the mismatch kind, `secondary` is used
@@ -37,11 +35,8 @@ type
     ## was added.
     groupInline*: bool ## For inline edit operations - group cosecutive
     ## edit operations into single chunks.
-
-  DiffFormatter* = object
-    ## Item diff formatter - convert input value into formattable string,
-    ## provide comparison proc for the the `diff` implementation.
-    conf*: DiffFormatConf ## Text formatting configuration
+    explainChar*: proc(ch: char): string ## Convert invisible character
+    ## (whitespace or control) to human-readable representation -
 
 proc chunk(
     conf: DiffFormatConf, text: string,
@@ -159,22 +154,17 @@ func visibleName(ch: char): tuple[unicode, ascii: string] =
     of ' ': ("␣", "[SPC]") # Space
     else: ($ch, $ch)
 
-func toVisibleNames(str: string, unicode: bool): string =
+proc toVisibleNames(conf: DiffFormatConf, str: string): string =
   ## Convert all characters in the string into visible ones
   for ch in str:
-    let (uc, ascii) = visibleName(ch)
-    if unicode:
-      result.add uc
-
-    else:
-      result.add ascii
+    result.add conf.explainChar(ch)
 
 
-func toVisibleNames(split: seq[string], unicode: bool): seq[string] =
+proc toVisibleNames(conf: DiffFormatConf, split: seq[string]): seq[string] =
   ## Convert all charactersw in all strings into visible ones.
   if 0 < split.len():
     for part in split:
-      result.add toVisibleNames(part, unicode)
+      result.add conf.toVisibleNames(part)
 
 const Invis = { '\x00' .. '\x1F', '\x7F' }
 
@@ -249,42 +239,41 @@ func hasInvisibleChanges(diff: seq[SeqEdit], oldSeq, newSeq: seq[string]): bool 
 
     dec idx
 
-func diffFormatter*(): DiffFormatter =
+func diffFormatter*(useUncide: bool = true): DiffFormatConf =
   ## Default implementation of the diff formatter
   ##
   ## - split lines by whitespace
   ## - no hidden lines or workds
   ## - deleted: red, inserted: green, changed: yellow
   ## - explain invisible differences with unicode
-  ## - convert to string using `$arg`
-  ## - compare for equality using `==`
-  DiffFormatter(
-    conf: DiffFormatConf(
-      # Don't hide inline edit lines
-      maxUnchanged:       high(int),
-      # Group edit operations for inline diff by default
-      groupInline:        true,
-      # Show differences if there are any invisible characters
-      explainInvisible:   true,
-      # Use unicode
-      explainWithUnicode: true,
-      # Don't hide inline edit words
-      maxUnchangedWords:  high(int),
-      showLines:          false,
-      lineSplit:          (
-        # Split by whitespace
-        proc(a:    string): seq[string] = splitKeepSeparator(a)
-      ),
-      sideBySide:         false,
-      formatChunk:        (
-        proc(word: string, mode, secondary: SeqEditKind): ColText =
-          case mode:
-            of sekDelete:                word + fgRed
-            of sekInsert:                word + fgGreen
-            of sekKeep:                  word + fgDefault
-            of sekReplace, sekTranspose: word + fgYellow
-            of sekNone:                  word + fgDefault
-      )
+  DiffFormatConf(
+    # Don't hide inline edit lines
+    maxUnchanged:       high(int),
+    # Group edit operations for inline diff by default
+    groupInline:        true,
+    # Show differences if there are any invisible characters
+    explainInvisible:   true,
+    # Don't hide inline edit words
+    maxUnchangedWords:  high(int),
+    showLines:          false,
+    explainChar:        (
+      proc(ch: char): string =
+        let (uc, ascii) = visibleName(ch)
+        if useUncide: uc else: ascii
+    ),
+    lineSplit:          (
+      # Split by whitespace
+      proc(a:    string): seq[string] = splitKeepSeparator(a)
+    ),
+    sideBySide:         false,
+    formatChunk:        (
+      proc(word: string, mode, secondary: SeqEditKind): ColText =
+        case mode:
+          of sekDelete:                word + fgRed
+          of sekInsert:                word + fgGreen
+          of sekKeep:                  word + fgDefault
+          of sekReplace, sekTranspose: word + fgYellow
+          of sekNone:                  word + fgDefault
     )
   )
 
@@ -308,8 +297,8 @@ proc formatLineDiff*(
   ):
     (oldLine, newLine) = formatDiffed(
       diffed.operations,
-      oldSplit.toVisibleNames(conf.explainWithUnicode),
-      newSplit.toVisibleNames(conf.explainWithUnicode),
+      conf.toVisibleNames(oldSplit),
+      conf.toVisibleNames(newSplit),
       conf
     )
 
@@ -370,8 +359,7 @@ proc formatInlineDiff*(
     ## them all
     var chunk: ColText
     if conf.explainInvisible and scanInvisible(text, start):
-      chunk = conf.chunk(
-        text.toVisibleNames(conf.explainWithUnicode), mode, secondary)
+      chunk = conf.chunk(conf.toVisibleNames(text), mode, secondary)
 
     else:
       chunk = conf.chunk(text, mode, secondary)
@@ -455,54 +443,56 @@ proc formatInlineDiff*(
 proc formatDiffed*(
     shifted: ShiftedDiff,
     oldSeq, newSeq: openarray[string],
-    fmt: DiffFormatter = diffFormatter()
+    conf: DiffFormatConf = diffFormatter()
   ): ColText =
+  ## Format shifted multiline diff
+  ##
+  ## `oldSeq`, `newSeq` - sequence of lines (no newlines in strings
+  ## assumed) that will be formatted.
 
   var
     oldText, newText: seq[tuple[text: ColText, changed: bool]]
     lhsMax = 0
 
-  let conf = fmt.conf
-
+  # Max line number len for left and right side
   let maxLhsIdx = len($shifted.oldShifted[^1].item)
   let maxRhsIdx = len($shifted.newShifted[^1].item)
 
   proc editFmt(edit: SeqEditKind, idx: int, isLhs: bool): ColText =
-    if conf.showLines:
-      let num =
-        if edit == sekNone:
-          alignRight(clt(" "), maxLhsIdx)
+    ## Format prefix for edit operation for line at index `idx`
+    let editOps = [
+      sekNone:      "?",
+      sekKeep:      "~",
+      sekInsert:    "+",
+      sekReplace:   "-+",
+      sekDelete:    "-",
+      sekTranspose: "^v"
+    ]
 
-        elif isLhs:
-          alignRight(clt($idx), maxLhsIdx)
-
-        else:
-          alignRight(clt($idx), maxRhsIdx)
-
-      case edit:
-        of sekDelete: "- " & num
-        of sekInsert: "+ " & num
-        of sekKeep: "~ " & num
-        of sekNone: "? " & num
-        of sekReplace: "-+" & num
-        of sekTranspose: "^v" & num
+    var change: string
+    if edit == sekNone and not isLhs:
+      change = editOps[edit]
 
     else:
-      case edit:
-        of sekDelete:
-          conf.chunk("- ", sekDelete)
-        of sekInsert:
-          conf.chunk("+ ", sekInsert)
-        of sekReplace:
-          conf.chunk("-+", sekReplace)
-        of sekKeep:
-          conf.chunk("~ ", sekKeep)
-        of sekTranspose:
-          conf.chunk("^v", sekTranspose)
-        of sekNone:
-          conf.chunk((if isLhs: "? " else: "?"), sekNone)
+      change = alignLeft(editOps[edit], 2)
 
+    if conf.showLines:
+      if edit == sekNone:
+        change.add align(" ", maxLhsIdx)
 
+      elif isLhs:
+        change.add align($idx, maxLhsIdx)
+
+      else:
+        change.add align($idx, maxRhsIdx)
+
+    if edit == sekReplace:
+      return conf.chunk(change, edit, if isLhs: sekDelete else: sekInsert)
+
+    else:
+      return conf.chunk(change, edit, )
+
+  # Number of unchanged lines
   var unchanged = 0
   for (lhs, rhs, lhsDefault, rhsDefault, idx) in zipToMax(
     shifted.oldShifted, shifted.newShifted
@@ -563,10 +553,12 @@ proc formatDiffed*(
 
 
     if lhsEmpty and idx < shifted.oldShifted.high:
-      oldText[^1].text.add toVisibleNames("\n", conf.explainWithUnicode)
+      oldText[^1].text.add conf.chunk(
+        conf.toVisibleNames("\n"), sekDelete)
 
     if rhsEmpty and idx < shifted.newShifted.high:
-      newText[^1].text.add toVisibleNames("\n", conf.explainWithUnicode)
+      newText[^1].text.add conf.chunk(
+        conf.toVisibleNames("\n"), sekInsert)
 
     lhsMax = max(oldText[^1].text.len, lhsMax)
 
@@ -589,7 +581,7 @@ proc formatDiffed*(
 
 proc formatDiffed*[T](
     oldSeq, newSeq: openarray[T],
-    fmt: DiffFormatter,
+    conf: DiffFormatConf,
     eqCmp: proc(a, b: T): bool = (proc(a, b: T): bool = a == b),
     strConv: proc(a: T): string = (proc(a: T): string = $a)
   ): ColText =
@@ -598,71 +590,17 @@ proc formatDiffed*[T](
     myersDiff(oldSeq, newSeq, eqCmp).shiftDiffed(oldSeq, newSeq),
     mapIt(oldSeq, strConv($it)),
     mapIt(newSeq, strConv(it)),
-    fmt
+    conf
   )
 
 
 proc formatDiffed*(
     text1, text2: string,
-    fmt: DiffFormatter = diffFormatter()
+    conf: DiffFormatConf = diffFormatter()
   ): ColText =
   ## Format diff of two text blocks via newline split and default
   ## `formatDiffed` implementation
-  formatDiffed(text1.split("\n"), text2.split("\n"), fmt)
-
-when isMainModule:
-  if false:
-    for (a, b) in @[
-      ("1\n2", "1\n3"),
-      ("word 1", "word 2"),
-      ("word ", "word"),
-      ("\e[32mword\e[39m", "\e[31mword\e[39m"),
-      ("word\n", "word"),
-      ("1\n2\n3\n4\n5\n", "1\n2\n3\n8\n9\n0\n\n"),
-      ("", "\n"),
-    ]:
-      echo ">>>>"
-      var fmt = diffFormatter()
-      # fmt.explainWithUnicode = false
-      fmt.conf.lineSplit = proc(line: string): seq[string] = mapIt(line, $it)
-      fmt.conf.inlineDiffSeparator = clt(" ")
-      fmt.conf.sideBySide = true
-      echo formatDiffed(a, b, fmt)
-
-    for (a, b) in @[
-      ("""
-  tundeclared_routine.nim(34, 17) Error: attempting to call routine: 'myiter'
-    found tundeclared_routine.myiter(a: string) [iterator declared in tundeclared_routine.nim(32, 12)]
-    found tundeclared_routine.myiter() [iterator declared in tuedeclared_routine.nim(33, 12)]
-  tundeclared_routine.nim(34, 17) Error: expression has no type: myiter(1)
-  tundeclared_routine.nim(39, 28) Error: invalid pragma: myPragma
-  tundeclared_routine.nim(46, 14) Error: undeclared field: 'bar4' for type tundeclared_routine.Foo [type declared in tundeclared_routine.nim(43, 8)]
-  tundeclared_routine.nim(46, 13) Error: expression has no type: `.`(a, bar3)
-  tundeclared_routine.nim(51, 14) Error: undeclared field: 'bar4' for type tundeclared_routine.Foo [type declared in tundeclared_routine.nim(49, 8)]
-  tundeclared_routine.nim(51, 13) Error: expression has no type: `.`(a, bar4)
-  tundeclared_routine.nim(54, 11) Error: undeclared identifier: 'bad5'
-  tundeclared_routine.nim(54, 15) Error: expression has no type: bad5(1)""", """
-  tundeclared_routine.nim(34, 17) Error: attempting to call routine: 'myiter'
-    found tundeclared_routine.myiter(a: string) [iterator declared in tundeclared_routine.nim(32, 12)]
-    found tundeclared_routine.myiter() [iterator declared in tundeclared_routine.nim(33, 12)]
-  tundeclared_routine.nim(34, 17) Error: expression has no type: myiter(1)
-  tundeclared_routine.nim(39, 28) Error: invalid pragma: myPragma
-  tundeclared_routine.nim(51, 13) Error: expression has no type: `.`(a, bar4)
-  tundeclared_routine.nim(54, 11) Error: undeclared identifier: 'bad5'
-  tundeclared_routine.nim(54, 15) Error: expression has no type: bad5(1)""")
-    ]:
-      echo ">>>>"
-      var fmt = diffFormatter()
-      fmt.conf.lineSplit = proc(line: string): seq[string] = mapIt(line, $it)
-      let prev = fmt.conf.formatChunk
-      fmt.conf.formatChunk = proc(text: string, mode, secondary: SeqEditKind): ColText =
-                               if mode == sekReplace:
-                                 prev(text, secondary, secondary) + styleReverse
-
-                               else:
-                                 prev(text, mode, mode)
-
-      echo formatDiffed(a, b, fmt)
+  formatDiffed(text1.split("\n"), text2.split("\n"), conf)
 
 when isMainModule:
   # Configure diff formattter to use no unicode or colors to make testing
@@ -670,20 +608,19 @@ when isMainModule:
   # Delete/Insert/Replace/Keep respectively, and wrapped in the `[]`. Line
   # split is done on each whitespace and elements are joined using `#`
   # character.
-  var fmt = diffFormatter()
-  fmt.conf.explainWithUnicode = false
-  fmt.conf.inlineDiffSeparator = clt("#")
-  fmt.conf.formatChunk = proc(
+  var conf = diffFormatter(false)
+  conf.inlineDiffSeparator = clt("#")
+  conf.formatChunk = proc(
     word: string, mode, secondary: SeqEditKind
   ): ColText = &"[{($mode)[3]}/{word}]" + fgDefault
 
   proc diff(a, b: string, sideBySide: bool = false): string =
-    fmt.conf.sideBySide = sideBySide
-    return formatDiffed(a, b, fmt).toString(false)
+    conf.sideBySide = sideBySide
+    return formatDiffed(a, b, conf).toString(false)
 
   proc ediff(a, b: string): string =
-    let oldFormat = fmt.conf.formatChunk
-    fmt.conf.formatChunk = proc(
+    let oldFormat = conf.formatChunk
+    conf.formatChunk = proc(
       word: string, mode, secondary: SeqEditKind
     ): ColText =
       if mode == sekReplace:
@@ -695,12 +632,12 @@ when isMainModule:
       else:
         &"[{($mode)[3]}/{word}]" + fgDefault
 
-    let edit = formatInlineDiff(a, b, fmt.conf)
-    fmt.conf.formatChunk = oldFormat
+    let edit = formatInlineDiff(a, b, conf)
+    conf.formatChunk = oldFormat
     return edit.toString(false)
 
   proc ldiff(a, b: string): (string, string) =
-    let (old, new) = formatLineDiff(a, b, fmt.conf)
+    let (old, new) = formatLineDiff(a, b, conf)
     return (old.toString(false), new.toString(false))
 
   doAssert not hasInvisible(" a")
@@ -733,11 +670,12 @@ when isMainModule:
 
   diff("", "\n", true).assertEq:
     """
-[K/~ ][K/]   [K/~ ][K/][LF]
+[K/~ ][K/]   [K/~ ][K/][I/[LF]]
 [N/? ]       [I/+ ][I/]"""
 
     # Keep the empty line. `[LF]` at the end is not considered for diff
-    # since it used to *separate* lines.
+    # since it used to *separate* lines, but it is annotated as a
+    # difference.
 
   diff("a ", "a").assertEq:
     """
@@ -767,3 +705,57 @@ when isMainModule:
   # Elements between blocks are joined with `#` character, just like
   # regular inline diff elements
   ediff("w o r d", "w e r d").assertEq("[K/w ]#[R/<o>-<e>]#[K/ r d]")
+
+  conf.maxUnchanged = 2
+
+  diff("""
+*
+*
+*
+*
+^
+*
+*
+*
+""", """
+*
+*
+*
+*
+&
+*
+*
+*
+""").assertEq("""
+[K/~ ][K/*]
+[K/~ ][K/*]
+[D/- ][R/^]
+[I/+ ][R/&]
+[K/~ ][K/*]
+[K/~ ][K/*]""")
+
+  # Show only two unchanged lines before/after the change
+
+  conf.maxUnchangedWords = 1
+  ldiff(
+    "@ @ @ @ @ @ @ @ @ @ @ @",
+    "@ @ @ @ @ ! @ @ @ @ @ @",
+  ).assertEq((
+    # show 'Keep' `@` and `@` for one element around the edit operations,
+    # discard everything else.
+    "[K/@]#[K/ ]#[R/@]#[K/ ]#[K/@]",
+    "[K/@]#[K/ ]#[R/!]#[K/ ]#[K/@]"
+  ))
+
+  diff("\n", "").assertEq("""
+[K/~ ][K/][D/[LF]]
+[D/- ][D/]""")
+  # The line itself was modified but the newline character at the end was
+  # removed. This change is not considered as an edit operation
+
+  diff("", "\n", true).assertEq("""
+[K/~ ][K/]   [K/~ ][K/][I/[LF]]
+[N/? ]       [I/+ ][I/]""")
+
+  # Inserted newline is not a diff /directly/ as well - the *next* line
+  # that was modified (inserted). But new trailing newline is shown here
