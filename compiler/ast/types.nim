@@ -60,7 +60,7 @@ proc addTypeDeclVerboseMaybe*(result: var string, conf: ConfigRef; typ: PType) =
   else:
     result.add typeToString(typ)
 
-template `$`*(typ: PType): string = typeToString(typ)
+proc `$`*(typ: PType): string = typeToString(typ)
 
 proc base*(t: PType): PType =
   result = t[0]
