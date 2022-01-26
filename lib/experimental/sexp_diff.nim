@@ -146,16 +146,16 @@ type
         arraydiff*: tuple[target, input: seq[int]] ## For comparison of the
         ## lists keys - indices of the non-field elements.
 
-func part(key: string): SexpPathPart =
+func sdiffPart*(key: string): SexpPathPart =
   ## Create single S-expression key path part
   SexpPathPart(key: key, kind: spKey)
 
-func part(index: int): SexpPathPart =
+func sdiffPart*(index: int): SexpPathPart =
   ## Create single S-expression index part
   SexpPathPart(index: index, kind: spIndex)
 
 
-func mismatch(path: SexpPath, key: string): SexpMismatch =
+func mismatch*(path: SexpPath, key: string): SexpMismatch =
   ## Create missing key mismatch
   SexpMismatch(kind: smMissingKey, key: key, path: path)
 
@@ -234,7 +234,7 @@ Comparison rules:
             if item.kind == SKeyword:
               let key = item.getKey()
               if key in inputKeys:
-                aux(item, input[inputKeys[key]], path & part(key), mismatches)
+                aux(item, input[inputKeys[key]], path & sdiffPart(key), mismatches)
 
               else:
                 mismatches.add mismatch(path, key)
@@ -251,13 +251,13 @@ Comparison rules:
             aux(
               target[targetNonKeys[idx]],
               input[inputNonKeys[idx]],
-              path & part(inputNonKeys[idx]),
+              path & sdiffPart(inputNonKeys[idx]),
               mismatches
             )
 
         of SCons:
-          aux(target.car, input.car, path & part(0), mismatches)
-          aux(target.cdr, input.cdr, path & part(1), mismatches)
+          aux(target.car, input.car, path & sdiffPart(0), mismatches)
+          aux(target.cdr, input.cdr, path & sdiffPart(1), mismatches)
 
         of SNil:
           discard
@@ -307,7 +307,7 @@ proc describeDiff*(diff: seq[SexpMismatch], conf: DiffFormatConf): ColText =
         let got = $mismatch.found
         addf(" expected $#, but got $#", exp + fgGreen, got + fgRed)
         if '\n' notin exp and '\n' notin got:
-          addf(" ($#)", getEditVisual(exp, got, conf))
+          addf(" ($#)", formatInlineDiff(exp, got, conf))
 
       of smArrayLen:
         addf(
@@ -315,12 +315,6 @@ proc describeDiff*(diff: seq[SexpMismatch], conf: DiffFormatConf): ColText =
           $mismatch.expected.len + fgGreen,
           $mismatch.found.len + fgRed
         )
-
-proc sdiff(target, input: string): Option[ColText] =
-  let (target, input) = (target.parseSexp(), input.parseSexp())
-  let diff = diff(target, input)
-  if 0 < len(diff):
-    return some diff.describeDiff(diffFormatter[string]().conf)
 
 proc toLine*(s: SexpNode, sortfield: bool = false): ColText =
   ## Generate colored formatting of the S-expression.
@@ -382,27 +376,27 @@ proc toLine*(s: SexpNode, sortfield: bool = false): ColText =
   aux(s)
 
 
-when isMainModule:
-  let s = @[
-    "(:a b :c d)",
-    "(:c d :a b)"
-  ]
+# when isMainModule:
+#   let s = @[
+#     "(:a b :c d)",
+#     "(:c d :a b)"
+#   ]
 
-  for item in s:
-    echo item.parseSexp().toLine(sortfield = true)
+#   for item in s:
+#     echo item.parseSexp().toLine(sortfield = true)
 
-when isMainModule and false:
-  for str in @[
-    ("1", "2"),
-    ("(:line 12 :col 10)", "(:line 30 :col 30)"),
-    ("(Kind :expr 12)", "(Kind :expr 39)"),
-    ("(Kind :expr 12)", "(Kind)"),
-    ("(SymA :expr 12)", "(SymB :expr 12)")
-  ]:
-    let diff = sdiff(str[0], str[1])
-    if diff.isSome():
-      echo "```diff"
-      echo "- ", str[0]
-      echo "+ ", str[1]
-      echo diff.get()
-      echo "```\n"
+# when isMainModule and false:
+#   for str in @[
+#     ("1", "2"),
+#     ("(:line 12 :col 10)", "(:line 30 :col 30)"),
+#     ("(Kind :expr 12)", "(Kind :expr 39)"),
+#     ("(Kind :expr 12)", "(Kind)"),
+#     ("(SymA :expr 12)", "(SymB :expr 12)")
+#   ]:
+#     let diff = sdiff(str[0], str[1])
+#     if diff.isSome():
+#       echo "```diff"
+#       echo "- ", str[0]
+#       echo "+ ", str[1]
+#       echo diff.get()
+#       echo "```\n"

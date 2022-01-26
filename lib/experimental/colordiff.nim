@@ -29,7 +29,11 @@ type
     ## trailing whitespaces, control characters, escapes and ANSI SGR
     ## formatting - show them directly.
     inlineDiffSeparator*: ColText ## Text to separate words in the inline split
-    formatChunk*: proc(text: string, mode, secondary: SeqEditKind): ColText ##  Format
+    formatChunk*: proc(
+        text: string,
+        mode, secondary: SeqEditKind,
+        inline: bool
+    ): ColText ##  Format
     ## mismatched text. `mode` is the mismatch kind, `secondary` is used
     ## for `sekChanged` to annotated which part was deleted and which part
     ## was added.
@@ -40,10 +44,11 @@ type
 
 proc chunk(
     conf: DiffFormatConf, text: string,
-    mode: SeqEditKind, secondary: SeqEditKind = mode
+    mode: SeqEditKind, secondary: SeqEditKind = mode,
+    inline: bool = false
   ): ColText =
   ## Format text mismatch chunk using `formatChunk` callback
-  conf.formatChunk(text, mode, secondary)
+  conf.formatChunk(text, mode, secondary, inline)
 
 func splitKeepSeparator*(str: string, sep: set[char] = {' '}): seq[string] =
   ## Default implementaion of the line splitter - split on `sep` characters
@@ -267,13 +272,21 @@ func diffFormatter*(useUncide: bool = true): DiffFormatConf =
     ),
     sideBySide:         false,
     formatChunk:        (
-      proc(word: string, mode, secondary: SeqEditKind): ColText =
+      proc(word: string, mode, secondary: SeqEditKind, inline: bool): ColText =
         case mode:
           of sekDelete:                word + fgRed
           of sekInsert:                word + fgGreen
           of sekKeep:                  word + fgDefault
-          of sekReplace, sekTranspose: word + fgYellow
           of sekNone:                  word + fgDefault
+          of sekReplace, sekTranspose:
+            if inline and secondary == sekDelete:
+              "[" & (word + fgYellow) & " -> "
+
+            elif inline and secondary == sekInsert:
+              (word + fgYellow) & "]"
+
+            else:
+              word + fgYellow
     )
   )
 
@@ -350,7 +363,8 @@ proc formatInlineDiff*(
       text: string,
       mode: SeqEditKind,
       secondary: SeqEditKind = mode,
-      toLast: bool = false
+      toLast: bool = false,
+      inline: bool = false
     ) =
     ## Push single piece of changed text to the resulting chunk sequence
     ## after scanning for invisible characters. if `toLast` then add
@@ -359,10 +373,12 @@ proc formatInlineDiff*(
     ## them all
     var chunk: ColText
     if conf.explainInvisible and scanInvisible(text, start):
-      chunk = conf.chunk(conf.toVisibleNames(text), mode, secondary)
+      chunk = conf.chunk(
+        conf.toVisibleNames(text), mode, secondary, inline = inline)
 
     else:
-      chunk = conf.chunk(text, mode, secondary)
+      chunk = conf.chunk(
+        text, mode, secondary, inline = inline)
 
     if toLast:
       chunks[^1].add chunk
@@ -417,9 +433,9 @@ proc formatInlineDiff*(
           sourceBuf.add src[op.sourcePos]
           targetBuf.add target[op.targetPos]
 
-        push(sourceBuf, sekReplace, sekDelete)
+        push(sourceBuf, sekReplace, sekDelete, inline = true)
         # Force add directly to the last chunk
-        push(targetBuf, sekReplace, sekInsert, toLast = true)
+        push(targetBuf, sekReplace, sekInsert, toLast = true, inline = true)
 
     dec gIdx
 

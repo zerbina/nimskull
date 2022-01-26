@@ -65,8 +65,8 @@ proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
   for line in b:
     maxB = max(maxB, line.len)
 
-  var fmt = diffFormatter[string]()
-  fmt.conf.sideBySide = maxA + maxB + 8 < terminalWidth()
+  var conf = diffFormatter()
+  conf.sideBySide = maxA + maxB + 8 < terminalWidth()
 
   let diff = myersDiff(a, b)
   if len(diff) == 0:
@@ -75,12 +75,12 @@ proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
   else:
     result.same = false
     result.output = diff.shiftDiffed(a, b).
-      formatDiffed(a, b, fmt).toString(useColors)
+      formatDiffed(a, b, conf).toString(useColors)
 
 proc format(tcmp: TOutCompare): ColText =
   ## Pretty-print structured output comparison for further printing.
   var
-    conf = diffFormatter[string]().conf
+    conf = diffFormatter()
     res: ColText
 
   coloredResult()
@@ -629,7 +629,6 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
   ## results.
   var r = TOutCompare()
   r.cantIgnoreGiven = expected.nimoutFull
-  var map = r.diffMap
 
   for exp in expected.inlineErrors:
     var parsed = parseSexp(exp.msg)
@@ -649,6 +648,7 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
     if 0 < line.len:
       r.givenReports.add TOutReport(node: parseSexp(line))
 
+  var map = r.diffMap
   proc reportCmp(a, b: int): int =
     # Best place for further optimization and configuration - if more
     # comparison speed isneeded, try starting with error kind, file, line

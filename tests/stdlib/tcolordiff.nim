@@ -19,30 +19,23 @@ import std/[strformat]
 var conf = diffFormatter(false)
 conf.inlineDiffSeparator = clt("#")
 conf.formatChunk = proc(
-  word: string, mode, secondary: SeqEditKind
-): ColText = &"[{($mode)[3]}/{word}]" + fgDefault
+  word: string, mode, secondary: SeqEditKind, inline: bool
+): ColText =
+  if inline:
+    # Configure inline message diffing separately
+    if secondary == sekDelete:
+       &"[R/<{word}>-" + fgDefault
+    else:
+       &"<{word}>]" + fgDefault
+  else:
+    &"[{($mode)[3]}/{word}]" + fgDefault
 
 proc diff(a, b: string, sideBySide: bool = false): string =
   conf.sideBySide = sideBySide
   return formatDiffed(a, b, conf).toString(false)
 
 proc ediff(a, b: string): string =
-  let oldFormat = conf.formatChunk
-  conf.formatChunk = proc(
-    word: string, mode, secondary: SeqEditKind
-  ): ColText =
-    if mode == sekReplace:
-      if secondary == sekDelete:
-         &"[R/<{word}>-" + fgDefault
-      else:
-         &"<{word}>]" + fgDefault
-
-    else:
-      &"[{($mode)[3]}/{word}]" + fgDefault
-
-  let edit = formatInlineDiff(a, b, conf)
-  conf.formatChunk = oldFormat
-  return edit.toString(false)
+  formatInlineDiff(a, b, conf).toString(false)
 
 proc ldiff(a, b: string): (string, string) =
   let (old, new) = formatLineDiff(a, b, conf)
@@ -168,3 +161,8 @@ diff("", "\n", true).assertEq("""
 
 # Inserted newline is not a diff /directly/ as well - the *next* line
 # that was modified (inserted). But new trailing newline is shown here
+
+echo diff("""
+(User :str "User Hint" :location ("tfile.nim" 8 _))""", """
+(User :severity Hint :str "User hint" :location ("tfile_regular.nim" 8 6))
+(User :severity Hint :str "Another hint" :location ("tfile_regular.nim" 10 6))""")

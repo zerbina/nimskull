@@ -642,15 +642,25 @@ func toRGB*(color: TermColorBg | TermColorFg): tuple[r, g, b: range[0 .. 5]] =
 func toHtmlColor*(color: TermColorFg | TermColorBg): string =
   if color.int in 0 .. 16:
     case ForegroundColor(color.int + low(ForegroundColor).int):
-      of fgRed: result     = "red"
-      of fgBlue: result    = "blue"
+      of fgRed: result     = "Crimson"
+      of fgBlue: result    = "MediumBlue"
       of fgBlack: result   = "black"
-      of fgMagenta: result = "magenta"
+      of fgMagenta: result = "DarkViolet"
       of fgWhite: result   = "white"
-      of fgYellow: result  = "yellow"
-      of fgGreen: result   = "green"
-      of fgCyan: result    = "cyan"
+      of fgYellow: result  = "Gold"
+      of fgGreen: result   = "ForestGreen"
+      of fgCyan: result    = "DarkCyan"
       else: result = "none"
+
+      # of fgRed: result     = "red"
+      # of fgBlue: result    = "blue"
+      # of fgBlack: result   = "black"
+      # of fgMagenta: result = "magenta"
+      # of fgWhite: result   = "white"
+      # of fgYellow: result  = "yellow"
+      # of fgGreen: result   = "green"
+      # of fgCyan: result    = "cyan"
+      # else: result = "none"
 
   else:
     result = "#"
