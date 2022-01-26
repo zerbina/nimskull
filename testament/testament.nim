@@ -37,8 +37,9 @@ import std/sugar
 
 type
   TOutReport = object
-    inline: bool
+    inline: Option[InlineError]
     node: SexpNode
+    file: string
 
   TOutCompare = ref object
     ## Result of comparing two data outputs for a given spec
@@ -76,7 +77,8 @@ proc diffStrings*(a, b: string): tuple[output: string, same: bool] =
     result.output = diff.shiftDiffed(a, b).
       formatDiffed(a, b, fmt).toString(useColors)
 
-proc format(tcmp: TOutCompare, ): ColText =
+proc format(tcmp: TOutCompare): ColText =
+  ## Pretty-print structured output comparison for further printing.
   var
     conf = diffFormatter[string]().conf
     res: ColText
@@ -94,27 +96,41 @@ proc format(tcmp: TOutCompare, ): ColText =
     if 0 < weight:
       addl()
       addl()
-      add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [
-        tcmp.expectedReports[pair[0]].node.toLine(sortfield = true),
+      let exp = tcmp.expectedReports[pair[0]]
+      add "Expected"
+      if exp.inline.isSome():
+        let inline = exp.inline.get()
+        addf(" inline $# annotation at $#($#, $#)",
+          inline.kind + fgGreen,
+          exp.file + fgYellow,
+          $inline.line + fgCyan,
+          $inline.col + fgCyan
+        )
+
+      addf(":\n\n- $#\n\nGiven:\n\n+ $#\n\n",
+        exp.node.toLine(sortfield = true),
         tcmp.givenReports[pair[1]].node.toLine(sortfield = true)
-      ]
+      )
 
       add tcmp.diffMap[pair].describeDiff(conf).indent(2)
+
 
   for exp in tcmp.ignoredExpected:
     addl()
     addl()
-    add "Missing expected annotation:\n\n"
-    add "? ", tcmp.expectedReports[exp].node.toLine(sortfield = true)
-    add "\n\n"
+    addf(
+      "Missing expected annotation:\n\n? $#\n\n",
+      tcmp.expectedReports[exp].node.toLine(sortfield = true)
+    )
 
   if tcmp.cantIgnoreGiven:
     for give in tcmp.ignoredGiven:
       addl()
       addl()
-      add "Unexpected given annotation:\n\n"
-      add "? ", tcmp.expectedReports[give].node.toLine(sortfield = true)
-      add "\n\n"
+      addf(
+        "Unexpected given annotation:\n\n? $#\n\n",
+        tcmp.expectedReports[give].node.toLine(sortfield = true)
+      )
 
 ## Blanket method to encaptsulate all echos while testament is detangled.
 ## Using this means echo cannot be called with separation of args and must
@@ -272,6 +288,11 @@ proc prepareTestCmd(cmdTemplate, filename, options, nimcache: string,
 
 proc callNimCompiler(cmdTemplate, filename, options, nimcache: string,
                      target: TTarget, extraOptions = ""): TSpec =
+  ## Execute nim compiler with given `filename`, `options` and `nimcache`.
+  ## Compile to target specified in the `target` and return compilation
+  ## results as a new `TSpec` value. Resulting spec contains `.nimout` set
+  ## from the compiler run results as well as known inline messages (output
+  ## is immedately scanned for results).
   result.cmd = prepareTestCmd(cmdTemplate, filename, options, nimcache, target,
                           extraOptions)
   verboseCmd(result.cmd)
@@ -438,7 +459,6 @@ proc logToConsole(
 
     else:
       if not isNil(param.outCompare):
-        echo "Formatting out compare parameters"
         msg Undefined:
           param.outCompare.format().toString(useColors)
 
@@ -619,7 +639,7 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
 
     parsed.addField("location", loc)
     parsed.addField("severity", newSSymbol(exp.kind))
-    r.expectedReports.add TOutReport(inline: true, node: parsed)
+    r.expectedReports.add TOutReport(inline: some exp, node: parsed, file: expected.file)
 
   for line in splitLines(expected.nimout):
     if 0 < line.len:
@@ -641,21 +661,12 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
     r.diffMap[(a, b)] = diff
     result += diff.len
 
-  echo r.expectedReports
-  echo r.givenReports
   (r.ignoredExpected, r.ignoredGiven, r.sortedMapping) = sortedStablematch(
-    r.expectedReports,
-    r.givenReports,
+    r.expectedReports.len,
+    r.givenReports.len,
     reportCmp,
     Descending
   )
-
-  for idx, r in r.expectedReports:
-    echo "> ", idx, " ", r
-
-  for idx, r in r.givenReports:
-    echo "< ", idx, " " , r
-
 
   if 0 < r.sortedMapping[0].cost:
     r.match = false
@@ -744,6 +755,7 @@ proc cmpMsgs(
     inc(r.passed)
 
 proc generatedFile(test: TTest, target: TTarget): string =
+  ## Get path to the genrated file name from the test.
   if target == targetJS:
     result = test.name.changeFileExt("js")
   else:
@@ -752,10 +764,19 @@ proc generatedFile(test: TTest, target: TTarget): string =
     result = nimcacheDir(test.name, test.options, target) / "@m" & name.changeFileExt(ext)
 
 proc needsCodegenCheck(spec: TSpec): bool =
+  ## If there is any checks that need to be performed for a generated code
+  ## file
   result = spec.maxCodeSize > 0 or spec.ccodeCheck.len > 0
 
-proc codegenCheck(test: TTest, target: TTarget, spec: TSpec, expectedMsg: var string,
-                  given: var TSpec) =
+proc codegenCheck(
+    test: TTest,
+    target: TTarget,
+    spec: TSpec,
+    expectedMsg: var string,
+    given: var TSpec
+  ) =
+  ## Check for any codegen mismatches in file generated from `test` run.
+  ## Only file that was immediately generated is testsed.
   try:
     let genFile = generatedFile(test, target)
     let contents = readFile(genFile)
@@ -830,6 +851,8 @@ proc getTestSpecTarget(): TTarget =
     result = targetC
 
 proc checkDisabled(r: var TResults, test: TTest): bool =
+  ## Check if test has been enabled (not `disabled: true`, and not joined).
+  ## Return true if test can be executed.
   if test.spec.err in {reDisabled, reJoined}:
     # targetC is a lie, but parameter is required
     r.addResult(test, targetC, "", "", test.spec.err)
@@ -842,16 +865,18 @@ proc checkDisabled(r: var TResults, test: TTest): bool =
 var count = 0
 
 proc equalModuloLastNewline(a, b: string): bool =
-  # allow lazy output spec that omits last newline, but really those should be fixed instead
+  # allow lazy output spec that omits last newline, but really those should
+  # be fixed instead
   result = a == b or b.endsWith("\n") and a == b[0 ..< ^1]
 
 proc testSpecHelper(r: var TResults, test: var TTest, expected: TSpec,
                     target: TTarget, nimcache: string, extraOptions = "") =
   test.startTime = epochTime()
   template callNimCompilerImpl(): untyped =
-    # xxx this used to also pass: `--stdout --hint:Path:off`, but was done inconsistently
-    # with other branches
-    callNimCompiler(expected.getCmd, test.name, test.options, nimcache, target, extraOptions)
+    # xxx this used to also pass: `--stdout --hint:Path:off`, but was done
+    # inconsistently with other branches
+    callNimCompiler(
+      expected.getCmd, test.name, test.options, nimcache, target, extraOptions)
   case expected.action
   of actionCompile:
     var given = callNimCompilerImpl()
@@ -859,7 +884,9 @@ proc testSpecHelper(r: var TResults, test: var TTest, expected: TSpec,
   of actionRun:
     var given = callNimCompilerImpl()
     if given.err != reSuccess:
-      r.addResult(test, target, "", "$ " & given.cmd & '\n' & given.nimout, given.err, givenSpec = given.addr)
+      r.addResult(
+        test, target, "", "$ " & given.cmd & '\n' & given.nimout,
+        given.err, givenSpec = given.addr)
     else:
       let isJsTarget = target == targetJS
       var exeFile = changeFileExt(test.name, if isJsTarget: "js" else: ExeExt)
@@ -869,8 +896,10 @@ proc testSpecHelper(r: var TResults, test: var TTest, expected: TSpec,
       else:
         let nodejs = if isJsTarget: findNodeJs() else: ""
         if isJsTarget and nodejs == "":
-          r.addResult(test, target, expected.output, "nodejs binary not in PATH",
-                      reExeNotFound)
+          r.addResult(
+            test, target, expected.output,
+            "nodejs binary not in PATH", reExeNotFound)
+
         else:
           var exeCmd: string
           var args = test.testArgs
@@ -886,9 +915,13 @@ proc testSpecHelper(r: var TResults, test: var TTest, expected: TSpec,
                 valgrindOptions.add "--leak-check=yes"
               args = valgrindOptions & exeCmd & args
               exeCmd = "valgrind"
-          var (_, buf, exitCode) = execCmdEx2(exeCmd, args, input = expected.input)
-          # Treat all failure codes from nodejs as 1. Older versions of nodejs used
-          # to return other codes, but for us it is sufficient to know that it's not 0.
+
+          var (_, buf, exitCode) = execCmdEx2(
+            exeCmd, args, input = expected.input)
+
+          # Treat all failure codes from nodejs as 1. Older versions of
+          # nodejs used to return other codes, but for us it is sufficient
+          # to know that it's not 0.
           if exitCode != 0: exitCode = 1
           let bufB =
             if expected.sortoutput:
@@ -903,14 +936,20 @@ proc testSpecHelper(r: var TResults, test: var TTest, expected: TSpec,
             r.addResult(test, target, "exitcode: " & $expected.exitCode,
                               "exitcode: " & $exitCode & "\n\nOutput:\n" &
                               bufB, reExitcodesDiffer)
-          elif (expected.outputCheck == ocEqual and not expected.output.equalModuloLastNewline(bufB)) or
-              (expected.outputCheck == ocSubstr and expected.output notin bufB):
+          elif (
+            expected.outputCheck == ocEqual and
+            not expected.output.equalModuloLastNewline(bufB)
+          ) or (
+            expected.outputCheck == ocSubstr and
+            expected.output notin bufB
+          ):
             given.err = reOutputsDiffer
             r.addResult(test, target, expected.output, bufB, reOutputsDiffer)
           else:
             compilerOutputTests(test, target, given, expected, r)
   of actionReject:
     let given = callNimCompilerImpl()
+    # Scan compiler output fully for all mismatches and report if any found
     cmpMsgs(r, expected, given, test, target)
 
 proc targetHelper(r: var TResults, test: TTest, expected: TSpec, extraOptions = "") =

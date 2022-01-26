@@ -18,19 +18,31 @@ proc randomKey[K, V](table: Table[K, V]): K =
   for k, v in pairs(table):
     return k
 
-proc stablematch*[T](
-    lhs, rhs: seq[T], weight: proc(a, b: int): int,
+proc stablematch*(
+    lhsLen, rhsLen: int,
+    weight: proc(a, b: int): int,
     order: SortOrder = SortOrder.Ascending
   ): tuple[lhsIgnore, rhsIgnore: seq[int], map: IdxCostMap] =
   ## Do a weighted matching of the items in lhs and rhs sequences using
   ## weight function. Return most cost-effective matching elements.
+  ##
+  ## - `lhsLen` and `rhsLen` lists number of the elements in each input
+  ##   sequence
+  ## - `weight` - comparison proc that returns match score between
+  ##   two items as position `a` and `b`.
+  ## - `order` - comparison ordering. If it is `Ascending` higher matching
+  ##   cost is consdered better and replaces previous mappings. If `Descending`
+  ##   prefer lower matching cost instead
+  ##
+  ## For generating mapping of two sequences make `weight` function a
+  ## closure and let it retrieve values as needed.
 
   var canTry: Table[int, seq[int]]
   var rmap: Table[int, (int,int)]
 
-  for l in 0 ..< len(lhs):
+  for l in 0 ..< lhsLen:
     canTry[l] = @[]
-    for r in 0 ..< len(rhs):
+    for r in 0 ..< rhsLen:
       canTry[l].add r
 
   proc getCost(l, r: int, res: var IdxCostMap): int =
@@ -64,7 +76,7 @@ proc stablematch*[T](
       canTry.del l
 
   var lset: IntSet
-  for idx in 0 ..< len(rhs):
+  for idx in 0 ..< rhsLen:
     if idx in rmap:
       lset.incl rmap[idx][0]
       result.map[rmap[idx]] = tmp[rmap[idx]]
@@ -72,22 +84,24 @@ proc stablematch*[T](
     else:
       result.rhsIgnore.add idx
 
-  for idx in 0 ..< len(lhs):
+  for idx in 0 ..< lhsLen:
     if idx notin lset:
       result.lhsIgnore.add idx
 
 
-proc sortedStablematch*[T](
-    lhs, rhs: seq[T], weight: proc(a, b: int): int,
+proc sortedStablematch*(
+    lhsLen, rhsLen: int, weight: proc(a, b: int): int,
     order: SortOrder = SortOrder.Ascending
   ): tuple[
     lhsIgnore, rhsIgnore: seq[int],
     ordered: seq[tuple[pair: (int, int), cost: int]]
   ] =
+  ## `stablematch` wrapper that returns sorted list of the mappings instead
+  ## of a table.
 
   var map: IdxCostMap
   (result.lhsIgnore, result.rhsIgnore, map) = stablematch(
-    lhs, rhs, weight, order
+    lhsLen, rhsLen, weight, order
   )
 
   result.ordered = toSeq(pairs(map)).sortedByIt(it[1])
@@ -96,50 +110,60 @@ export `$`, toString
 
 type
   SexpPathPartKind = enum
+    ## Kind of the s-expression mismatch path art
     spIndex
     spKey
 
   SexpPathPart = object
+    ## S-expression mismatch part kind
     case kind*: SexpPathPartKind
       of spIndex:
-        index*: int
+        index*: int ## Mismatch at index
 
       of spKey:
-        key*: string
+        key*: string ## Mismatch for a given `:key`
 
   SexpPath* = seq[SexpPathPart]
 
   SexpMismatchKind* = enum
-    smMissingKey
-    smDifferentLiteral
-    smDifferentSymbol
-    smArrayLen
-    smKindMismatch
+    ## Possible kinds of the mismatches
+    smMissingKey ## Input data has no `:key` that was present in expected
+    smDifferentLiteral ## Target has different literal values from the expected
+    smDifferentSymbol ## Target has different symbol at position
+    smArrayLen ## Mismatched array len
+    smKindMismatch ## Different kinds of nodes - expected string but found
+                   ## int for example
 
   SexpMismatch* = object
-    path*: SexpPath
+    ## Single S-expression mismatch
+    path*: SexpPath ## Full path for the mismatched
     case kind*: SexpMismatchKind
       of smMissingKey:
-        key*: string
+        key*: string ## Key missing in the input data
 
       of smDifferentLiteral, smKindMismatch, smArrayLen, smDifferentSymbol:
-        expected*, found*: SexpNode
-        arraydiff*: tuple[target, input: seq[int]]
+        expected*, found*: SexpNode ## 'expected X' but 'found Y' error messages
+        arraydiff*: tuple[target, input: seq[int]] ## For comparison of the
+        ## lists keys - indices of the non-field elements.
 
 func part(key: string): SexpPathPart =
+  ## Create single S-expression key path part
   SexpPathPart(key: key, kind: spKey)
 
 func part(index: int): SexpPathPart =
+  ## Create single S-expression index part
   SexpPathPart(index: index, kind: spIndex)
 
 
 func mismatch(path: SexpPath, key: string): SexpMismatch =
+  ## Create missing key mismatch
   SexpMismatch(kind: smMissingKey, key: key, path: path)
 
 func mismatch(
     kind: SexpMismatchKind, path: SexpPath,
     expected, found: SexpNode
   ): SexpMismatch =
+  ## Create expected/found mismatch
 
   result = SexpMismatch(kind: kind, path: path)
   result.expected = expected
@@ -147,6 +171,22 @@ func mismatch(
 
 
 func diff*(target, input: SexpNode): seq[SexpMismatch] =
+  ##[
+
+Recursively iterate over target and input trees, find all mismatches.
+
+Comparison rules:
+
+- `_` in expected matches to anything
+- Excess fields in `input` are discarded
+- Missing fields in `target` are treated as errors
+- List with keys are compared in two passes - only `:key` to `:key`
+  between two lists - in unordered manner. Then all remaining elements
+  are processed in the order of their appearance.
+- Literals and kinds are compared directly with `==`
+
+  ]##
+
   proc aux(
       target, input: SexpNode,
       path: SexpPath,
@@ -229,6 +269,7 @@ func diff*(target, input: SexpNode): seq[SexpMismatch] =
   aux(target, input, @[], result)
 
 func formatPath(path: SexpPath): string =
+  ## Format S-expression path
   if path.len == 0:
     result = "<root>"
 
@@ -242,6 +283,7 @@ func formatPath(path: SexpPath): string =
           result.add ":" & part.key
 
 proc describeDiff*(diff: seq[SexpMismatch], conf: DiffFormatConf): ColText =
+  ## Generate colortext description of the S-expression mismatch diff
   coloredResult()
 
   for idx, mismatch in diff:
@@ -251,9 +293,11 @@ proc describeDiff*(diff: seq[SexpMismatch], conf: DiffFormatConf): ColText =
     add formatPath(mismatch.path) + fgYellow
     case mismatch.kind:
       of smKindMismatch:
-        add " expected kind '", $mismatch.expected.kind + fgGreen
-        add "', but got '", $mismatch.found.kind + fgRed
-        add "'"
+        addf(
+          "expected kind '$#', but got '$#'",
+          $mismatch.expected.kind + fgGreen,
+          $mismatch.found.kind + fgRed
+        )
 
       of smMissingKey:
         add " misses key ", mismatch.key + fgRed
@@ -261,16 +305,16 @@ proc describeDiff*(diff: seq[SexpMismatch], conf: DiffFormatConf): ColText =
       of smDifferentLiteral, smDifferentSymbol:
         let exp = $mismatch.expected
         let got = $mismatch.found
-        add " expected ", exp + fgGreen
-        add ", but got ", got + fgRed
+        addf(" expected $#, but got $#", exp + fgGreen, got + fgRed)
         if '\n' notin exp and '\n' notin got:
-          add " ("
-          add getEditVisual(exp, got, conf)
-          add ")"
+          addf(" ($#)", getEditVisual(exp, got, conf))
 
       of smArrayLen:
-        add " len mismatch. Expected ", $mismatch.expected.len + fgGreen
-        add " elements , but got ", $mismatch.found.len + fgRed
+        addf(
+          " len mismatch. Expected $# elements, but got $#",
+          $mismatch.expected.len + fgGreen,
+          $mismatch.found.len + fgRed
+        )
 
 proc sdiff(target, input: string): Option[ColText] =
   let (target, input) = (target.parseSexp(), input.parseSexp())
@@ -279,9 +323,12 @@ proc sdiff(target, input: string): Option[ColText] =
     return some diff.describeDiff(diffFormatter[string]().conf)
 
 proc toLine*(s: SexpNode, sortfield: bool = false): ColText =
+  ## Generate colored formatting of the S-expression.
+  ##
   ## - `sortfield` - order SKeyword entries in lists by the key name
   coloredResult()
 
+  let dim = styleDim
   proc aux(s: SexpNode) =
     if s.isNil: return
     case s.kind:
@@ -289,13 +336,13 @@ proc toLine*(s: SexpNode, sortfield: bool = false): ColText =
       of SString: add ("\"" & s.getStr() & "\"") + fgYellow
       of SFloat:  add $s.getFNum() + fgMagenta
       of SNil:    add "nil"
-      of SSymbol: add s.getSymbol()
+      of SSymbol: add s.getSymbol() + fgCyan
       of SCons:
-        add "("
+        add "(" + dim
         aux(s.car)
-        add " . "
+        add " . " + dim
         aux(s.cdr)
-        add ")"
+        add ")" + dim
       of SKeyword:
         add ":" + fgBlue
         add s.getKey() + fgBlue
@@ -303,7 +350,7 @@ proc toLine*(s: SexpNode, sortfield: bool = false): ColText =
         aux(s.value)
 
       of SList:
-        add "("
+        add "(" + dim
         var first = true
         if sortfield:
           var fieldIdx: seq[(int, string)]
@@ -330,10 +377,9 @@ proc toLine*(s: SexpNode, sortfield: bool = false): ColText =
             first = false
             aux(item)
 
-        add ")"
+        add ")" + dim
 
   aux(s)
-
 
 
 when isMainModule:

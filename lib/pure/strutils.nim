@@ -2661,19 +2661,23 @@ func findNormalized(x: string, inArray: openArray[string]): int =
   return -1
 
 func invalidFormatString(explain: string) {.noinline.} =
+  ## Raise value erorr for invalid interpolation format string
   raise newException(ValueError, "invalid format string - " & explain)
 
 type
   AddfFragmentKind* = enum
-    addfText
-    addfPositional
-    addfIndexed
-    addfDollar
-    addfBackIndexed
-    addfVar
-    addfExpr
+    ## Kind of the `addf` interpolation fragment
+    addfText ## Regular text fragment
+    addfPositional ## Positional fragment `$#`
+    addfIndexed ## Indexed fragment `$1`
+    addfDollar ## Dollar literal `$$`
+    addfBackIndexed ## Negative indexed fragment `$-1`
+    addfVar ## Interpolated variable `$name`
+    addfExpr ## Expression in braces `${some expr}`
 
   AddfFragment* = object
+    ## `addf` format string fragment - can be used to write own text
+    ## interpolation logic.
     case kind*: AddfFragmentKind
       of addfText, addfVar, addfExpr:
         text*: string
@@ -2685,6 +2689,7 @@ type
         discard
 
 iterator addfFragments*(formatstr: string): AddfFragment =
+  ## Iterate over interpolation fragments of the `formatstr`
   var i = 0
   var num = 0
   const PatternChars = {'a'..'z', 'A'..'Z', '0'..'9', '\128'..'\255', '_'}
