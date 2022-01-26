@@ -91,13 +91,12 @@ proc format(tcmp: TOutCompare, ): ColText =
     first = false
 
   for (pair, weight) in tcmp.sortedMapping:
-    echo pair, weight
     if 0 < weight:
       addl()
       addl()
       add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [
-        tcmp.expectedReports[pair[0]].node.toLine(),
-        tcmp.givenReports[pair[1]].node.toLine()
+        tcmp.expectedReports[pair[0]].node.toLine(sortfield = true),
+        tcmp.givenReports[pair[1]].node.toLine(sortfield = true)
       ]
 
       add tcmp.diffMap[pair].describeDiff(conf).indent(2)
@@ -106,7 +105,7 @@ proc format(tcmp: TOutCompare, ): ColText =
     addl()
     addl()
     add "Missing expected annotation:\n\n"
-    add "? ", tcmp.expectedReports[exp].node.toLine()
+    add "? ", tcmp.expectedReports[exp].node.toLine(sortfield = true)
     add "\n\n"
 
   if tcmp.cantIgnoreGiven:
@@ -114,7 +113,7 @@ proc format(tcmp: TOutCompare, ): ColText =
       addl()
       addl()
       add "Unexpected given annotation:\n\n"
-      add "? ", tcmp.expectedReports[give].node.toLine()
+      add "? ", tcmp.expectedReports[give].node.toLine(sortfield = true)
       add "\n\n"
 
 ## Blanket method to encaptsulate all echos while testament is detangled.
@@ -458,7 +457,7 @@ proc logToConsole(
 proc logToBackend(
     test: TTest,
     param: ReportParams
-  ) = 
+  ) =
 
   let (outcome, msg) =
     case param.success
@@ -575,27 +574,16 @@ proc checkForInlineErrors(r: var TResults, expected, given: TSpec, test: TTest, 
       if j notin covered:
         var e: string
         let exp = expected.inlineErrors[j]
-        if expected.nimoutSexp:
-          var parsed = parseSexp(exp.msg)
-          var loc = convertSexp([sexp(test.name), sexp(exp.line)])
-          if exp.col > 0:
-            loc.add sexp(exp.col)
-
-          parsed.addField("location", loc)
-          parsed.addField("severity", newSSymbol(exp.kind))
-          e = parsed.toLine()
-
-        else:
-          e = test.name
-          e.add '('
-          e.addInt exp.line
-          if exp.col > 0:
-            e.add ", "
-            e.addInt exp.col
-          e.add ") "
-          e.add exp.kind
-          e.add ": "
-          e.add exp.msg
+        e = test.name
+        e.add '('
+        e.addInt exp.line
+        if exp.col > 0:
+          e.add ", "
+          e.addInt exp.col
+        e.add ") "
+        e.add exp.kind
+        e.add ": "
+        e.add exp.msg
 
         r.addResult(test, target, e, given.nimout, reMsgsDiffer)
         break coverCheck
@@ -658,7 +646,8 @@ proc sexpCheck(test: TTest, expected, given: TSpec): TOutCompare =
   (r.ignoredExpected, r.ignoredGiven, r.sortedMapping) = sortedStablematch(
     r.expectedReports,
     r.givenReports,
-    reportCmp
+    reportCmp,
+    Descending
   )
 
   for idx, r in r.expectedReports:

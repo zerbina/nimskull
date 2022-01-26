@@ -719,10 +719,6 @@ func toHtml*(runes: seq[ColRune], color: bool = true): string =
 func toHtml*(text: ColText, color: bool = true): string =
   toHtml(text.runes, color)
 
-when isMainModule:
-  echo toHtml("red" + fgRed & "green" + fgGreen)
-  echo toHtml("red" + fgRed + bgGreen)
-  echo toHtml("red" + termFg(1, 2, 3) + bgGreen)
 
 
 func `$`*(colored: ColRune): string =
@@ -890,3 +886,33 @@ func grid*(text: ColText): ColRuneGrid =
   ## Convert colored text to grid
   for line in lines(text):
      result.add line
+
+func addf*(text: var ColText, formatstr: string, colored: openarray[ColText]) =
+  for fr in addfFragments(formatstr):
+    case fr.kind:
+      of addfDollar:
+        text.add "$"
+
+      of addfText:
+        text.add fr.text
+
+      of addfVar, addfExpr:
+        assert false, "var/expr formatting is not supported for colored text yet"
+
+      of addfPositional, addfIndexed, addfbackIndexed:
+        let idx = if fr.kind == addfBackIndexed: len(colored) - fr.idx else: fr.idx
+        assert (0 <= idx and idx < colored.len)
+        text.add colored[idx]
+
+func `%`*(format: string, interpolate: openarray[ColText]): ColText =
+  result.addf(format, interpolate)
+
+when isMainModule:
+  echo toHtml("red" + fgRed & "green" + fgGreen)
+  echo toHtml("red" + fgRed + bgGreen)
+  echo toHtml("red" + termFg(1, 2, 3) + bgGreen)
+
+  echo "$1+$1 * $2" % [
+    "red" + fgRed,
+    "blue" + fgBlue
+  ]

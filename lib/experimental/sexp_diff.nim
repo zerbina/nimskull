@@ -14,6 +14,10 @@ import
 
 type IdxCostMap* = Table[(int, int), int]
 
+proc randomKey[K, V](table: Table[K, V]): K =
+  for k, v in pairs(table):
+    return k
+
 proc stablematch*[T](
     lhs, rhs: seq[T], weight: proc(a, b: int): int,
     order: SortOrder = SortOrder.Ascending
@@ -21,14 +25,10 @@ proc stablematch*[T](
   ## Do a weighted matching of the items in lhs and rhs sequences using
   ## weight function. Return most cost-effective matching elements.
 
-  var lfree: seq[int]
   var canTry: Table[int, seq[int]]
   var rmap: Table[int, (int,int)]
 
-  for idx in 0 ..< len(lhs):
-    lfree.add idx
-
-  for l in lfree:
+  for l in 0 ..< len(lhs):
     canTry[l] = @[]
     for r in 0 ..< len(rhs):
       canTry[l].add r
@@ -40,30 +40,28 @@ proc stablematch*[T](
     res[(l, r)]
 
   var tmp: IdxCostMap
-  while 0 < len(lfree):
-    let l = lfree.pop()
-    if 0 < canTry[l].len:
-      let r = canTry[l].pop()
-      if r in rmap:
-        let (oldL, _) = rmap[r]
-        let tryCost = getCost(l, r, tmp)
-        let otherCost = getCost(oldL, r, tmp)
-        let better =
-          if order == Ascending:
-            otherCost < tryCost
-          else:
-            otherCost > tryCost
-
-        if better:
-          lfree.add oldL
-          rmap[r] = (l, r)
-
+  while 0 < len(canTry):
+    let l = canTry.randomKey()
+    let r = canTry[l].pop()
+    if r in rmap:
+      let (oldL, _) = rmap[r]
+      let tryCost = getCost(l, r, tmp)
+      let otherCost = getCost(oldL, r, tmp)
+      let better =
+        if order == Ascending:
+          otherCost < tryCost
         else:
-          lfree.add l
+          otherCost > tryCost
 
-      else:
-        discard getCost(l, r, tmp)
+      if better:
         rmap[r] = (l, r)
+
+    else:
+      discard getCost(l, r, tmp)
+      rmap[r] = (l, r)
+
+    if canTry[l].len() == 0:
+      canTry.del l
 
   var lset: IntSet
   for idx in 0 ..< len(rhs):
@@ -280,79 +278,72 @@ proc sdiff(target, input: string): Option[ColText] =
   if 0 < len(diff):
     return some diff.describeDiff(diffFormatter[string]().conf)
 
-proc sortd(r: tuple[expectedReports, givenReports: seq[SexpNode]]) =
-  var diffMap = TableRef[(int, int), seq[SexpMismatch]]()
-  proc reportCmp(a, b: int): int =
-    # Best place for further optimization and configuration - if more
-    # comparison speed isneeded, try starting with error kind, file, line
-    # comparison, they doing a regular msg != msg compare and only then
-    # deep structural diff.
-    echo "comparing reports >>>"
-    echo "exp: ", r.expectedReports[a]
-    echo "giv: ", r.givenReports[b]
-    if r.expectedReports[a][0] != r.givenReports[b][0]:
-      result += 10
-
-    let diff = diff(r.expectedReports[a], r.givenReports[b])
-    diffMap[(a, b)] = diff
-    result += diff.len
-    echo "cost: ", result
-    echo "<<<"
-
-  let (lhs, rhs, order) = sortedStablematch(
-    r.expectedReports, r.givenReports, reportCmp, Ascending)
-
-  var result: ColText
+proc toLine*(s: SexpNode, sortfield: bool = false): ColText =
+  ## - `sortfield` - order SKeyword entries in lists by the key name
   coloredResult()
 
-  var first = true
-  proc addl() =
-    if not first:
-      add "\n"
+  proc aux(s: SexpNode) =
+    if s.isNil: return
+    case s.kind:
+      of SInt:    add $s.getNum() + fgCyan
+      of SString: add ("\"" & s.getStr() & "\"") + fgYellow
+      of SFloat:  add $s.getFNum() + fgMagenta
+      of SNil:    add "nil"
+      of SSymbol: add s.getSymbol()
+      of SCons:
+        add "("
+        aux(s.car)
+        add " . "
+        aux(s.cdr)
+        add ")"
+      of SKeyword:
+        add ":" + fgBlue
+        add s.getKey() + fgBlue
+        add " "
+        aux(s.value)
 
-    first = false
+      of SList:
+        add "("
+        var first = true
+        if sortfield:
+          var fieldIdx: seq[(int, string)]
+          for idx, item in pairs(s):
+            if item.kind == SKeyword:
+              fieldIdx.add (idx, item.getKey())
 
+          let sortedFields = fieldIdx.sortedByIt(it[1])
+          var nameIdx = 0
+          for item in items(s):
+            if not first: add " "
+            if item.kind == SKeyword:
+              aux(s[sortedFields[nameIdx][0]])
+              inc nameIdx
 
-  var
-    conf = diffFormatter[string]().conf
+            else:
+              aux(item)
 
-  for (pair, weight) in order:
-    echo pair, weight
-    if 0 < weight:
-      addl()
-      addl()
-      add "Expected:\n\n- $1\n\nGiven:\n\n+ $2\n\n" % [
-        r.expectedReports[pair[0]].toLine(),
-        r.givenReports[pair[1]].toLine()
-      ]
+            first = false
 
-      add diffMap[pair].describeDiff(conf).indent(2)
+        else:
+          for item in items(s):
+            if not first: add " "
+            first = false
+            aux(item)
 
-  for exp in lhs:
-    addl()
-    addl()
-    add "Missing expected annotation:\n\n"
-    add "? ", r.expectedReports[exp].toLine()
-    add "\n\n"
+        add ")"
 
-  for give in rhs:
-    addl()
-    addl()
-    add "Unexpected given annotation:\n\n"
-    add "? ", r.expectedReports[give].toLine()
-    add "\n\n"
+  aux(s)
 
-  echo result
 
 
 when isMainModule:
-  sortd(( @[
-    parseSexp("""(User :str "Another hint" :location ("tfile.nim" 11 7) :severity Hint)"""),
-    parseSexp("""(User :str "User hint" :location ("tfile.nim" 8 _))""")
-  ], @[
-    parseSexp("""(User :severity Hint :str "User hint" :location ("tfile.nim" 9 6))"""),
-    parseSexp("""(User :severity Hint :str "Another hint" :location ("tfile.nim" 11 6))""")
-  ] ))
+  let s = @[
+    "(:a b :c d)",
+    "(:c d :a b)"
+  ]
+
+  for item in s:
+    echo item.parseSexp().toLine(sortfield = true)
 
 when isMainModule and false:
   for str in @[
