@@ -7,8 +7,6 @@ preferTypeName	ast/types.html#preferTypeName	TPreferedDesc.preferTypeName
 preferResolved	ast/types.html#preferResolved	TPreferedDesc.preferResolved	
 preferMixed	ast/types.html#preferMixed	TPreferedDesc.preferMixed	
 TPreferedDesc	ast/types.html#TPreferedDesc	types: TPreferedDesc	
-addTypeDeclVerboseMaybe	ast/types.html#addTypeDeclVerboseMaybe,string,ConfigRef,PType	types: addTypeDeclVerboseMaybe(result: var string; conf: ConfigRef; typ: PType)	
-`$`	ast/types.html#$.t,PType	types: `$`(typ: PType): string	
 base	ast/types.html#base,PType	types: base(t: PType): PType	
 TTypeIter	ast/types.html#TTypeIter	types: TTypeIter	
 TTypeMutator	ast/types.html#TTypeMutator	types: TTypeMutator	
@@ -31,8 +29,6 @@ getOrdValue	ast/types.html#getOrdValue,PNode	types: getOrdValue(n: PNode; onErro
 getFloatValue	ast/types.html#getFloatValue,PNode	types: getFloatValue(n: PNode): BiggestFloat	
 isIntLit	ast/types.html#isIntLit,PType	types: isIntLit(t: PType): bool	
 isFloatLit	ast/types.html#isFloatLit,PType	types: isFloatLit(t: PType): bool	
-addTypeHeader	ast/types.html#addTypeHeader,string,ConfigRef,PType,TPreferedDesc	types: addTypeHeader(result: var string; conf: ConfigRef; typ: PType;\n              prefer: TPreferedDesc = preferMixed; getDeclarationPath = true)	
-getProcHeader	ast/types.html#getProcHeader,ConfigRef,PSym,TPreferedDesc	types: getProcHeader(conf: ConfigRef; sym: PSym; prefer: TPreferedDesc = preferName;\n              getDeclarationPath = true): string	
 elemType	ast/types.html#elemType,PType	types: elemType(t: PType): PType	
 enumHasHoles	ast/types.html#enumHasHoles,PType	types: enumHasHoles(t: PType): bool	
 isOrdinalType	ast/types.html#isOrdinalType,PType,bool	types: isOrdinalType(t: PType; allowEnumWithHoles: bool = false): bool	
@@ -53,7 +49,6 @@ canFormAcycle	ast/types.html#canFormAcycle,PType	types: canFormAcycle(typ: PType
 mutateType	ast/types.html#mutateType,PType,TTypeMutator,RootRef	types: mutateType(t: PType; iter: TTypeMutator; closure: RootRef): PType	
 bindConcreteTypeToUserTypeClass	ast/types.html#bindConcreteTypeToUserTypeClass.t,PType,PType	types: bindConcreteTypeToUserTypeClass(tc, concrete: PType)	
 isResolvedUserTypeClass	ast/types.html#isResolvedUserTypeClass.t,PType	types: isResolvedUserTypeClass(t: PType): bool	
-typeToString	ast/types.html#typeToString,PType,TPreferedDesc	types: typeToString(typ: PType; prefer: TPreferedDesc = preferName): string	
 firstOrd	ast/types.html#firstOrd,ConfigRef,PType	types: firstOrd(conf: ConfigRef; t: PType): Int128	
 firstFloat	ast/types.html#firstFloat,PType	types: firstFloat(t: PType): BiggestFloat	
 lastOrd	ast/types.html#lastOrd,ConfigRef,PType	types: lastOrd(conf: ConfigRef; t: PType): Int128	

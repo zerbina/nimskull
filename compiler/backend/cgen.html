@@ -171,7 +171,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -182,7 +182,7 @@ class="link-seesrc" target="_blank">Source</a>
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
-<a class="reference external" href="../ast/ast.html">../ast/ast</a>, <a class="reference external" href="../ast/astalgo.html">../ast/astalgo</a>, <a class="reference external" href="../ast/trees.html">../ast/trees</a>, <a class="reference external" href="../ast/nimsets.html">../ast/nimsets</a>, <a class="reference external" href="../ast/idents.html">../ast/idents</a>, <a class="reference external" href="../ast/types.html">../ast/types</a>, <a class="reference external" href="../ast/wordrecg.html">../ast/wordrecg</a>, <a class="reference external" href="../ast/treetab.html">../ast/treetab</a>, <a class="reference external" href="../ast/renderer.html">../ast/renderer</a>, <a class="reference external" href="../ast/reports.html">../ast/reports</a>, <a class="reference external" href="../ast/lineinfos.html">../ast/lineinfos</a>, <a class="reference external" href="../ast/astmsgs.html">../ast/astmsgs</a>, <a class="reference external" href="../ast/ndi.html">../ast/ndi</a>, <a class="reference external" href="../modules/magicsys.html">../modules/magicsys</a>, <a class="reference external" href="../front/options.html">../front/options</a>, <a class="reference external" href="../front/msgs.html">../front/msgs</a>, <a class="reference external" href="../utils/platform.html">../utils/platform</a>, <a class="reference external" href="../utils/nversion.html">../utils/nversion</a>, <a class="reference external" href="../utils/bitsets.html">../utils/bitsets</a>, <a class="reference external" href="../utils/ropes.html">../utils/ropes</a>, <a class="reference external" href="../utils/pathutils.html">../utils/pathutils</a>, <a class="reference external" href="../sem/passes.html">../sem/passes</a>, <a class="reference external" href="../sem/rodutils.html">../sem/rodutils</a>, <a class="reference external" href="../sem/aliases.html">../sem/aliases</a>, <a class="reference external" href="../sem/lowerings.html">../sem/lowerings</a>, <a class="reference external" href="../sem/transf.html">../sem/transf</a>, <a class="reference external" href="../sem/injectdestructors.html">../sem/injectdestructors</a>, <a class="reference external" href="extccomp.html">extccomp</a>, <a class="reference external" href="ccgutils.html">ccgutils</a>, <a class="reference external" href="cgmeth.html">cgmeth</a>, <a class="reference external" href="cgendata.html">cgendata</a>, <a class="reference external" href="../sem/spawn.html">../sem/spawn</a>, <a class="reference external" href="../sem/semparallel.html">../sem/semparallel</a>, <a class="reference external" href="../ic/ic.html">../ic/ic</a>, <a class="reference external" href="../sem/sighashes.html">../sem/sighashes</a>, <a class="reference external" href="../modules/modulegraphs.html">../modules/modulegraphs</a>, <a class="reference external" href="../sem/dfa.html">../sem/dfa</a>, <a class="reference external" href="../sem/parampatterns.html">../sem/parampatterns</a>
+<a class="reference external" href="../ast/ast.html">../ast/ast</a>, <a class="reference external" href="../ast/astalgo.html">../ast/astalgo</a>, <a class="reference external" href="../ast/trees.html">../ast/trees</a>, <a class="reference external" href="../ast/nimsets.html">../ast/nimsets</a>, <a class="reference external" href="../ast/idents.html">../ast/idents</a>, <a class="reference external" href="../ast/types.html">../ast/types</a>, <a class="reference external" href="../ast/typesrenderer.html">../ast/typesrenderer</a>, <a class="reference external" href="../ast/wordrecg.html">../ast/wordrecg</a>, <a class="reference external" href="../ast/treetab.html">../ast/treetab</a>, <a class="reference external" href="../ast/renderer.html">../ast/renderer</a>, <a class="reference external" href="../ast/reports.html">../ast/reports</a>, <a class="reference external" href="../ast/lineinfos.html">../ast/lineinfos</a>, <a class="reference external" href="../ast/astmsgs.html">../ast/astmsgs</a>, <a class="reference external" href="../ast/ndi.html">../ast/ndi</a>, <a class="reference external" href="../modules/magicsys.html">../modules/magicsys</a>, <a class="reference external" href="../front/options.html">../front/options</a>, <a class="reference external" href="../front/msgs.html">../front/msgs</a>, <a class="reference external" href="../utils/platform.html">../utils/platform</a>, <a class="reference external" href="../utils/nversion.html">../utils/nversion</a>, <a class="reference external" href="../utils/bitsets.html">../utils/bitsets</a>, <a class="reference external" href="../utils/ropes.html">../utils/ropes</a>, <a class="reference external" href="../utils/pathutils.html">../utils/pathutils</a>, <a class="reference external" href="../sem/passes.html">../sem/passes</a>, <a class="reference external" href="../sem/rodutils.html">../sem/rodutils</a>, <a class="reference external" href="../sem/aliases.html">../sem/aliases</a>, <a class="reference external" href="../sem/lowerings.html">../sem/lowerings</a>, <a class="reference external" href="../sem/transf.html">../sem/transf</a>, <a class="reference external" href="../sem/injectdestructors.html">../sem/injectdestructors</a>, <a class="reference external" href="extccomp.html">extccomp</a>, <a class="reference external" href="ccgutils.html">ccgutils</a>, <a class="reference external" href="cgmeth.html">cgmeth</a>, <a class="reference external" href="cgendata.html">cgendata</a>, <a class="reference external" href="../sem/spawn.html">../sem/spawn</a>, <a class="reference external" href="../sem/semparallel.html">../sem/semparallel</a>, <a class="reference external" href="../ic/ic.html">../ic/ic</a>, <a class="reference external" href="../sem/sighashes.html">../sem/sighashes</a>, <a class="reference external" href="../modules/modulegraphs.html">../modules/modulegraphs</a>, <a class="reference external" href="../sem/dfa.html">../sem/dfa</a>, <a class="reference external" href="../sem/parampatterns.html">../sem/parampatterns</a>
 </dl></div>
 <div class="section" id="10">
 <h1><a class="toc-backref" href="#10">Consts</a></h1>
@@ -193,9 +193,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L2148"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L2147"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L2148" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L2147" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -213,9 +213,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L2134"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L2133"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L2134" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L2133" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -227,7 +227,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/ccgtypes.nim#L559"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/ccgtypes.nim#L559"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/ccgtypes.nim#L559" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -241,9 +241,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Also called from IC.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L2063"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L2062"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L2063" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L2062" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -255,9 +255,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Also called from <tt class="docutils literal"><span class="pre"><span class="Identifier">ic</span><span class="Operator">/</span><span class="Identifier">cbackend</span><span class="Operator">.</span><span class="Identifier">nim</span></span></tt>.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L1973"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L1972"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1973" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1972" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -269,7 +269,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/ccgtypes.nim#L1517"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/ccgtypes.nim#L1517"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/ccgtypes.nim#L1517" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -283,9 +283,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L1892"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L1891"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1892" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1891" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -296,9 +296,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Called from the IC backend.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L1557"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L1556"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1557" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1556" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -308,9 +308,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/cgen.nim#L1574"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/cgen.nim#L1573"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1574" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/cgen.nim#L1573" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -325,7 +325,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/backend/ccgtypes.nim#L943"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/backend/ccgtypes.nim#L943"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/backend/ccgtypes.nim#L943" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -341,7 +341,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-25 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-27 00:00:00 UTC</small>
       </div>
     </div>
   </div>

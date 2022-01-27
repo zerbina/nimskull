@@ -85,7 +85,7 @@ window.addEventListener('DOMContentLoaded', main);
           <li><a class="reference external"
           data-doc-search-tag="reports: `$`(point: ReportLineInfo): string" href="ast/reports.html#%24%2CReportLineInfo">reports: `$`(point: ReportLineInfo): string</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="types: `$`(typ: PType): string" href="ast/types.html#%24.t%2CPType">types: `$`(typ: PType): string</a></li>
+          data-doc-search-tag="typesrenderer: `$`(typ: PType): string" href="ast/typesrenderer.html#%24.t%2CPType">typesrenderer: `$`(typ: PType): string</a></li>
           <li><a class="reference external"
           data-doc-search-tag="msgs: `$`(conf: ConfigRef; info: TLineInfo): string" href="front/msgs.html#%24%2CConfigRef%2CTLineInfo">msgs: `$`(conf: ConfigRef; info: TLineInfo): string</a></li>
           <li><a class="reference external"
@@ -531,6 +531,8 @@ window.addEventListener('DOMContentLoaded', main);
           <li><a class="reference external"
           data-doc-search-tag="debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; resSym: PSym)" href="utils/debugutils.html#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPNode%2CPSym">debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; resSym: PSym)</a></li>
           <li><a class="reference external"
+          data-doc-search-tag="debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; resSym: PSym)" href="utils/debugutils.html#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPNode%2CPSym_2">debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; resSym: PSym)</a></li>
+          <li><a class="reference external"
           data-doc-search-tag="debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; prev, r: PType)" href="utils/debugutils.html#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPNode%2CPType%2CPType">debugutils: addInNimDebugUtils(c: ConfigRef; action: string; n: PNode; prev, r: PType)</a></li>
           <li><a class="reference external"
           data-doc-search-tag="debugutils: addInNimDebugUtils(c: ConfigRef; action: string; x, y, r: PType)" href="utils/debugutils.html#addInNimDebugUtils.t%2CConfigRef%2Cstring%2CPType%2CPType%2CPType">debugutils: addInNimDebugUtils(c: ConfigRef; action: string; x, y, r: PType)</a></li>
@@ -677,14 +679,10 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="ic: addTrmacro(c: var PackedEncoder; m: var PackedModule; s: PSym)" href="ic/ic.html#addTrmacro%2CPackedEncoder%2CPackedModule%2CPSym">ic: addTrmacro(c: var PackedEncoder; m: var PackedModule; s: PSym)</a></li>
           </ul></dd>
-<dt><a name="addTypeDeclVerboseMaybe" href="#addTypeDeclVerboseMaybe"><span>addTypeDeclVerboseMaybe:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="types: addTypeDeclVerboseMaybe(result: var string; conf: ConfigRef; typ: PType)" href="ast/types.html#addTypeDeclVerboseMaybe%2Cstring%2CConfigRef%2CPType">types: addTypeDeclVerboseMaybe(result: var string; conf: ConfigRef; typ: PType)</a></li>
-          </ul></dd>
 <dt><a name="addTypeHeader" href="#addTypeHeader"><span>addTypeHeader:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="types: addTypeHeader(result: var string; conf: ConfigRef; typ: PType;
-              prefer: TPreferedDesc = preferMixed; getDeclarationPath = true)" href="ast/types.html#addTypeHeader%2Cstring%2CConfigRef%2CPType%2CTPreferedDesc">types: addTypeHeader(result: var string; conf: ConfigRef; typ: PType;
+          data-doc-search-tag="typesrenderer: addTypeHeader(result: var string; conf: ConfigRef; typ: PType;
+              prefer: TPreferedDesc = preferMixed; getDeclarationPath = true)" href="ast/typesrenderer.html#addTypeHeader%2Cstring%2CConfigRef%2CPType%2CTPreferedDesc">typesrenderer: addTypeHeader(result: var string; conf: ConfigRef; typ: PType;
               prefer: TPreferedDesc = preferMixed; getDeclarationPath = true)</a></li>
           </ul></dd>
 <dt><a name="addUniqueField" href="#addUniqueField"><span>addUniqueField:</span></a></dt><dd><ul class="simple">
@@ -4027,12 +4025,6 @@ window.addEventListener('DOMContentLoaded', main);
     set[ProcConvMismatch], TTypeRelation)" href="ast/types.html#getProcConvMismatch%2CConfigRef%2CPType%2CPType">types: getProcConvMismatch(c: ConfigRef; f, a: PType; rel = isNone): (
     set[ProcConvMismatch], TTypeRelation)</a></li>
           </ul></dd>
-<dt><a name="getProcHeader" href="#getProcHeader"><span>getProcHeader:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="types: getProcHeader(conf: ConfigRef; sym: PSym; prefer: TPreferedDesc = preferName;
-              getDeclarationPath = true): string" href="ast/types.html#getProcHeader%2CConfigRef%2CPSym%2CTPreferedDesc">types: getProcHeader(conf: ConfigRef; sym: PSym; prefer: TPreferedDesc = preferName;
-              getDeclarationPath = true): string</a></li>
-          </ul></dd>
 <dt><a name="getRelativePathFromConfigPath" href="#getRelativePathFromConfigPath"><span>getRelativePathFromConfigPath:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="options: getRelativePathFromConfigPath(conf: ConfigRef; f: AbsoluteFile; isTitle = false): RelativeFile" href="front/options.html#getRelativePathFromConfigPath%2CConfigRef%2CAbsoluteFile">options: getRelativePathFromConfigPath(conf: ConfigRef; f: AbsoluteFile; isTitle = false): RelativeFile</a></li>
@@ -4163,6 +4155,8 @@ window.addEventListener('DOMContentLoaded', main);
           </ul></dd>
 <dt><a name="HackController" href="#HackController"><span>HackController:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
+          data-doc-search-tag="cli_reporter: HackController" href="front/cli_reporter.html#HackController">cli_reporter: HackController</a></li>
+          <li><a class="reference external"
           data-doc-search-tag="options: HackController" href="front/options.html#HackController">options: HackController</a></li>
           </ul></dd>
 <dt><a name="handleCmdInput" href="#handleCmdInput"><span>handleCmdInput:</span></a></dt><dd><ul class="simple">
@@ -17635,7 +17629,7 @@ window.addEventListener('DOMContentLoaded', main);
           </ul></dd>
 <dt><a name="typeToString" href="#typeToString"><span>typeToString:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="types: typeToString(typ: PType; prefer: TPreferedDesc = preferName): string" href="ast/types.html#typeToString%2CPType%2CTPreferedDesc">types: typeToString(typ: PType; prefer: TPreferedDesc = preferName): string</a></li>
+          data-doc-search-tag="typesrenderer: typeToString(typ: PType; prefer: TPreferedDesc = preferName): string" href="ast/typesrenderer.html#typeToString%2CPType%2CTPreferedDesc">typesrenderer: typeToString(typ: PType; prefer: TPreferedDesc = preferName): string</a></li>
           </ul></dd>
 <dt><a name="tyPointer" href="#tyPointer"><span>tyPointer:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -19284,7 +19278,7 @@ window.addEventListener('DOMContentLoaded', main);
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-25 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-27 00:00:00 UTC</small>
       </div>
     </div>
   </div>

@@ -176,7 +176,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/sem.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/sem.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sem.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -196,7 +196,7 @@ included from sem.nim</p>
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
-<a class="reference external" href="../ast/ast.html">../ast/ast</a>, <a class="reference external" href="../ast/astalgo.html">../ast/astalgo</a>, <a class="reference external" href="../ast/trees.html">../ast/trees</a>, <a class="reference external" href="../ast/wordrecg.html">../ast/wordrecg</a>, <a class="reference external" href="../ast/renderer.html">../ast/renderer</a>, <a class="reference external" href="../ast/types.html">../ast/types</a>, <a class="reference external" href="../ast/nimsets.html">../ast/nimsets</a>, <a class="reference external" href="../ast/errorreporting.html">../ast/errorreporting</a>, <a class="reference external" href="../ast/errorhandling.html">../ast/errorhandling</a>, <a class="reference external" href="../ast/astmsgs.html">../ast/astmsgs</a>, <a class="reference external" href="../ast/reports.html">../ast/reports</a>, <a class="reference external" href="../ast/lineinfos.html">../ast/lineinfos</a>, <a class="reference external" href="../ast/idents.html">../ast/idents</a>, <a class="reference external" href="../ast/enumtostr.html">../ast/enumtostr</a>, <a class="reference external" href="../ast/linter.html">../ast/linter</a>, <a class="reference external" href="../modules/magicsys.html">../modules/magicsys</a>, <a class="reference external" href="../modules/modulepaths.html">../modules/modulepaths</a>, <a class="reference external" href="../modules/importer.html">../modules/importer</a>, <a class="reference external" href="../modules/modulegraphs.html">../modules/modulegraphs</a>, <a class="reference external" href="../front/options.html">../front/options</a>, <a class="reference external" href="../front/msgs.html">../front/msgs</a>, <a class="reference external" href="../utils/ropes.html">../utils/ropes</a>, <a class="reference external" href="../utils/platform.html">../utils/platform</a>, <a class="reference external" href="../utils/nversion.html">../utils/nversion</a>, <a class="reference external" href="../utils/debugutils.html">../utils/debugutils</a>, <a class="reference external" href="../utils/int128.html">../utils/int128</a>, <a class="reference external" href="../utils/astrepr.html">../utils/astrepr</a>, <a class="reference external" href="semfold.html">semfold</a>, <a class="reference external" href="concepts.html">concepts</a>, <a class="reference external" href="semmacrosanity.html">semmacrosanity</a>, <a class="reference external" href="typeallowed.html">typeallowed</a>, <a class="reference external" href="isolation_check.html">isolation_check</a>, <a class="reference external" href="procfind.html">procfind</a>, <a class="reference external" href="lookups.html">lookups</a>, <a class="reference external" href="pragmas.html">pragmas</a>, <a class="reference external" href="passes.html">passes</a>, <a class="reference external" href="semdata.html">semdata</a>, <a class="reference external" href="semtypinst.html">semtypinst</a>, <a class="reference external" href="sigmatch.html">sigmatch</a>, <a class="reference external" href="transf.html">transf</a>, <a class="reference external" href="aliases.html">aliases</a>, <a class="reference external" href="lambdalifting.html">lambdalifting</a>, <a class="reference external" href="sempass2.html">sempass2</a>, <a class="reference external" href="patterns.html">patterns</a>, <a class="reference external" href="parampatterns.html">parampatterns</a>, <a class="reference external" href="evaltempl.html">evaltempl</a>, <a class="reference external" href="lowerings.html">lowerings</a>, <a class="reference external" href="../backend/cgmeth.html">../backend/cgmeth</a>, <a class="reference external" href="../plugins/active.html">../plugins/active</a>, <a class="reference external" href="../vm/vmdef.html">../vm/vmdef</a>, <a class="reference external" href="../vm/vm.html">../vm/vm</a>, <a class="reference external" href="spawn.html">spawn</a>
+<a class="reference external" href="../ast/ast.html">../ast/ast</a>, <a class="reference external" href="../ast/astalgo.html">../ast/astalgo</a>, <a class="reference external" href="../ast/trees.html">../ast/trees</a>, <a class="reference external" href="../ast/wordrecg.html">../ast/wordrecg</a>, <a class="reference external" href="../ast/renderer.html">../ast/renderer</a>, <a class="reference external" href="../ast/types.html">../ast/types</a>, <a class="reference external" href="../ast/nimsets.html">../ast/nimsets</a>, <a class="reference external" href="../ast/errorreporting.html">../ast/errorreporting</a>, <a class="reference external" href="../ast/errorhandling.html">../ast/errorhandling</a>, <a class="reference external" href="../ast/astmsgs.html">../ast/astmsgs</a>, <a class="reference external" href="../ast/reports.html">../ast/reports</a>, <a class="reference external" href="../ast/lineinfos.html">../ast/lineinfos</a>, <a class="reference external" href="../ast/idents.html">../ast/idents</a>, <a class="reference external" href="../ast/enumtostr.html">../ast/enumtostr</a>, <a class="reference external" href="../ast/linter.html">../ast/linter</a>, <a class="reference external" href="../modules/magicsys.html">../modules/magicsys</a>, <a class="reference external" href="../modules/modulepaths.html">../modules/modulepaths</a>, <a class="reference external" href="../modules/importer.html">../modules/importer</a>, <a class="reference external" href="../modules/modulegraphs.html">../modules/modulegraphs</a>, <a class="reference external" href="../front/options.html">../front/options</a>, <a class="reference external" href="../front/msgs.html">../front/msgs</a>, <a class="reference external" href="../utils/ropes.html">../utils/ropes</a>, <a class="reference external" href="../utils/platform.html">../utils/platform</a>, <a class="reference external" href="../utils/nversion.html">../utils/nversion</a>, <a class="reference external" href="../utils/debugutils.html">../utils/debugutils</a>, <a class="reference external" href="../utils/int128.html">../utils/int128</a>, <a class="reference external" href="../utils/astrepr.html">../utils/astrepr</a>, <a class="reference external" href="semfold.html">semfold</a>, <a class="reference external" href="concepts.html">concepts</a>, <a class="reference external" href="semmacrosanity.html">semmacrosanity</a>, <a class="reference external" href="typeallowed.html">typeallowed</a>, <a class="reference external" href="isolation_check.html">isolation_check</a>, <a class="reference external" href="procfind.html">procfind</a>, <a class="reference external" href="lookups.html">lookups</a>, <a class="reference external" href="pragmas.html">pragmas</a>, <a class="reference external" href="passes.html">passes</a>, <a class="reference external" href="semdata.html">semdata</a>, <a class="reference external" href="semtypinst.html">semtypinst</a>, <a class="reference external" href="sigmatch.html">sigmatch</a>, <a class="reference external" href="transf.html">transf</a>, <a class="reference external" href="aliases.html">aliases</a>, <a class="reference external" href="lambdalifting.html">lambdalifting</a>, <a class="reference external" href="sempass2.html">sempass2</a>, <a class="reference external" href="patterns.html">patterns</a>, <a class="reference external" href="parampatterns.html">parampatterns</a>, <a class="reference external" href="evaltempl.html">evaltempl</a>, <a class="reference external" href="lowerings.html">lowerings</a>, <a class="reference external" href="../backend/cgmeth.html">../backend/cgmeth</a>, <a class="reference external" href="../plugins/active.html">../plugins/active</a>, <a class="reference external" href="../vm/vmdef.html">../vm/vmdef</a>, <a class="reference external" href="../vm/vm.html">../vm/vm</a>, <a class="reference external" href="spawn.html">spawn</a>, <a class="reference external" href="../ast/typesrenderer.html">../ast/typesrenderer</a>
 </dl></div>
 <div class="section" id="10">
 <h1><a class="toc-backref" href="#10">Consts</a></h1>
@@ -207,7 +207,7 @@ included from sem.nim</p>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/sem.nim#L833"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/sem.nim#L833"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sem.nim#L833" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -220,9 +220,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/semmagic.nim#L108"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/semmagic.nim#L110"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semmagic.nim#L108" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semmagic.nim#L110" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -232,9 +232,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/semmagic.nim#L106"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/semmagic.nim#L108"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semmagic.nim#L106" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semmagic.nim#L108" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -244,9 +244,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/semmagic.nim#L103"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/semmagic.nim#L105"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semmagic.nim#L103" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semmagic.nim#L105" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -262,7 +262,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/sem.nim#L212"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/sem.nim#L212"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sem.nim#L212" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -275,7 +275,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/sem.nim#L301"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/sem.nim#L301"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sem.nim#L301" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -290,7 +290,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/semcall.nim#L444"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/semcall.nim#L444"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semcall.nim#L444" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -305,7 +305,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/semcall.nim#L454"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/semcall.nim#L454"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semcall.nim#L454" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -318,7 +318,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/semcall.nim#L137"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/semcall.nim#L137"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semcall.nim#L137" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -331,7 +331,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/sem.nim#L313"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/sem.nim#L313"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sem.nim#L313" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -343,7 +343,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/seminst.nim#L53"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/seminst.nim#L53"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/seminst.nim#L53" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -355,7 +355,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/semtypes.nim#L711"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/semtypes.nim#L711"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/semtypes.nim#L711" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -372,7 +372,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/b9ea9a129285d1091c17f23487cfa7d51a6bbe6a/compiler/sem/sem.nim#L210"
+href="https://github.com/nim-works/nimskull/tree/006bdd319f8eaed325e237a6ed5c2cee75c9d078/compiler/sem/sem.nim#L210"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sem.nim#L210" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -388,7 +388,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-25 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-27 00:00:00 UTC</small>
       </div>
     </div>
   </div>
