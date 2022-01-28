@@ -278,8 +278,6 @@ nkWhen	ast/ast_types.html#nkWhen	ast_types: nkWhen
 nkWhenExpr	ast/ast_types.html#nkWhenExpr	ast_types: nkWhenExpr	
 nkEffectList	ast/ast_types.html#nkEffectList	ast_types: nkEffectList	
 exceptionEffects	ast/ast_types.html#exceptionEffects	ast_types: exceptionEffects	
-requiresEffects	ast/ast_types.html#requiresEffects	ast_types: requiresEffects	
-ensuresEffects	ast/ast_types.html#ensuresEffects	ast_types: ensuresEffects	
 tagEffects	ast/ast_types.html#tagEffects	ast_types: tagEffects	
 pragmasEffects	ast/ast_types.html#pragmasEffects	ast_types: pragmasEffects	
 effectListLen	ast/ast_types.html#effectListLen	ast_types: effectListLen	
@@ -582,11 +580,6 @@ mStrToStr	ast/ast_types.html#mStrToStr	TMagic.mStrToStr
 mEnumToStr	ast/ast_types.html#mEnumToStr	TMagic.mEnumToStr	
 mAnd	ast/ast_types.html#mAnd	TMagic.mAnd	
 mOr	ast/ast_types.html#mOr	TMagic.mOr	
-mImplies	ast/ast_types.html#mImplies	TMagic.mImplies	
-mIff	ast/ast_types.html#mIff	TMagic.mIff	
-mExists	ast/ast_types.html#mExists	TMagic.mExists	
-mForall	ast/ast_types.html#mForall	TMagic.mForall	
-mOld	ast/ast_types.html#mOld	TMagic.mOld	
 mEqStr	ast/ast_types.html#mEqStr	TMagic.mEqStr	
 mLeStr	ast/ast_types.html#mLeStr	TMagic.mLeStr	
 mLtStr	ast/ast_types.html#mLtStr	TMagic.mLtStr	

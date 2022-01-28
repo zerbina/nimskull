@@ -50,7 +50,6 @@ stopCompile	modules/modulegraphs.html#stopCompile,ModuleGraph	modulegraphs: stop
 createMagic	modules/modulegraphs.html#createMagic,ModuleGraph,IdGenerator,string,TMagic	modulegraphs: createMagic(g: ModuleGraph; idgen: IdGenerator; name: string; m: TMagic): PSym	
 registerModule	modules/modulegraphs.html#registerModule,ModuleGraph,PSym	modulegraphs: registerModule(g: ModuleGraph; m: PSym)	
 registerModuleById	modules/modulegraphs.html#registerModuleById,ModuleGraph,FileIndex	modulegraphs: registerModuleById(g: ModuleGraph; m: FileIndex)	
-initOperators	modules/modulegraphs.html#initOperators,ModuleGraph	modulegraphs: initOperators(g: ModuleGraph): Operators	
 newModuleGraph	modules/modulegraphs.html#newModuleGraph,IdentCache,ConfigRef	modulegraphs: newModuleGraph(cache: IdentCache; config: ConfigRef): ModuleGraph	
 resetAllModules	modules/modulegraphs.html#resetAllModules,ModuleGraph	modulegraphs: resetAllModules(g: ModuleGraph)	
 getModule	modules/modulegraphs.html#getModule,ModuleGraph,FileIndex	modulegraphs: getModule(g: ModuleGraph; fileIdx: FileIndex): PSym	

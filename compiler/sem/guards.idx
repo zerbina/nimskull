@@ -10,8 +10,6 @@ TModel	sem/guards.html#TModel	guards: TModel
 addFact	sem/guards.html#addFact,TModel,PNode	guards: addFact(m: var TModel; nn: PNode)	
 addFactNeg	sem/guards.html#addFactNeg,TModel,PNode	guards: addFactNeg(m: var TModel; n: PNode)	
 sameTree	sem/guards.html#sameTree,PNode,PNode	guards: sameTree(a, b: PNode): bool	
-invalidateFacts	sem/guards.html#invalidateFacts,seq[PNode],PNode	guards: invalidateFacts(s: var seq[PNode]; n: PNode)	
-invalidateFacts	sem/guards.html#invalidateFacts,TModel,PNode	guards: invalidateFacts(m: var TModel; n: PNode)	
 doesImply	sem/guards.html#doesImply,TModel,PNode	guards: doesImply(facts: TModel; prop: PNode): TImplication	
 impliesNotNil	sem/guards.html#impliesNotNil,TModel,PNode	guards: impliesNotNil(m: TModel; arg: PNode): TImplication	
 simpleSlice	sem/guards.html#simpleSlice,PNode,PNode	guards: simpleSlice(a, b: PNode): BiggestInt	
