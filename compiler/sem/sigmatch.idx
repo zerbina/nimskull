@@ -22,10 +22,10 @@ matchUserTypeClass	sem/sigmatch.html#matchUserTypeClass,TCandidate,PType,PType	s
 inferStaticParam	sem/sigmatch.html#inferStaticParam,TCandidate,PNode,BiggestInt	sigmatch: inferStaticParam(c: var TCandidate; lhs: PNode; rhs: BiggestInt): bool	
 typeRel	sem/sigmatch.html#typeRel,TCandidate,PType,PType,TTypeRelFlags	sigmatch: typeRel(c: var TCandidate; f, aOrig: PType; flags: TTypeRelFlags = {}): TTypeRelation	
 cmpTypes	sem/sigmatch.html#cmpTypes,PContext,PType,PType	sigmatch: cmpTypes(c: PContext; f, a: PType): TTypeRelation	
-paramTypesMatch	sem/sigmatch.html#paramTypesMatch,TCandidate,PType,PType,PNode,PNode	sigmatch: paramTypesMatch(m: var TCandidate; f, a: PType; arg, argOrig: PNode): PNode	
+paramTypesMatch	sem/sigmatch.html#paramTypesMatch,TCandidate,PType,PType,PNode	sigmatch: paramTypesMatch(m: var TCandidate; f, a: PType; arg: PNode): PNode	
 semFinishOperands	sem/sigmatch.html#semFinishOperands,PContext,PNode	sigmatch: semFinishOperands(c: PContext; n: PNode)	
-partialMatch	sem/sigmatch.html#partialMatch,PContext,PNode,PNode,TCandidate	sigmatch: partialMatch(c: PContext; n, nOrig: PNode; m: var TCandidate)	
-matches	sem/sigmatch.html#matches,PContext,PNode,PNode,TCandidate	sigmatch: matches(c: PContext; n, nOrig: PNode; m: var TCandidate)	
+partialMatch	sem/sigmatch.html#partialMatch,PContext,PNode,TCandidate	sigmatch: partialMatch(c: PContext; n: PNode; m: var TCandidate)	
+matches	sem/sigmatch.html#matches,PContext,PNode,TCandidate	sigmatch: matches(c: PContext; n: PNode; m: var TCandidate)	
 argtypeMatches	sem/sigmatch.html#argtypeMatches,PContext,PType,PType	sigmatch: argtypeMatches(c: PContext; f, a: PType; fromHlo = false): bool	
 instTypeBoundOp	sem/sigmatch.html#instTypeBoundOp,PContext,PSym,PType,TLineInfo,TTypeAttachedOp,int	sigmatch: instTypeBoundOp(c: PContext; dc: PSym; t: PType; info: TLineInfo;\n                op: TTypeAttachedOp; col: int): PSym	
 `$`	sem/sigmatch.html#$,Suggest	sigmatch: `$`(suggest: Suggest): string	
