@@ -2,6 +2,8 @@ Int128	utils/int128.html#Int128	int128: Int128
 Zero	utils/int128.html#Zero	int128: Zero	
 One	utils/int128.html#One	int128: One	
 Ten	utils/int128.html#Ten	int128: Ten	
+Min	utils/int128.html#Min	int128: Min	
+Max	utils/int128.html#Max	int128: Max	
 NegOne	utils/int128.html#NegOne	int128: NegOne	
 low	utils/int128.html#low.t,typedesc[Int128]	int128: low(t: typedesc[Int128]): Int128	
 high	utils/int128.html#high.t,typedesc[Int128]	int128: high(t: typedesc[Int128]): Int128	
@@ -60,6 +62,7 @@ parseDecimalInt128	utils/int128.html#parseDecimalInt128,string,int	int128: parse
 `+`	utils/int128.html#+,BiggestInt,Int128	int128: `+`(a: BiggestInt; b: Int128): Int128	
 `+`	utils/int128.html#+,Int128,BiggestInt	int128: `+`(a: Int128; b: BiggestInt): Int128	
 toFloat64	utils/int128.html#toFloat64,Int128	int128: toFloat64(arg: Int128): float64	
+inInt128Range	utils/int128.html#inInt128Range,float64	int128: inInt128Range(arg: float64): bool	
 toInt128	utils/int128.html#toInt128,float64	int128: toInt128(arg: float64): Int128	
 maskUInt64	utils/int128.html#maskUInt64,Int128	int128: maskUInt64(arg: Int128): Int128	
 maskUInt32	utils/int128.html#maskUInt32,Int128	int128: maskUInt32(arg: Int128): Int128	
