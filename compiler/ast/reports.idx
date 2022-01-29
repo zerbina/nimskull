@@ -583,6 +583,7 @@ rsemNonMatchingCandidates	ast/reports.html#rsemNonMatchingCandidates	ReportKind.
 rsemUserRaw	ast/reports.html#rsemUserRaw	ReportKind.rsemUserRaw	
 rsemExtendedContext	ast/reports.html#rsemExtendedContext	ReportKind.rsemExtendedContext	
 rsemImplicitObjConv	ast/reports.html#rsemImplicitObjConv	ReportKind.rsemImplicitObjConv	
+rsemDiagnostics	ast/reports.html#rsemDiagnostics	ReportKind.rsemDiagnostics	
 rcmdFailedExecution	ast/reports.html#rcmdFailedExecution	ReportKind.rcmdFailedExecution	
 rcmdCompiling	ast/reports.html#rcmdCompiling	ReportKind.rcmdCompiling	
 rcmdLinking	ast/reports.html#rcmdLinking	ReportKind.rcmdLinking	
@@ -676,6 +677,7 @@ ssefCallsViaIndirection	ast/reports.html#ssefCallsViaIndirection	SemSideEffectCa
 ssefParameterMutation	ast/reports.html#ssefParameterMutation	SemSideEffectCallKind.ssefParameterMutation	
 SemSideEffectCallKind	ast/reports.html#SemSideEffectCallKind	reports: SemSideEffectCallKind	
 SemTypeMismatch	ast/reports.html#SemTypeMismatch	reports: SemTypeMismatch	
+SemDiagnostics	ast/reports.html#SemDiagnostics	reports: SemDiagnostics	
 SemCallMismatch	ast/reports.html#SemCallMismatch	reports: SemCallMismatch	
 SemSpellCandidate	ast/reports.html#SemSpellCandidate	reports: SemSpellCandidate	
 SemNilHistory	ast/reports.html#SemNilHistory	reports: SemNilHistory	

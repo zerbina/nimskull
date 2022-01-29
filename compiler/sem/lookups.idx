@@ -44,13 +44,11 @@ errorUseQualifier	sem/lookups.html#errorUseQualifier,PContext,TLineInfo,PSym	loo
 errorUndeclaredIdentifier	sem/lookups.html#errorUndeclaredIdentifier,PContext,TLineInfo,string,seq[SemSpellCandidate]	lookups: errorUndeclaredIdentifier(c: PContext; info: TLineInfo; name: string;\n                          candidates: seq[SemSpellCandidate] = @[])	
 errorUndeclaredIdentifierHint	sem/lookups.html#errorUndeclaredIdentifierHint,PContext,PNode,PIdent	lookups: errorUndeclaredIdentifierHint(c: PContext; n: PNode; ident: PIdent): PSym	
 lookUp	sem/lookups.html#lookUp,PContext,PNode	lookups: lookUp(c: PContext; n: PNode): PSym	
-errorSym2	sem/lookups.html#errorSym2,PContext,PNode,PNode	lookups: errorSym2(c: PContext; n, err: PNode): PSym	
 checkAmbiguity	sem/lookups.html#checkAmbiguity	TLookupFlag.checkAmbiguity	
 checkUndeclared	sem/lookups.html#checkUndeclared	TLookupFlag.checkUndeclared	
 checkModule	sem/lookups.html#checkModule	TLookupFlag.checkModule	
 checkPureEnumFields	sem/lookups.html#checkPureEnumFields	TLookupFlag.checkPureEnumFields	
 TLookupFlag	sem/lookups.html#TLookupFlag	lookups: TLookupFlag	
-qualifiedLookUp2	sem/lookups.html#qualifiedLookUp2,PContext,PNode,set[TLookupFlag]	lookups: qualifiedLookUp2(c: PContext; n: PNode; flags: set[TLookupFlag]): PSym	
 qualifiedLookUp	sem/lookups.html#qualifiedLookUp,PContext,PNode,set[TLookupFlag]	lookups: qualifiedLookUp(c: PContext; n: PNode; flags: set[TLookupFlag]): PSym	
 initOverloadIter	sem/lookups.html#initOverloadIter,TOverloadIter,PContext,PNode	lookups: initOverloadIter(o: var TOverloadIter; c: PContext; n: PNode): PSym	
 lastOverloadScope	sem/lookups.html#lastOverloadScope,TOverloadIter	lookups: lastOverloadScope(o: TOverloadIter): int	

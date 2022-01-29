@@ -107,10 +107,9 @@ window.addEventListener('DOMContentLoaded', main);
       <li><a class="reference" href="#CandidateError"
     title="CandidateError = object
   sym*: PSym
-  firstMismatch*: MismatchInfo
-  diagnostics*: seq[SemReport]
-  isDiagnostic*: bool ## is this is a diagnostic (true) or an error (false) that occurred
-                      ## xxx: this might be a terrible idea and we could get rid of it">CandidateError</a></li>
+  firstMismatch*: MismatchInfo ## mismatch info for better error messages
+  diag*: SemDiagnostics
+  diagnosticsEnabled*: bool  ## Set by sfExplain. efExplain or notFoundError ignore this">CandidateError</a></li>
   <li><a class="reference" href="#CandidateErrors"
     title="CandidateErrors = seq[CandidateError]">CandidateErrors</a></li>
   <li><a class="reference" href="#MismatchInfo"
@@ -150,13 +149,8 @@ window.addEventListener('DOMContentLoaded', main);
                              ## matching. they will be reset if the matching
                              ## is not successful. may replace the bindings
                              ## table in the future.
-  diagnostics*: seq[SemReport] ## The matching process (for concepts)
-                               ## will collect extra diagnostics that will be displayed to the user.
-                               ## triggered when overload resolution fails or when the explain pragma
-                               ## is used.
   inheritancePenalty: int    ## to prefer closest father object type
-  firstMismatch*: MismatchInfo ## mismatch info for better error messages
-  diagnosticsEnabled*: bool">TCandidate</a></li>
+  error*: CandidateError">TCandidate</a></li>
   <li><a class="reference" href="#TCandidateState"
     title="TCandidateState = enum
   csEmpty, csMatch, csNoMatch">TCandidateState</a></li>
@@ -212,8 +206,8 @@ window.addEventListener('DOMContentLoaded', main);
   <ul class="simple nested-toc-section">initCandidate
       <li><a class="reference" href="#initCandidate%2CPContext%2CTCandidate%2CPSym%2CPNode%2Cint"
     title="initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;
-              calleeScope = -1; diagnosticsEnabled = false)">initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;
-              calleeScope = -1; diagnosticsEnabled = false)</a></li>
+              calleeScope = -1)">initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;
+              calleeScope = -1)</a></li>
   <li><a class="reference" href="#initCandidate%2CPContext%2CTCandidate%2CPType"
     title="initCandidate(ctx: PContext; c: var TCandidate; callee: PType)">initCandidate(ctx: PContext; c: var TCandidate; callee: PType)</a></li>
 
@@ -343,7 +337,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -371,18 +365,17 @@ class="link-seesrc" target="_blank">Source</a>
 <div id="CandidateError">
 <dt><pre><a href="sigmatch.html#CandidateError"><span class="Identifier">CandidateError</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">sym</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a>
-  <span class="Identifier">firstMismatch</span><span class="Operator">*</span><span class="Other">:</span> <a href="sigmatch.html#MismatchInfo"><span class="Identifier">MismatchInfo</span></a>
-  <span class="Identifier">diagnostics</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/reports.html#SemReport"><span class="Identifier">SemReport</span></a><span class="Other">]</span>
-  <span class="Identifier">isDiagnostic</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Comment">## is this is a diagnostic (true) or an error (false) that occurred</span>
-                      <span class="Comment">## xxx: this might be a terrible idea and we could get rid of it</span>
+  <span class="Identifier">firstMismatch</span><span class="Operator">*</span><span class="Other">:</span> <a href="sigmatch.html#MismatchInfo"><span class="Identifier">MismatchInfo</span></a> <span class="Comment">## mismatch info for better error messages</span>
+  <span class="Identifier">diag</span><span class="Operator">*</span><span class="Other">:</span> <a href="../ast/reports.html#SemDiagnostics"><span class="Identifier">SemDiagnostics</span></a>
+  <span class="Identifier">diagnosticsEnabled</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>  <span class="Comment">## Set by sfExplain. efExplain or notFoundError ignore this</span>
   </pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L59"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L56"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L59" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L56" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -392,9 +385,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L67"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L62"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L67" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L62" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -409,7 +402,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L50"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L50"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L50" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -446,21 +439,16 @@ class="link-seesrc" target="_blank">Source</a>
                              <span class="Comment">## matching. they will be reset if the matching</span>
                              <span class="Comment">## is not successful. may replace the bindings</span>
                              <span class="Comment">## table in the future.</span>
-  <span class="Identifier">diagnostics</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../ast/reports.html#SemReport"><span class="Identifier">SemReport</span></a><span class="Other">]</span> <span class="Comment">## The matching process (for concepts)</span>
-                               <span class="Comment">## will collect extra diagnostics that will be displayed to the user.</span>
-                               <span class="Comment">## triggered when overload resolution fails or when the explain pragma</span>
-                               <span class="Comment">## is used.</span>
   <span class="Identifier">inheritancePenalty</span><span class="Other">:</span> <span class="Identifier">int</span>    <span class="Comment">## to prefer closest father object type</span>
-  <span class="Identifier">firstMismatch</span><span class="Operator">*</span><span class="Other">:</span> <a href="sigmatch.html#MismatchInfo"><span class="Identifier">MismatchInfo</span></a> <span class="Comment">## mismatch info for better error messages</span>
-  <span class="Identifier">diagnosticsEnabled</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
+  <span class="Identifier">error</span><span class="Operator">*</span><span class="Other">:</span> <a href="sigmatch.html#CandidateError"><span class="Identifier">CandidateError</span></a>
 </pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L69"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L67"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L69" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L67" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -471,9 +459,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L56"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L64"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L56" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L64" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -484,7 +472,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L446"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L446"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L446" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -497,9 +485,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L107"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L100"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L107" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L100" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -509,9 +497,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L112"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L105"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L112" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L105" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -526,7 +514,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L187"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L187"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L187" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -540,9 +528,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L2689"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L2664"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2689" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2664" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -553,9 +541,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L312"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L297"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L312" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L297" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -567,9 +555,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L1898"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L1876"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L1898" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L1876" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -579,7 +567,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L266"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L266"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L266" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -592,7 +580,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L449"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L449"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L449" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -616,23 +604,22 @@ class="link-seesrc" target="_blank">Source</a>
 </dl>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L812"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L790"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L812" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L790" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
 <div id="initCandidate,PContext,TCandidate,PSym,PNode,int">
 <dt><pre><span class="Keyword">proc</span> <a href="#initCandidate%2CPContext%2CTCandidate%2CPSym%2CPNode%2Cint"><span class="Identifier">initCandidate</span></a><span class="Other">(</span><span class="Identifier">ctx</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="sigmatch.html#TCandidate"><span class="Identifier">TCandidate</span></a><span class="Other">;</span> <span class="Identifier">callee</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">;</span>
-                   <span class="Identifier">binding</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">calleeScope</span> <span class="Other">=</span> <span class="DecNumber">-1</span><span class="Other">;</span> <span class="Identifier">diagnosticsEnabled</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+                   <span class="Identifier">binding</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">calleeScope</span> <span class="Other">=</span> <span class="DecNumber">-1</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L158"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L147"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L158" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L147" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -643,9 +630,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L139"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L130"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L139" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L130" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -658,9 +645,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L2704"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L2679"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2704" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2679" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -671,7 +658,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L457"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L457"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L457" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -683,7 +670,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L577"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L577"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L577" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -696,7 +683,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L593"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L593"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L593" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -710,9 +697,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L2630"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L2605"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2630" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2605" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -723,9 +710,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L650"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L635"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L650" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L635" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -736,9 +723,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L192"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L177"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L192" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L177" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -749,9 +736,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L196"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L181"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L196" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L181" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -763,9 +750,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L2243"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L2221"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2243" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2221" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -777,9 +764,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L2625"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L2600"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2625" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2600" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -790,7 +777,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L614"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L614"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L614" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -803,9 +790,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L2619"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L2594"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2619" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L2594" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -817,7 +804,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L675"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L675"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L675" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -831,7 +818,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L685"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L685"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L685" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -845,7 +832,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L672"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L672"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L672" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -859,7 +846,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L643"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L643"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L643" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -872,7 +859,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L691"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L691"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L691" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -886,7 +873,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L682"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L682"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L682" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -899,7 +886,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 misnamed: should be 'symDeclared'
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/tools/suggest.nim#L509"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/tools/suggest.nim#L509"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/tools/suggest.nim#L509" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -921,9 +908,9 @@ typeRel can be used to establish various relationships between types:<ol class="
 <p><tt class="docutils literal"><span class="pre"><span class="Identifier">seq</span><span class="Punctuation">[</span><span class="Identifier">seq</span><span class="Punctuation">[</span><span class="Identifier">any</span><span class="Punctuation">]</span><span class="Punctuation">]</span></span></tt> is a strict subset of seq[any] and hence more specific.</p>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L970"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L948"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L970" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L948" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -934,9 +921,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L303"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L288"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L303" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L288" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -951,9 +938,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/829ffa1fb6a557bd7e65485383273bafcbde2378/compiler/sem/sigmatch.nim#L121"
+href="https://github.com/nim-works/nimskull/tree/5a4f7d7b219092fa94f9f5391d27187328780abc/compiler/sem/sigmatch.nim#L114"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L121" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/sigmatch.nim#L114" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -967,7 +954,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-28 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-29 00:00:00 UTC</small>
       </div>
     </div>
   </div>

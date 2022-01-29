@@ -1,10 +1,10 @@
 MismatchInfo	sem/sigmatch.html#MismatchInfo	sigmatch: MismatchInfo	
+CandidateError	sem/sigmatch.html#CandidateError	sigmatch: CandidateError	
+CandidateErrors	sem/sigmatch.html#CandidateErrors	sigmatch: CandidateErrors	
 csEmpty	sem/sigmatch.html#csEmpty	TCandidateState.csEmpty	
 csMatch	sem/sigmatch.html#csMatch	TCandidateState.csMatch	
 csNoMatch	sem/sigmatch.html#csNoMatch	TCandidateState.csNoMatch	
 TCandidateState	sem/sigmatch.html#TCandidateState	sigmatch: TCandidateState	
-CandidateError	sem/sigmatch.html#CandidateError	sigmatch: CandidateError	
-CandidateErrors	sem/sigmatch.html#CandidateErrors	sigmatch: CandidateErrors	
 TCandidate	sem/sigmatch.html#TCandidate	sigmatch: TCandidate	
 trDontBind	sem/sigmatch.html#trDontBind	TTypeRelFlag.trDontBind	
 trNoCovariance	sem/sigmatch.html#trNoCovariance	TTypeRelFlag.trNoCovariance	
@@ -13,7 +13,7 @@ TTypeRelFlag	sem/sigmatch.html#TTypeRelFlag	sigmatch: TTypeRelFlag
 TTypeRelFlags	sem/sigmatch.html#TTypeRelFlags	sigmatch: TTypeRelFlags	
 hasFauxMatch	sem/sigmatch.html#hasFauxMatch.t,TCandidate	sigmatch: hasFauxMatch(c: TCandidate): bool	
 initCandidate	sem/sigmatch.html#initCandidate,PContext,TCandidate,PType	sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PType)	
-initCandidate	sem/sigmatch.html#initCandidate,PContext,TCandidate,PSym,PNode,int	sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;\n              calleeScope = -1; diagnosticsEnabled = false)	
+initCandidate	sem/sigmatch.html#initCandidate,PContext,TCandidate,PSym,PNode,int	sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;\n              calleeScope = -1)	
 newCandidate	sem/sigmatch.html#newCandidate,PContext,PSym,PNode,int	sigmatch: newCandidate(ctx: PContext; callee: PSym; binding: PNode; calleeScope = -1): TCandidate	
 newCandidate	sem/sigmatch.html#newCandidate,PContext,PType	sigmatch: newCandidate(ctx: PContext; callee: PType): TCandidate	
 writeMatches	sem/sigmatch.html#writeMatches,TCandidate	sigmatch: writeMatches(c: TCandidate)	

@@ -3003,10 +3003,6 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="lookups: errorSym(c: PContext; n: PNode): PSym" href="sem/lookups.html#errorSym%2CPContext%2CPNode">lookups: errorSym(c: PContext; n: PNode): PSym</a></li>
           </ul></dd>
-<dt><a name="errorSym2" href="#errorSym2"><span>errorSym2:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="lookups: errorSym2(c: PContext; n, err: PNode): PSym" href="sem/lookups.html#errorSym2%2CPContext%2CPNode%2CPNode">lookups: errorSym2(c: PContext; n, err: PNode): PSym</a></li>
-          </ul></dd>
 <dt><a name="errorType" href="#errorType"><span>errorType:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="semdata: errorType(c: PContext): PType" href="sem/semdata.html#errorType%2CPContext">semdata: errorType(c: PContext): PType</a></li>
@@ -4692,8 +4688,8 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="initCandidate" href="#initCandidate"><span>initCandidate:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;
-              calleeScope = -1; diagnosticsEnabled = false)" href="sem/sigmatch.html#initCandidate%2CPContext%2CTCandidate%2CPSym%2CPNode%2Cint">sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;
-              calleeScope = -1; diagnosticsEnabled = false)</a></li>
+              calleeScope = -1)" href="sem/sigmatch.html#initCandidate%2CPContext%2CTCandidate%2CPSym%2CPNode%2Cint">sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PSym; binding: PNode;
+              calleeScope = -1)</a></li>
           <li><a class="reference external"
           data-doc-search-tag="sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PType)" href="sem/sigmatch.html#initCandidate%2CPContext%2CTCandidate%2CPType">sigmatch: initCandidate(ctx: PContext; c: var TCandidate; callee: PType)</a></li>
           </ul></dd>
@@ -10699,10 +10695,6 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="lookups: qualifiedLookUp(c: PContext; n: PNode; flags: set[TLookupFlag]): PSym" href="sem/lookups.html#qualifiedLookUp%2CPContext%2CPNode%2Cset%5BTLookupFlag%5D">lookups: qualifiedLookUp(c: PContext; n: PNode; flags: set[TLookupFlag]): PSym</a></li>
           </ul></dd>
-<dt><a name="qualifiedLookUp2" href="#qualifiedLookUp2"><span>qualifiedLookUp2:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="lookups: qualifiedLookUp2(c: PContext; n: PNode; flags: set[TLookupFlag]): PSym" href="sem/lookups.html#qualifiedLookUp2%2CPContext%2CPNode%2Cset%5BTLookupFlag%5D">lookups: qualifiedLookUp2(c: PContext; n: PNode; flags: set[TLookupFlag]): PSym</a></li>
-          </ul></dd>
 <dt><a name="quitOrRaise" href="#quitOrRaise"><span>quitOrRaise:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="options: quitOrRaise(conf: ConfigRef; msg = &quot;&quot;)" href="front/options.html#quitOrRaise.t%2CConfigRef%2Cstring">options: quitOrRaise(conf: ConfigRef; msg = &quot;&quot;)</a></li>
@@ -12497,6 +12489,10 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="ReportKind.rsemDeprecated" href="ast/reports.html#rsemDeprecated">ReportKind.rsemDeprecated</a></li>
           </ul></dd>
+<dt><a name="rsemDiagnostics" href="#rsemDiagnostics"><span>rsemDiagnostics:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ReportKind.rsemDiagnostics" href="ast/reports.html#rsemDiagnostics">ReportKind.rsemDiagnostics</a></li>
+          </ul></dd>
 <dt><a name="rsemDifferentTypeForReintroducedSymbol" href="#rsemDifferentTypeForReintroducedSymbol"><span>rsemDifferentTypeForReintroducedSymbol:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="ReportKind.rsemDifferentTypeForReintroducedSymbol" href="ast/reports.html#rsemDifferentTypeForReintroducedSymbol">ReportKind.rsemDifferentTypeForReintroducedSymbol</a></li>
@@ -14248,6 +14244,10 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="semConceptDeclaration" href="#semConceptDeclaration"><span>semConceptDeclaration:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="concepts: semConceptDeclaration(c: PContext; n: PNode): PNode" href="sem/concepts.html#semConceptDeclaration%2CPContext%2CPNode">concepts: semConceptDeclaration(c: PContext; n: PNode): PNode</a></li>
+          </ul></dd>
+<dt><a name="SemDiagnostics" href="#SemDiagnostics"><span>SemDiagnostics:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="reports: SemDiagnostics" href="ast/reports.html#SemDiagnostics">reports: SemDiagnostics</a></li>
           </ul></dd>
 <dt><a name="semFinishOperands" href="#semFinishOperands"><span>semFinishOperands:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -19228,7 +19228,7 @@ window.addEventListener('DOMContentLoaded', main);
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-28 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-01-29 00:00:00 UTC</small>
       </div>
     </div>
   </div>
