@@ -3,6 +3,7 @@ trfReportInfo	utils/astrepr.html#trfReportInfo	TReprFlag.trfReportInfo
 trfPackedFields	utils/astrepr.html#trfPackedFields	TReprFlag.trfPackedFields	
 trfSkipAuxError	utils/astrepr.html#trfSkipAuxError	TReprFlag.trfSkipAuxError	
 trfSymDefined	utils/astrepr.html#trfSymDefined	TReprFlag.trfSymDefined	
+trfIndexVisisted	utils/astrepr.html#trfIndexVisisted	TReprFlag.trfIndexVisisted	
 trfShowSymFlags	utils/astrepr.html#trfShowSymFlags	TReprFlag.trfShowSymFlags	
 trfShowSymLineInfo	utils/astrepr.html#trfShowSymLineInfo	TReprFlag.trfShowSymLineInfo	
 trfShowSymTypes	utils/astrepr.html#trfShowSymTypes	TReprFlag.trfShowSymTypes	
