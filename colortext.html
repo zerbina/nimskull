@@ -147,6 +147,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="`$`(text: ColText): string">`$`(text: ColText): string</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">%
+      <li><a class="reference" href="#%25%2Cstring%2CopenArray%5BColText%5D"
+    title="`%`(format: string; interpolate: openArray[ColText]): ColText">`%`(format: string; interpolate: openArray[ColText]): ColText</a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">&
       <li><a class="reference" href="#%26%2CsinkColText%2CColText"
     title="`&amp;`(t1: sink ColText; t2: ColText): ColText">`&amp;`(t1: sink ColText; t2: ColText): ColText</a></li>
@@ -211,6 +216,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="add(colored: var ColText; rune: ColRune)">add(colored: var ColText; rune: ColRune)</a></li>
   <li><a class="reference" href="#add%2CColText%2C"
     title="add(text: var ColText; rune: ColRune | seq[ColRune])">add(text: var ColText; rune: ColRune | seq[ColRune])</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">addf
+      <li><a class="reference" href="#addf%2CColText%2Cstring%2Cvarargs%5BColText%2CtoColText%5D"
+    title="addf(text: var ColText; formatstr: string; colored: varargs[ColText, toColText])">addf(text: var ColText; formatstr: string; colored: varargs[ColText, toColText])</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">addIndent
@@ -311,6 +321,11 @@ window.addEventListener('DOMContentLoaded', main);
   <ul class="simple nested-toc-section">isNewline
       <li><a class="reference" href="#isNewline%2CColRune"
     title="isNewline(rune: ColRune): bool">isNewline(rune: ColRune): bool</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">join
+      <li><a class="reference" href="#join%2Cseq%5BColText%5D%2CColText"
+    title="join(text: seq[ColText]; sep: ColText): ColText">join(text: seq[ColText]; sep: ColText): ColText</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">len
@@ -462,7 +477,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -493,7 +508,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Typeclass, contains all types that can be used for text styling
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L76"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L76"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L76" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -508,7 +523,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Single unicode rune with applied coloring
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L65"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L65"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L65" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -520,7 +535,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L75"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L75"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L75" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -532,7 +547,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L74"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L74"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L74" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -549,7 +564,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Styling options
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L58"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L58"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L58" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -563,7 +578,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Sequence of colored unicode runes
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L70"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L70"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L70" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -575,7 +590,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Terminal background color. 16-colors are represented as the first 16 values (with 0 being the default), everything higher maps to 256 colors
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L32"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L32"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L32" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -587,7 +602,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Terminal foreground color. Mapping is identical to the background version
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L37"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L37"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L37" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -604,9 +619,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to string with ansi escape sequences. To disable coloring use <tt class="docutils literal"><span class="pre"><span class="Identifier">toString</span></span></tt> procedure instead.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L623"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L631"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L623" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L631" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -616,9 +631,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to multiline string with ansi escape sequences. To disable coloring use <tt class="docutils literal"><span class="pre"><span class="Identifier">toString</span></span></tt> procedure instead.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L638"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L646"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L638" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L646" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -628,9 +643,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to string with ansi escape sequences. To disable coloring use <tt class="docutils literal"><span class="pre"><span class="Identifier">toString</span></span></tt> procedure instead.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L628"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L636"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L628" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L636" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -640,9 +655,22 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to string with ansi escape sequences. To disable coloring use <tt class="docutils literal"><span class="pre"><span class="Identifier">toString</span></span></tt> procedure instead.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L633"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L641"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L633" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L641" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="%,string,openArray[ColText]">
+<dt><pre><span class="Keyword">func</span> <a href="#%25%2Cstring%2CopenArray%5BColText%5D"><span class="Identifier">`%`</span></a><span class="Other">(</span><span class="Identifier">format</span><span class="Other">:</span> <a href="system.html#string"><span class="Identifier">string</span></a><span class="Other">;</span> <span class="Identifier">interpolate</span><span class="Other">:</span> <a href="system.html#openArray"><span class="Identifier">openArray</span></a><span class="Other">[</span><a href="colortext.html#ColText"><span class="Identifier">ColText</span></a><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <a href="colortext.html#ColText"><span class="Identifier">ColText</span></a> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Shorthand for colored text interpolation
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L827"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L827" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -652,9 +680,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Concatenate two colored text blocks
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L477"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L486"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L477" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L486" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -664,9 +692,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Concatenate colored text and regular string (with default style)
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L482"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L491"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L482" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L491" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -676,9 +704,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Concatenate colored text and regular string (with default style)
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L487"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L496"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L487" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L496" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -688,7 +716,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Merge two styling optons, overriding target if the source has non-default value for background or foreground colors
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L184"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L184"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L184" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -700,7 +728,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Merge two color modifiers and generate color style (<tt class="docutils literal"><span class="pre"><span class="Identifier">fgRed</span><span class="Operator">+</span><span class="Punctuation">{</span><span class="Identifier">styleUnderline</span><span class="Punctuation">}</span></span></tt>)
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L196"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L196"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L196" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -712,7 +740,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert character to colored rune with given style
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L214"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L214"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L214" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -724,7 +752,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert rune to colored one with given style modifier
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L218"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L218"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L218" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -736,7 +764,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Merge two styles. Second one overrides colors if they are non-default.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L191"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L191"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L191" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -748,7 +776,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Apply styling options to colored text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L246"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L246"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L246" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -760,7 +788,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert text colored one using given style
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L210"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L210"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L210" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -772,7 +800,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Color equality comparison
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L53"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L53"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L53" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -784,7 +812,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Compare for equality with <tt class="docutils literal"><span class="pre"><span class="Identifier">std</span><span class="Operator">/</span><span class="Identifier">terminal</span></span></tt> color
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L126"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L126"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L126" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -796,7 +824,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Compare for equality with <tt class="docutils literal"><span class="pre"><span class="Identifier">std</span><span class="Operator">/</span><span class="Identifier">terminal</span></span></tt> color
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L122"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L122"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L122" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -808,7 +836,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Compare rune for equality with regular character
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L337"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L337"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L337" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -820,7 +848,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Compare styles for equality - foreground, background and style
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L104"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L104"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L104" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -832,9 +860,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Assign single character to the colored rune grid, using default style
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L780"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L791"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L780" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L791" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -845,9 +873,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Assign colored text at specific point on the colored grid. Multiline text is assigned propery
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L770"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L781"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L770" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L781" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -860,9 +888,9 @@ Assign rune to specific part of the colored rune grid, expanding it as needed to
 </ul>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L727"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L738"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L727" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L738" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -872,7 +900,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Shorthand for left align of the colored text. Since library is mostly used for final message formatting it is a very common operation and it was implemented as an operator as well.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L327"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L327"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L327" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -884,7 +912,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Shorthand of the right align of the colored text.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L333"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L333"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L333" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -896,7 +924,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Add string or character with default style to colored text,
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L403"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L403"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L403" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -908,7 +936,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Add colored rune line (sequence of runes) to colored text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L395"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L395"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L395" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -920,7 +948,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Add one colored text block to another
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L391"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L391"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L391" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -932,7 +960,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Add colored rune to the text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L399"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L399"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L399" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -944,9 +972,24 @@ class="link-seesrc" target="_blank">Source</a>
 
 Append one or more colored runes to the text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L88"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L88"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L88" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="addf,ColText,string,varargs[ColText,toColText]">
+<dt><pre><span class="Keyword">func</span> <a href="#addf%2CColText%2Cstring%2Cvarargs%5BColText%2CtoColText%5D"><span class="Identifier">addf</span></a><span class="Other">(</span><span class="Identifier">text</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="colortext.html#ColText"><span class="Identifier">ColText</span></a><span class="Other">;</span> <span class="Identifier">formatstr</span><span class="Other">:</span> <a href="system.html#string"><span class="Identifier">string</span></a><span class="Other">;</span>
+          <span class="Identifier">colored</span><span class="Other">:</span> <a href="system.html#varargs"><span class="Identifier">varargs</span></a><span class="Other">[</span><a href="colortext.html#ColText"><span class="Identifier">ColText</span></a><span class="Other">,</span> <span class="Identifier">toColText</span><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+<p>Interpolate <tt class="docutils literal"><span class="pre"><span class="Identifier">formatstr</span></span></tt> using values from <tt class="docutils literal"><span class="pre"><span class="Identifier">colored</span></span></tt> and add results to the <tt class="docutils literal"><span class="pre"><span class="Identifier">text</span></span></tt>.</p>
+<p>Iterpolation syntax is identical to the <tt class="docutils literal"><span class="pre"><span class="Identifier">std</span><span class="Operator">/</span><span class="Identifier">strutils</span><span class="Operator">.</span><span class="Identifier">addf</span></span></tt> except <tt class="docutils literal"><span class="pre"><span class="Operator">$</span><span class="Identifier">name</span></span></tt> is currently not supported, so only positional interpolation is available.</p>
+
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L800"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L800" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -957,9 +1000,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Add indentation prefix to the colored text.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L668"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L676"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L668" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L676" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -970,7 +1013,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Center colored text, using padding rune to fill in missing elements
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L301"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L301"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L301" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -983,7 +1026,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Align colored text left, using padding rune to fill in missing elements
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L291"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L291"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L291" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -996,7 +1039,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Align colored text right, using padding rune to fill in missing elements
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L316"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L316"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L316" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1008,7 +1051,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Construct colored rune with default styling
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L269"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L269"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L269" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1020,7 +1063,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Shorthand to construct colored text with single character
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L265"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L265"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L265" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1032,7 +1075,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Shorthand to construct colored text string with default value (<tt class="docutils literal"><span class="pre"><span class="RawData">clt&quot;default&quot;</span></span></tt>)
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L260"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L260"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L260" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1044,7 +1087,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to style with only background option set
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L143"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L143"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L143" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1056,7 +1099,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to style with only background color set
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L151"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L151"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L151" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1068,7 +1111,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to style with only foreground option set
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L139"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L139"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L139" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1080,7 +1123,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to style with only foreground color set
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L147"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L147"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L147" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1092,7 +1135,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Passthrough proc, used to simplify mapping of the <tt class="docutils literal"><span class="pre"><span class="Identifier">ColModifier</span></span></tt> typeclass to the <tt class="docutils literal"><span class="pre"><span class="Identifier">ColStyle</span></span></tt> object.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L163"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L163"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L163" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1104,7 +1147,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to style with given set of styling options
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L155"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L155"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L155" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1116,7 +1159,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert to style with single styling option set
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L159"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L159"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L159" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1128,7 +1171,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Check if coloring contains specific style option
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L108"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L108"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L108" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1140,7 +1183,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Default value of the colored rune
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L168"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L168"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L168" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1152,7 +1195,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Default value of the color style
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L172"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L172"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L172" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1164,9 +1207,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert colored text to grid
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L784"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L795"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L784" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L795" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1176,7 +1219,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Check if colored text has any newlines
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L341"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L341"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L341" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1188,7 +1231,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Check if colored text has only trailing newlines and no in-body ones
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L347"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L347"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L347" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1204,7 +1247,7 @@ Indent colored text lines by <tt class="docutils literal"><span class="pre"><spa
 </ul>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L407"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L407"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L407" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1218,7 +1261,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Initialize color style with given options
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L131"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L131"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L131" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1230,7 +1273,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Check if foreground or background color have default value
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L180"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L180"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L180" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1242,9 +1285,21 @@ class="link-seesrc" target="_blank">Source</a>
 
 Check if rune is a newline rune
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L274"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L274"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L274" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="join,seq[ColText],ColText">
+<dt><pre><span class="Keyword">func</span> <a href="#join%2Cseq%5BColText%5D%2CColText"><span class="Identifier">join</span></a><span class="Other">(</span><span class="Identifier">text</span><span class="Other">:</span> <a href="system.html#seq"><span class="Identifier">seq</span></a><span class="Other">[</span><a href="colortext.html#ColText"><span class="Identifier">ColText</span></a><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">sep</span><span class="Other">:</span> <a href="colortext.html#ColText"><span class="Identifier">ColText</span></a><span class="Other">)</span><span class="Other">:</span> <a href="colortext.html#ColText"><span class="Identifier">ColText</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L437"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L437" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1254,7 +1309,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Number of <em>runes</em> in text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L84"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L84"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L84" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1266,9 +1321,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L568"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L577"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L568" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L577" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1278,9 +1333,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L571"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L580"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L571" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L580" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1290,7 +1345,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Append newline to the colored text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L359"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L359"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L359" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1303,7 +1358,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Set style for all runes in text, optionally overriding non-defaulted values (or resetting them completely)
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L222"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L222"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L222" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1316,9 +1371,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Strip character from each line in text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L437"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L446"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L437" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L446" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1328,9 +1383,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Create 256-color with given grey background value (from 0 to 23, for total 24 shades).
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L659"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L667"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L659" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L667" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1340,9 +1395,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 256-color for background. Maps to 216-element color cube.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L654"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L662"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L654" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L662" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1352,7 +1407,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert <tt class="docutils literal"><span class="pre"><span class="Identifier">std</span><span class="Operator">/</span><span class="Identifier">terminal</span><span class="Operator">.</span><span class="Identifier">BackgroundColor</span></span></tt> to terminal background color
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L112"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L112"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L112" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1364,7 +1419,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert <tt class="docutils literal"><span class="pre"><span class="Identifier">std</span><span class="Operator">/</span><span class="Identifier">terminal</span><span class="Operator">.</span><span class="Identifier">ForegroundColor</span></span></tt> to terminal foreground color
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L117"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L117"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L117" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1376,9 +1431,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Grey foreground value
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L664"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L672"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L664" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L672" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1388,9 +1443,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Create 256-terminal color with given red, green and blue coloring. Colors are mapped to 216-element color cube.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L649"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L657"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L649" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L657" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1400,7 +1455,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert colered rune to styled one with <tt class="docutils literal"><span class="pre"><span class="Identifier">style</span></span></tt>
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L201"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L201"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L201" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1412,7 +1467,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert single rune to colored text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L255"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L255"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L255" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1424,7 +1479,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Passthrough implementation of converter to colored text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L251"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L251"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L251" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1437,7 +1492,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert text colored one using given style
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L205"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L205"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L205" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1449,7 +1504,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert colored text to lowercase
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L278"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L278"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L278" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1461,9 +1516,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert colored rune to regular string, with ansi escape sequences. <tt class="docutils literal"><span class="pre"><span class="Identifier">color</span></span></tt> controls whether styling is going to be applied or not.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L579"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L588"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L579" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L588" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1474,9 +1529,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert sequence of colored runes to the string, with ansi escape sequences in. <tt class="docutils literal"><span class="pre"><span class="Identifier">color</span></span></tt> controls whether styling is going to be applied or not.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L590"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L599"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L590" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L599" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1486,9 +1541,9 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert colored text to string with ansi escape sequences
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L611"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L620"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L611" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L620" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -1498,7 +1553,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Convert colored text to uppercase
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L284"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L284"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L284" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1510,7 +1565,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Create single unicode rune from string literal - <tt class="docutils literal"><span class="pre"><span class="RawData">uc&quot;⮰&quot;</span></span></tt>
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L176"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L176"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L176" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1522,7 +1577,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Get maximum width (line length) of the colored text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L377"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L377"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L377" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1539,7 +1594,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Iterate over all runes left to right
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L92"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L92"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L92" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1551,7 +1606,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Iterate over lines of the colored text
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L363"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L363"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L363" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1563,7 +1618,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Iterate over all runes right to left
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L97"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L97"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L97" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -1593,9 +1648,9 @@ Inject helper templates for construction of the colored text in recursive proced
 </ul>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/lib/experimental/colortext.nim#L677"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/lib/experimental/colortext.nim#L685"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L677" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/experimental/colortext.nim#L685" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>

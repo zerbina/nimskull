@@ -67,6 +67,8 @@ hash	sexp.html#hash,SexpNode	sexp: hash(n: SexpNode): Hash
 len	sexp.html#len,SexpNode	sexp: len(n: SexpNode): int	
 `[]`	sexp.html#[],SexpNode,int	sexp: `[]`(node: SexpNode; index: int): SexpNode	
 add	sexp.html#add,SexpNode,SexpNode	sexp: add(father, child: SexpNode)	
+addField	sexp.html#addField,SexpNode,string,SexpNode	sexp: addField(node: SexpNode; name: string; value: SexpNode)	
+getField	sexp.html#getField,SexpNode,string,SexpNode	sexp: getField(node: SexpNode; name: string; default: SexpNode = nil): SexpNode	
 escapeJson	sexp.html#escapeJson,string	sexp: escapeJson(s: string): string	
 copy	sexp.html#copy,SexpNode	sexp: copy(p: SexpNode): SexpNode	
 pretty	sexp.html#pretty,SexpNode,int	sexp: pretty(node: SexpNode; indent = 2): string	

@@ -13,6 +13,7 @@ levenshteinDistance	diff.html#levenshteinDistance,openArray[T],openArray[T]	diff
 ShiftedDiff	diff.html#ShiftedDiff	diff: ShiftedDiff	
 myersDiff	diff.html#myersDiff,openArray[T],openArray[T],proc(T,T)	diff: myersDiff[T](aSeq, bSeq: openArray[T]; itemCmp: proc (x, y: T): bool): seq[\n    SeqEdit]	
 shiftDiffed	diff.html#shiftDiffed,seq[SeqEdit],openArray[T],openArray[T]	diff: shiftDiffed[T](diff: seq[SeqEdit]; oldSeq, newSeq: openArray[T]): ShiftedDiff	
+zipToMax	diff.html#zipToMax.i,seq[T],seq[T],T	diff: zipToMax[T](lhs, rhs: seq[T]; fill: T = default(T)): tuple[lhs, rhs: T,\n    rhsDefault, lhsDefault: bool, idx: int]	
 formatDiffed	diff.html#formatDiffed,ShiftedDiff,seq[string],seq[string],bool,bool	diff: formatDiffed(shifted: ShiftedDiff; oldSeq, newSeq: seq[string];\n             sideBySide: bool; showLineNumbers: bool = false): string	
 myersDiff	diff.html#myersDiff,openArray[T],openArray[T]	diff: myersDiff[T](aSeq, bSeq: openArray[T]): seq[SeqEdit]	
 diffText	diff.html#diffText,string,string,bool,bool	diff: diffText(text1, text2: string; sideBySide: bool; showLineNumbers: bool = false): string	

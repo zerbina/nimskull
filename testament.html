@@ -108,13 +108,20 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference" id="running-all-tests-from-a-directory_toc" href="#running-all-tests-from-a-directory">Running all tests from a directory</a></li>
 <li><a class="reference" id="html-reports_toc" href="#html-reports">HTML Reports</a></li>
 <li><a class="reference" id="writing-tests_toc" href="#writing-tests">Writing Tests</a></li>
-<li><a class="reference" id="test-examples_toc" href="#test-examples">Test Examples</a></li>
-
+<ul class="simple"><li><a class="reference" id="writing-tests-test-execution-options_toc" href="#writing-tests-test-execution-options">Test execution options</a></li>
+<li><a class="reference" id="writing-tests-compiler-output-assertions_toc" href="#writing-tests-compiler-output-assertions">Compiler output assertions</a></li>
+<li><a class="reference" id="writing-tests-binary-output-assertions_toc" href="#writing-tests-binary-output-assertions">Binary output assertions</a></li>
+</ul><li><a class="reference" id="reading-test-outputs_toc" href="#reading-test-outputs">Reading test outputs</a></li>
+<ul class="simple"><li><a class="reference" id="reading-test-outputs-structured-mismatches_toc" href="#reading-test-outputs-structured-mismatches">Structured mismatches</a></li>
+</ul><li><a class="reference" id="test-examples_toc" href="#test-examples">Test Examples</a></li>
+<ul class="simple"><li><a class="reference" id="test-examples-structured-test-examples_toc" href="#test-examples-structured-test-examples">Structured test examples</a></li>
+<li><a class="reference" id="test-examples-unstructured-old-style-test-examples_toc" href="#test-examples-unstructured-old-style-test-examples">Unstructured old, style test examples</a></li>
+</ul>
 </ul>
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/ea627e8b455b915356556e2e4d195ebc75de46d9/doc/testament.rst#L1"
+href="https://github.com/nim-works/nimskull/tree/ce43c8202f9f9bab3a4ae7a9291de368b77a4f9c/doc/testament.rst#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/doc/testament.rst#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -148,94 +155,60 @@ class="link-seesrc" target="_blank">Source</a>
 <span class="Prompt">$ </span><span class="program">testament</span> <span class="option">pattern</span> <span class="option">&quot;tests/**/**/*.nim&quot;</span> <span class="Comment"># two levels deeper</span></pre>
 <h1><a class="toc-backref" id="html-reports" href="#html-reports">HTML Reports</a></h1><p>Generate HTML Reports <tt class="docutils literal"><span class="pre">testresults.html</span></tt> from tests, you have to run at least 1 test <em>before</em> generating a report:</p>
 <pre class="listing"><span class="Prompt">$ </span><span class="program">testament</span> <span class="option">html</span></pre>
-<h1><a class="toc-backref" id="writing-tests" href="#writing-tests">Writing Tests</a></h1><p>Example &quot;template&quot; <strong>to edit</strong> and write a Testament unit:</p>
-<pre class="listing"><span class="Keyword">discard</span> <span class="LongStringLit">&quot;&quot;&quot;
-  
-  # What actions to expect completion on.
-  # Options:
-  #   &quot;compile&quot;: expect successful compilation
-  #   &quot;run&quot;: expect successful compilation and execution
-  #   &quot;reject&quot;: expect failed compilation. The &quot;reject&quot; action can catch
-  #             {.error.} pragmas but not {.fatal.} pragmas because
-  #             {.fatal.} pragmas guarantee that compilation will be aborted.
-  action: &quot;run&quot;
-  
-  # The exit code that the test is expected to return. Typically, the default
-  # value of 0 is fine. Note that if the test will be run by valgrind, then
-  # the test will exit with either a code of 0 on success or 1 on failure.
-  exitcode: 0
-  
-  # Provide an `output` string to assert that the test prints to standard out
-  # exactly the expected string. Provide an `outputsub` string to assert that
-  # the string given here is a substring of the standard out output of the
-  # test.
-  output: &quot;&quot;
-  outputsub: &quot;&quot;
-  
-  # Whether to sort the output lines before comparing them to the desired
-  # output.
-  sortoutput: true
-  
-  # Each line in the string given here appears in the same order in the
-  # compiler output, but there may be more lines that appear before, after, or
-  # in between them.
-  nimout: '''
-a very long,
-multi-line
-string'''
-  
-  # This is the Standard Input the test should take, if any.
-  input: &quot;&quot;
-  
-  # Error message the test should print, if any.
-  errormsg: &quot;&quot;
-  
-  # Can be run in batch mode, or not.
-  batchable: true
-  
-  # Can be run Joined with other tests to run all togheter, or not.
-  joinable: true
-  
-  # On Linux 64-bit machines, whether to use Valgrind to check for bad memory
-  # accesses or memory leaks. On other architectures, the test will be run
-  # as-is, without Valgrind.
-  # Options:
-  #   true: run the test with Valgrind
-  #   false: run the without Valgrind
-  #   &quot;leaks&quot;: run the test with Valgrind, but do not check for memory leaks
-  valgrind: false   # Can use Valgrind to check for memory leaks, or not (Linux 64Bit only).
-  
-  # Command the test should use to run. If left out or an empty string is
-  # provided, the command is taken to be:
-  # &quot;nim $target --hints:on -d:testing --nimblePath:build/deps/pkgs $options $file&quot;
-  # You can use the $target, $options, and $file placeholders in your own
-  # command, too.
-  cmd: &quot;nim c -r $file&quot;
-  
-  # Maximum generated temporary intermediate code file size for the test.
-  maxcodesize: 666
-  
-  # Timeout seconds to run the test. Fractional values are supported.
-  timeout: 1.5
-  
-  # Targets to run the test into (c, cpp, objc, js).
-  targets: &quot;c js&quot;
-  
-  # flags with which to run the test, delimited by `;`
-  matrix: &quot;; -d:release; -d:caseFoo -d:release&quot;
-  
-  # Conditions that will skip this test. Use of multiple &quot;disabled&quot; clauses
-  # is permitted.
-  disabled: &quot;bsd&quot;   # Can disable OSes...
-  disabled: &quot;win&quot;
-  disabled: &quot;32bit&quot; # ...or architectures
-  disabled: &quot;i386&quot;
-  disabled: &quot;azure&quot; # ...or pipeline runners
-  disabled: true    # ...or can disable the test entirely
+<h1><a class="toc-backref" id="writing-tests" href="#writing-tests">Writing Tests</a></h1><p><tt class="docutils literal"><span class="pre">description</span></tt> - textual description of the test. <strong>Highly</strong> recomended to add one - in the future testament might use this to provide better teardown reports, or notify about <tt class="docutils literal"><span class="pre">knownIssue</span></tt> state transitions.</p>
 
-&quot;&quot;&quot;</span>
-<span class="Identifier">assert</span> <span class="Identifier">true</span>
-<span class="Identifier">assert</span> <span class="DecNumber">42</span> <span class="Operator">==</span> <span class="DecNumber">42</span><span class="Punctuation">,</span> <span class="StringLit">&quot;Assert error message&quot;</span></pre><ul class="simple"><li>As you can see the &quot;Spec&quot; is just a <tt class="docutils literal"><span class="pre"><span class="Keyword">discard</span> <span class="LongStringLit">&quot;&quot;&quot; &quot;&quot;&quot;</span></span></tt>.</li>
+<h2><a class="toc-backref" id="writing-tests-test-execution-options" href="#writing-tests-test-execution-options">Test execution options</a></h2><ul class="simple"><li><tt class="docutils literal"><span class="pre">action</span></tt> - What action(s) to expect completion on.<ul class="simple"><li><tt class="docutils literal"><span class="pre">&quot;compile&quot;</span></tt>: expect successful compilation</li>
+<li><tt class="docutils literal"><span class="pre">&quot;run&quot;</span></tt>: expect successful compilation and execution</li>
+<li><tt class="docutils literal"><span class="pre">&quot;reject&quot;</span></tt>: expect failed compilation. The &quot;reject&quot; action can catch <tt class="docutils literal"><span class="pre"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">error</span><span class="Operator">.</span><span class="Punctuation">}</span></span></tt> pragmas but not <tt class="docutils literal"><span class="pre"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">fatal</span><span class="Operator">.</span><span class="Punctuation">}</span></span></tt> pragmas because <tt class="docutils literal"><span class="pre"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">fatal</span><span class="Operator">.</span><span class="Punctuation">}</span></span></tt> pragmas guarantee that compilation will be aborted.</li>
+</ul>
+</li>
+<li><tt class="docutils literal"><span class="pre">batchable</span></tt>: Can be run in batch mode, or not.</li>
+<li><tt class="docutils literal"><span class="pre">joinable</span></tt>: Can be run Joined with other tests to run all togheter, or not. Defaults to <tt class="docutils literal"><span class="pre"><span class="Identifier">true</span></span></tt></li>
+<li><tt class="docutils literal"><span class="pre">timeout</span></tt> Timeout seconds to run the test. Fractional values are supported.</li>
+<li><p><tt class="docutils literal"><span class="pre">cmd</span></tt>: Command used to run the test. If left out or an empty string is provided, the command is taken to be: <tt class="docutils literal"><span class="pre">&quot;nim $target --hints:on -d:testing --nimblePath:build/deps/pkgs $options $file&quot;</span></tt> You can use the <tt class="docutils literal"><span class="pre">$target</span></tt>, <tt class="docutils literal"><span class="pre">$options</span></tt>, and <tt class="docutils literal"><span class="pre">$file</span></tt> placeholders in your own command, too.</p>
+<p>example: <tt class="docutils literal"><span class="pre">&quot;nim c -r $file&quot;</span></tt></p>
+</li>
+<li><tt class="docutils literal"><span class="pre">targets</span></tt> supported backend compilation targets for test into (c, cpp, objc, js).</li>
+<li><tt class="docutils literal"><span class="pre">matrix</span></tt> flags with which to run the test, delimited by <tt class="docutils literal"><span class="pre"><span class="Punctuation">;</span></span></tt></li>
+<li><tt class="docutils literal"><span class="pre">disabled</span></tt> Conditions that will skip this test. Use of multiple &quot;disabled&quot; clauses is permitted.<pre class="listing"><span class="Identifier">disabled</span><span class="Punctuation">:</span> <span class="StringLit">&quot;bsd&quot;</span>   <span class="Comment"># Can disable OSes...</span>
+<span class="Identifier">disabled</span><span class="Punctuation">:</span> <span class="StringLit">&quot;win&quot;</span>
+<span class="Identifier">disabled</span><span class="Punctuation">:</span> <span class="StringLit">&quot;32bit&quot;</span> <span class="Comment"># ...or architectures</span>
+<span class="Identifier">disabled</span><span class="Punctuation">:</span> <span class="StringLit">&quot;i386&quot;</span>
+<span class="Identifier">disabled</span><span class="Punctuation">:</span> <span class="StringLit">&quot;azure&quot;</span> <span class="Comment"># ...or pipeline runners</span>
+<span class="Identifier">disabled</span><span class="Punctuation">:</span> <span class="Identifier">true</span>    <span class="Comment"># ...or can disable the test entirely</span></pre></li>
+<li><tt class="docutils literal"><span class="pre">knownIssue</span></tt></li>
+</ul>
+
+<h2><a class="toc-backref" id="writing-tests-compiler-output-assertions" href="#writing-tests-compiler-output-assertions">Compiler output assertions</a></h2><ul class="simple"><li><tt class="docutils literal"><span class="pre">errormsg</span></tt>: Error message the test should print, if any.</li>
+<li><dl class="docutils"><dt><tt class="docutils literal"><span class="pre">nimout</span></tt> Each line in the string given here appears in the same order</dt>
+<dd>in the compiler output, but there may be more lines that appear before, after, or in between them. Note that specifying multiline strings for testament spec inside of the <tt class="docutils literal"><span class="pre"><span class="Keyword">discard</span> <span class="LongStringLit">&quot;&quot;&quot;</span></span></tt> section requires using triple single quotes <tt class="docutils literal"><span class="pre"><span class="CharLit">'</span></span></tt><pre class="listing"><span class="Identifier">nimout</span><span class="Punctuation">:</span> <span class="CharLit">''</span><span class="CharLit">'</span>
+<span class="Identifier">a</span> <span class="Identifier">very</span> <span class="Identifier">long</span><span class="Punctuation">,</span>
+<span class="Identifier">multi</span><span class="Operator">-</span><span class="Identifier">line</span>
+<span class="Identifier">string</span><span class="CharLit">''</span><span class="CharLit">'</span></pre></dd>
+</dl>
+</li>
+<li><tt class="docutils literal"><span class="pre">nimoutFull</span></tt>: true/false, controls whether full compiler output must be asserted, or only presence of error messages</li>
+<li><tt class="docutils literal"><span class="pre">maxcodesize</span></tt>: Max side of the resulting codegen file for a test</li>
+</ul>
+<p>In addition to <tt class="docutils literal"><span class="pre">nimout</span></tt> message annotations testament also allows to supply hints, warnings and error messages directly in the source code using specially formatted comments, starting with <tt class="docutils literal"><span class="pre">#[tt.</span></tt>. For example, if you want to assert that error message is genrated, you can write a following test:</p>
+<pre class="listing"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">error</span><span class="Punctuation">:</span> <span class="StringLit">&quot;Error message&quot;</span><span class="Operator">.</span><span class="Punctuation">}</span> <span class="LongComment">#[tt.Error
+  ^ &quot;Error message&quot;
+]#</span></pre><p>File, line and column information are automatically inferred from the position of the <tt class="docutils literal"><span class="pre">^</span></tt> marker in the annotation body.</p>
+
+<h2><a class="toc-backref" id="writing-tests-binary-output-assertions" href="#writing-tests-binary-output-assertions">Binary output assertions</a></h2><ul class="simple"><li><tt class="docutils literal"><span class="pre">exitcode</span></tt>: The exit code that the test is expected to return. Typically, the default value of 0 is fine. Note that if the test will be run by valgrind, then the test will exit with either a code of 0 on success or 1 on failure.</li>
+<li><tt class="docutils literal"><span class="pre">output</span></tt>, <tt class="docutils literal"><span class="pre">outsub</span></tt>: Provide an <tt class="docutils literal"><span class="pre"><span class="Identifier">output</span></span></tt> string to assert that the test prints to standard out exactly the expected string. Provide an <tt class="docutils literal"><span class="pre"><span class="Identifier">outputsub</span></span></tt> string to assert that the string given here is a substring of the standard out output of the test.</li>
+<li><tt class="docutils literal"><span class="pre">sortoutput</span></tt> Whether to sort the output lines before comparing them to the desired output.</li>
+<li><tt class="docutils literal"><span class="pre">input</span></tt>: this is the Standard Input the test should take, if any.</li>
+<li><dl class="docutils"><dt><tt class="docutils literal"><span class="pre">valgrind</span></tt> On Linux 64-bit machines, whether to use Valgrind to check</dt>
+<dd>for bad memory accesses or memory leaks. On other architectures, the test will be run as-is, without Valgrind.<ul class="simple"><li><tt class="docutils literal"><span class="pre">true</span></tt>: run the test with Valgrind</li>
+<li><tt class="docutils literal"><span class="pre">false</span></tt>: run the without Valgrind</li>
+<li><tt class="docutils literal"><span class="pre">&quot;leaks&quot;</span></tt>: run the test with Valgrind, but do not check for memory leaks</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<ul class="simple"><li>As you can see the &quot;Spec&quot; is just a <tt class="docutils literal"><span class="pre"><span class="Keyword">discard</span> <span class="LongStringLit">&quot;&quot;&quot; &quot;&quot;&quot;</span></span></tt>.</li>
 <li>Spec has sane defaults, so you don't need to provide them all, any simple assert will work just fine.</li>
 <li><a class="reference external" href="https://github.com/nim-works/nimskull/blob/devel/testament/specs.nim#L238">This is not the full spec of Testament, check the Testament Spec on GitHub, see parseSpec().</a></li>
 <li><a class="reference external" href="https://github.com/nim-works/nimskull/tree/devel/tests">Nim itself uses Testament, so there are plenty of test examples.</a></li>
@@ -243,7 +216,63 @@ string'''
 <li><a class="reference external" href="https://github.com/nim-works/nimskull/blob/9a110047cbe2826b1d4afe63e3a1f5a08422b73f/tests/effects/teffects1.nim">Testament supports inlined error messages on tests, basically comments with the expected error directly on the code.</a></li>
 </ul>
 
-<h1><a class="toc-backref" id="test-examples" href="#test-examples">Test Examples</a></h1><p>Expected to fail:</p>
+<h1><a class="toc-backref" id="reading-test-outputs" href="#reading-test-outputs">Reading test outputs</a></h1><p>Testament supports two different modes of interaction with the compiler - structured and unstructured. Unstructured interaction mode (currently default) allows user to specify exact compiler output that should be produced by the test and then compares it based on <tt class="docutils literal"><span class="pre">nimoutFull</span></tt> configuration options.</p>
+<p>If there is a mismatch, a failure message is generated, showing the diffs.</p>
+<pre class="listing"><span class="Keyword">discard</span> <span class="LongStringLit">&quot;&quot;&quot;
+nimout: '''
+Expected unstructured compiler output
+'''
+&quot;&quot;&quot;</span>
+
+<span class="Keyword">static</span><span class="Punctuation">:</span>
+  <span class="Identifier">echo</span> <span class="StringLit">&quot;Expected unstructured output&quot;</span></pre><p>In that case comparison is performed between two regular string blocks. Since each entry is not wide enough (not wider than current terminal) they are printed side-by side to make it easier to spot the difference. Mismatches are also highlighted in the terminal.</p>
+<pre class="listing">- Expected unstructured compiler output   + Expected unstructured output
+-                                         ?</pre><div class="admonition admonition-info"><span class="admonition-info-text"><b>Note:</b></span>
+expected (on the left) outout has two lines deleted - trailing <tt class="docutils literal"><span class="pre">'''</span></tt> in the testament spec is placed on the next line, so it is considered to be a string literal of <tt class="docutils literal"><span class="pre">&quot;Expected unstructured compiler output\n&quot;</span></tt></div>
+
+<h2><a class="toc-backref" id="reading-test-outputs-structured-mismatches" href="#reading-test-outputs-structured-mismatches">Structured mismatches</a></h2><p>In structured output mode, the compiler writes out S-expressions for each output diagnostic entry, one per line.</p>
+<p>If testament is used in structured mode, all expected compiler reports - both inline and written in <tt class="docutils literal"><span class="pre">nimout</span></tt> are collected in a single list that is matched against produced output directly. The failure message shows the best possible mismatch annotations for the given output. For example, given the test below, testament output will contain two mismatches for both failures.</p>
+<pre class="listing"><span class="Keyword">discard</span> <span class="LongStringLit">&quot;&quot;&quot;
+nimoutFormat: sexp
+cmd: &quot;nim c --msgFormat=sexp --skipUserCfg --hints=on --hint=all:off --hint=User:on --filenames:canonical $file&quot;
+nimout: '''
+(User :str &quot;User Hint&quot; :location (&quot;tfile.nim&quot; 8 _))
+'''
+&quot;&quot;&quot;</span>
+
+<span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">hint</span><span class="Punctuation">:</span> <span class="StringLit">&quot;User hint&quot;</span><span class="Operator">.</span><span class="Punctuation">}</span>
+
+<span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">hint</span><span class="Punctuation">:</span> <span class="StringLit">&quot;Another hint&quot;</span><span class="Operator">.</span><span class="Punctuation">}</span> <span class="LongComment">#[tt.Hint
+      ^ (User :str &quot;Another hint&quot;) ]#</span></pre><p>Both inline and <tt class="docutils literal"><span class="pre">nimout</span></tt> annotations are compared. Both have errors, so the best possible mapping is presented as an error ('best' because it is generally impossible to find correct place to insert inline annotation somewhere in <tt class="docutils literal"><span class="pre">nimout</span></tt>, without potentially messing up ordering. Unstructured output simply sets inline annotations to a higher priority and searches for them first)</p>
+<pre class="listing"><span class="Identifier">Expected</span> <span class="Identifier">inline</span> <span class="Identifier">Hint</span> <span class="Identifier">annotation</span> <span class="Identifier">at</span> <span class="Identifier">tfile</span><span class="Operator">.</span><span class="Identifier">nim</span><span class="Punctuation">(</span><span class="DecNumber">11</span><span class="Punctuation">,</span> <span class="DecNumber">7</span><span class="Punctuation">)</span><span class="Punctuation">:</span>
+
+<span class="Operator">-</span> <span class="Punctuation">(</span><span class="Identifier">User</span> <span class="Punctuation">:</span><span class="Identifier">location</span> <span class="Punctuation">(</span><span class="StringLit">&quot;tfile.nim&quot;</span> <span class="DecNumber">11</span> <span class="DecNumber">7</span><span class="Punctuation">)</span> <span class="Punctuation">:</span><span class="Identifier">severity</span> <span class="Identifier">Hint</span> <span class="Punctuation">:</span><span class="Identifier">str</span> <span class="StringLit">&quot;Another hint&quot;</span><span class="Punctuation">)</span>
+
+<span class="Identifier">Given</span><span class="Punctuation">:</span>
+
+<span class="Operator">+</span> <span class="Punctuation">(</span><span class="Identifier">User</span> <span class="Punctuation">:</span><span class="Identifier">location</span> <span class="Punctuation">(</span><span class="StringLit">&quot;tfile.nim&quot;</span> <span class="DecNumber">11</span> <span class="DecNumber">6</span><span class="Punctuation">)</span> <span class="Punctuation">:</span><span class="Identifier">severity</span> <span class="Identifier">Hint</span> <span class="Punctuation">:</span><span class="Identifier">str</span> <span class="StringLit">&quot;Another hint&quot;</span><span class="Punctuation">)</span>
+  
+  
+  <span class="Punctuation">:</span><span class="Identifier">location</span><span class="Punctuation">[</span><span class="DecNumber">2</span><span class="Punctuation">]</span> <span class="Identifier">expected</span> <span class="DecNumber">7</span><span class="Punctuation">,</span> <span class="Identifier">but</span> <span class="Identifier">got</span> <span class="DecNumber">6</span> <span class="Punctuation">(</span><span class="Punctuation">[</span><span class="DecNumber">7</span><span class="Operator">-&gt;</span><span class="DecNumber">6</span><span class="Punctuation">]</span><span class="Punctuation">)</span>
+
+<span class="Identifier">Expected</span><span class="Punctuation">:</span>
+
+<span class="Operator">-</span> <span class="Punctuation">(</span><span class="Identifier">User</span> <span class="Punctuation">:</span><span class="Identifier">location</span> <span class="Punctuation">(</span><span class="StringLit">&quot;tfile.nim&quot;</span> <span class="DecNumber">8</span> <span class="Identifier">_</span><span class="Punctuation">)</span> <span class="Punctuation">:</span><span class="Identifier">str</span> <span class="StringLit">&quot;User Hint&quot;</span><span class="Punctuation">)</span>
+
+<span class="Identifier">Given</span><span class="Punctuation">:</span>
+
+<span class="Operator">+</span> <span class="Punctuation">(</span><span class="Identifier">User</span> <span class="Punctuation">:</span><span class="Identifier">location</span> <span class="Punctuation">(</span><span class="StringLit">&quot;tfile.nim&quot;</span> <span class="DecNumber">9</span> <span class="DecNumber">6</span><span class="Punctuation">)</span> <span class="Punctuation">:</span><span class="Identifier">severity</span> <span class="Identifier">Hint</span> <span class="Punctuation">:</span><span class="Identifier">str</span> <span class="StringLit">&quot;User hint&quot;</span><span class="Punctuation">)</span>
+  
+  
+  <span class="Punctuation">:</span><span class="Identifier">str</span> <span class="Identifier">expected</span> <span class="StringLit">&quot;User Hint&quot;</span><span class="Punctuation">,</span> <span class="Identifier">but</span> <span class="Identifier">got</span> <span class="StringLit">&quot;User hint&quot;</span> <span class="Punctuation">(</span><span class="StringLit">&quot;User [Hint&quot;</span><span class="Operator">-&gt;</span><span class="RawData">hint&quot;])</span>
+  <span class="Punctuation">:</span><span class="Identifier">location</span><span class="Punctuation">[</span><span class="DecNumber">1</span><span class="Punctuation">]</span> <span class="Identifier">expected</span> <span class="DecNumber">8</span><span class="Punctuation">,</span> <span class="Identifier">but</span> <span class="Identifier">got</span> <span class="DecNumber">9</span> <span class="Punctuation">(</span><span class="Punctuation">[</span><span class="DecNumber">8</span><span class="Operator">-&gt;</span><span class="DecNumber">9</span><span class="Punctuation">]</span><span class="Punctuation">)</span></pre><p>Compiler printed reports</p>
+<pre class="listing"><span class="Punctuation">(</span><span class="Identifier">User</span> <span class="Punctuation">:</span><span class="Identifier">severity</span> <span class="Identifier">Hint</span> <span class="Punctuation">:</span><span class="Identifier">str</span> <span class="StringLit">&quot;User hint&quot;</span> <span class="Punctuation">:</span><span class="Identifier">location</span> <span class="Punctuation">(</span><span class="StringLit">&quot;tfile.nim&quot;</span> <span class="DecNumber">8</span> <span class="DecNumber">6</span><span class="Punctuation">)</span><span class="Punctuation">)</span>
+<span class="Punctuation">(</span><span class="Identifier">User</span> <span class="Punctuation">:</span><span class="Identifier">severity</span> <span class="Identifier">Hint</span> <span class="Punctuation">:</span><span class="Identifier">str</span> <span class="StringLit">&quot;Another hint&quot;</span> <span class="Punctuation">:</span><span class="Identifier">location</span> <span class="Punctuation">(</span><span class="StringLit">&quot;tfile.nim&quot;</span> <span class="DecNumber">10</span> <span class="DecNumber">6</span><span class="Punctuation">)</span><span class="Punctuation">)</span></pre><p>And they were matched against full list of expected entries. For the first entry there is a mismatch in <tt class="docutils literal"><span class="pre">:location[2]</span></tt>, and for second one there is a string value error (in <tt class="docutils literal"><span class="pre">:str</span></tt>) and another mismatch in location data.</p>
+<p>To make it easier to spot differences between string values the inline diff is added for the message.</p>
+
+<h1><a class="toc-backref" id="test-examples" href="#test-examples">Test Examples</a></h1>
+<h2><a class="toc-backref" id="test-examples-structured-test-examples" href="#test-examples-structured-test-examples">Structured test examples</a></h2>
+<h2><a class="toc-backref" id="test-examples-unstructured-old-style-test-examples" href="#test-examples-unstructured-old-style-test-examples">Unstructured old, style test examples</a></h2><p>Expected to fail:</p>
 <pre class="listing"><span class="Keyword">discard</span> <span class="LongStringLit">&quot;&quot;&quot;
   errormsg: &quot;undeclared identifier: 'not_defined'&quot;
 &quot;&quot;&quot;</span>

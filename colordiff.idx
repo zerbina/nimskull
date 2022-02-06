@@ -1,0 +1,14 @@
+colorDollar	colordiff.html#colorDollar,T	colordiff: colorDollar[T](arg: T): ColText	
+DiffFormatConf	colordiff.html#DiffFormatConf	colordiff: DiffFormatConf	
+unified	colordiff.html#unified,DiffFormatConf	colordiff: unified(conf: DiffFormatConf): bool	
+splitKeepSeparator	colordiff.html#splitKeepSeparator,string,set[char]	colordiff: splitKeepSeparator(str: string; sep: set[char] = {&apos; &apos;}): seq[string]	
+formatDiffed	colordiff.html#formatDiffed,seq[SeqEdit],seq[T],seq[T],DiffFormatConf	colordiff: formatDiffed[T](ops: seq[SeqEdit]; oldSeq, newSeq: seq[T]; conf: DiffFormatConf): tuple[\n    oldLine, newLine: ColText]	
+hasInvisible	colordiff.html#hasInvisible,string,set[char]	colordiff: hasInvisible(text: string; startSet: set[char] = Invis + {&apos; &apos;}): bool	
+hasInvisible	colordiff.html#hasInvisible,seq[string]	colordiff: hasInvisible(text: seq[string]): bool	
+diffFormatter	colordiff.html#diffFormatter,bool	colordiff: diffFormatter(useUnicode: bool = true): DiffFormatConf	
+formatLineDiff	colordiff.html#formatLineDiff,string,string,DiffFormatConf	colordiff: formatLineDiff(old, new: string; conf: DiffFormatConf): tuple[\n    oldLine, newLine: ColText]	
+formatInlineDiff	colordiff.html#formatInlineDiff,seq[string],seq[string],seq[SeqEdit],DiffFormatConf	colordiff: formatInlineDiff(src, target: seq[string]; diffed: seq[SeqEdit];\n                 conf: DiffFormatConf): ColText	
+formatInlineDiff	colordiff.html#formatInlineDiff,string,string,DiffFormatConf	colordiff: formatInlineDiff(src, target: string; conf: DiffFormatConf): ColText	
+formatDiffed	colordiff.html#formatDiffed,ShiftedDiff,openArray[string],openArray[string],DiffFormatConf	colordiff: formatDiffed(shifted: ShiftedDiff; oldSeq, newSeq: openArray[string];\n             conf: DiffFormatConf = diffFormatter()): ColText	
+formatDiffed	colordiff.html#formatDiffed,openArray[T],openArray[T],DiffFormatConf,proc(T,T),proc(T)	colordiff: formatDiffed[T](oldSeq, newSeq: openArray[T]; conf: DiffFormatConf; eqCmp: proc (\n    a, b: T): bool = (proc (a, b: T): bool =\n  a == b); strConv: proc (a: T): string = (proc (a: T): string =\n  $a)): ColText	
+formatDiffed	colordiff.html#formatDiffed,string,string,DiffFormatConf	colordiff: formatDiffed(text1, text2: string; conf: DiffFormatConf = diffFormatter()): ColText	

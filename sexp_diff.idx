@@ -1,0 +1,16 @@
+IdxCostMap	sexp_diff.html#IdxCostMap	sexp_diff: IdxCostMap	
+stableMatch	sexp_diff.html#stableMatch,int,int,proc(int,int),SortOrder	sexp_diff: stableMatch(lhsLen, rhsLen: int; weight: proc (a, b: int): int;\n            order: SortOrder = SortOrder.Ascending): tuple[\n    lhsIgnore, rhsIgnore: seq[int],\n    map: seq[tuple[pair: (int, int), cost: int]]]	
+SexpPath	sexp_diff.html#SexpPath	sexp_diff: SexpPath	
+smMissingKey	sexp_diff.html#smMissingKey	SexpMismatchKind.smMissingKey	
+smDifferentLiteral	sexp_diff.html#smDifferentLiteral	SexpMismatchKind.smDifferentLiteral	
+smDifferentSymbol	sexp_diff.html#smDifferentSymbol	SexpMismatchKind.smDifferentSymbol	
+smArrayLen	sexp_diff.html#smArrayLen	SexpMismatchKind.smArrayLen	
+smKindMismatch	sexp_diff.html#smKindMismatch	SexpMismatchKind.smKindMismatch	
+SexpMismatchKind	sexp_diff.html#SexpMismatchKind	sexp_diff: SexpMismatchKind	
+SexpMismatch	sexp_diff.html#SexpMismatch	sexp_diff: SexpMismatch	
+sdiffPart	sexp_diff.html#sdiffPart,string	sexp_diff: sdiffPart(key: string): SexpPathPart	
+sdiffPart	sexp_diff.html#sdiffPart,int	sexp_diff: sdiffPart(index: int): SexpPathPart	
+mismatch	sexp_diff.html#mismatch,SexpPath,string	sexp_diff: mismatch(path: SexpPath; key: string): SexpMismatch	
+diff	sexp_diff.html#diff,SexpNode,SexpNode	sexp_diff: diff(target, input: SexpNode): seq[SexpMismatch]	
+describeDiff	sexp_diff.html#describeDiff,seq[SexpMismatch],DiffFormatConf	sexp_diff: describeDiff(diff: seq[SexpMismatch]; conf: DiffFormatConf): ColText	
+toLine	sexp_diff.html#toLine,SexpNode,bool	sexp_diff: toLine(s: SexpNode; sortfield: bool = false): ColText	

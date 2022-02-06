@@ -5,6 +5,7 @@ Command-line switches	nimc.html#compiler-usage-commandminusline-switches	  Comma
 List of warnings	nimc.html#compiler-usage-list-of-warnings	  List of warnings	
 List of hints	nimc.html#compiler-usage-list-of-hints	  List of hints	
 Verbosity levels	nimc.html#compiler-usage-verbosity-levels	  Verbosity levels	
+Compiler message formats	nimc.html#compiler-usage-compiler-message-formats	  Compiler message formats	
 Compile-time symbols	nimc.html#compiler-usage-compileminustime-symbols	  Compile-time symbols	
 Configuration files	nimc.html#compiler-usage-configuration-files	  Configuration files	
 debug build	nimc.html#debug-build_1	Configuration files	

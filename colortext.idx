@@ -63,6 +63,7 @@ add	colortext.html#add,ColText,ColRuneLine	colortext: add(colored: var ColText; 
 add	colortext.html#add,ColText,ColRune	colortext: add(colored: var ColText; rune: ColRune)	
 add	colortext.html#add,ColText,_2	colortext: add(colored: var ColText; ch: string | char)	
 indent	colortext.html#indent,ColText,int,int,ColText,ColText	colortext: indent(str: ColText; count: int; indentAfter: int = -1;\n       indent: ColText = clt(&quot; &quot;); prefix: ColText = clt(&quot;&quot;)): ColText	
+join	colortext.html#join,seq[ColText],ColText	colortext: join(text: seq[ColText]; sep: ColText): ColText	
 stripLines	colortext.html#stripLines,ColText,bool,bool,set[char]	colortext: stripLines(text: ColText; leading: bool = false; trails: bool = true;\n           chars: set[char] = {&apos; &apos;}): ColText	
 `&amp;`	colortext.html#&,sinkColText,ColText	colortext: `&amp;`(t1: sink ColText; t2: ColText): ColText	
 `&amp;`	colortext.html#&,sinkColText,string	colortext: `&amp;`(t1: sink ColText; t2: string): ColText	
@@ -86,3 +87,5 @@ coloredResult	colortext.html#coloredResult.t,int	colortext: coloredResult(indent
 `[]=`	colortext.html#[]=,ColRuneGrid,int,int,ColText	colortext: `[]=`(buf: var ColRuneGrid; row, col: int; str: ColText)	
 `[]=`	colortext.html#[]=,ColRuneGrid,int,int,char	colortext: `[]=`(buf: var ColRuneGrid; row, col: int; ch: char)	
 grid	colortext.html#grid,ColText	colortext: grid(text: ColText): ColRuneGrid	
+addf	colortext.html#addf,ColText,string,varargs[ColText,toColText]	colortext: addf(text: var ColText; formatstr: string; colored: varargs[ColText, toColText])	
+`%`	colortext.html#%,string,openArray[ColText]	colortext: `%`(format: string; interpolate: openArray[ColText]): ColText	

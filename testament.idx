@@ -5,4 +5,11 @@ Running a single test	testament.html#running-a-single-test	 Running a single tes
 Running all tests from a directory	testament.html#running-all-tests-from-a-directory	 Running all tests from a directory	
 HTML Reports	testament.html#html-reports	 HTML Reports	
 Writing Tests	testament.html#writing-tests	 Writing Tests	
+Test execution options	testament.html#writing-tests-test-execution-options	  Test execution options	
+Compiler output assertions	testament.html#writing-tests-compiler-output-assertions	  Compiler output assertions	
+Binary output assertions	testament.html#writing-tests-binary-output-assertions	  Binary output assertions	
+Reading test outputs	testament.html#reading-test-outputs	 Reading test outputs	
+Structured mismatches	testament.html#reading-test-outputs-structured-mismatches	  Structured mismatches	
 Test Examples	testament.html#test-examples	 Test Examples	
+Structured test examples	testament.html#test-examples-structured-test-examples	  Structured test examples	
+Unstructured old, style test examples	testament.html#test-examples-unstructured-old-style-test-examples	  Unstructured old, style test examples	

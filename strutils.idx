@@ -122,6 +122,16 @@ bpColloquial	strutils.html#bpColloquial	BinaryPrefixMode.bpColloquial
 BinaryPrefixMode	strutils.html#BinaryPrefixMode	strutils: BinaryPrefixMode	
 formatSize	strutils.html#formatSize,int64,char	strutils: formatSize(bytes: int64; decimalSep = &apos;.&apos;; prefix = bpIEC; includeSpace = false): string	
 formatEng	strutils.html#formatEng,BiggestFloat,range[],bool,bool,string,char	strutils: formatEng(f: BiggestFloat; precision: range[0 .. 32] = 10; trim: bool = true;\n          siPrefix: bool = false; unit: string = &quot;&quot;; decimalSep = &apos;.&apos;;\n          useUnitSpace = false): string	
+addfText	strutils.html#addfText	AddfFragmentKind.addfText	
+addfPositional	strutils.html#addfPositional	AddfFragmentKind.addfPositional	
+addfIndexed	strutils.html#addfIndexed	AddfFragmentKind.addfIndexed	
+addfDollar	strutils.html#addfDollar	AddfFragmentKind.addfDollar	
+addfBackIndexed	strutils.html#addfBackIndexed	AddfFragmentKind.addfBackIndexed	
+addfVar	strutils.html#addfVar	AddfFragmentKind.addfVar	
+addfExpr	strutils.html#addfExpr	AddfFragmentKind.addfExpr	
+AddfFragmentKind	strutils.html#AddfFragmentKind	strutils: AddfFragmentKind	
+AddfFragment	strutils.html#AddfFragment	strutils: AddfFragment	
+addfFragments	strutils.html#addfFragments.i,string	strutils: addfFragments(formatstr: string): AddfFragment	
 addf	strutils.html#addf,string,string,varargs[string,]	strutils: addf(s: var string; formatstr: string; a: varargs[string, `$`])	
 `%`	strutils.html#%,string,openArray[string]	strutils: `%`(formatstr: string; a: openArray[string]): string	
 `%`	strutils.html#%,string,string	strutils: `%`(formatstr, a: string): string	
