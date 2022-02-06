@@ -1,33 +1,3 @@
-optNone	ast/ast_types.html#optNone	TOption.optNone	
-optObjCheck	ast/ast_types.html#optObjCheck	TOption.optObjCheck	
-optFieldCheck	ast/ast_types.html#optFieldCheck	TOption.optFieldCheck	
-optRangeCheck	ast/ast_types.html#optRangeCheck	TOption.optRangeCheck	
-optBoundsCheck	ast/ast_types.html#optBoundsCheck	TOption.optBoundsCheck	
-optOverflowCheck	ast/ast_types.html#optOverflowCheck	TOption.optOverflowCheck	
-optRefCheck	ast/ast_types.html#optRefCheck	TOption.optRefCheck	
-optNaNCheck	ast/ast_types.html#optNaNCheck	TOption.optNaNCheck	
-optInfCheck	ast/ast_types.html#optInfCheck	TOption.optInfCheck	
-optStaticBoundsCheck	ast/ast_types.html#optStaticBoundsCheck	TOption.optStaticBoundsCheck	
-optStyleCheck	ast/ast_types.html#optStyleCheck	TOption.optStyleCheck	
-optAssert	ast/ast_types.html#optAssert	TOption.optAssert	
-optLineDir	ast/ast_types.html#optLineDir	TOption.optLineDir	
-optWarns	ast/ast_types.html#optWarns	TOption.optWarns	
-optHints	ast/ast_types.html#optHints	TOption.optHints	
-optOptimizeSpeed	ast/ast_types.html#optOptimizeSpeed	TOption.optOptimizeSpeed	
-optOptimizeSize	ast/ast_types.html#optOptimizeSize	TOption.optOptimizeSize	
-optStackTrace	ast/ast_types.html#optStackTrace	TOption.optStackTrace	
-optStackTraceMsgs	ast/ast_types.html#optStackTraceMsgs	TOption.optStackTraceMsgs	
-optLineTrace	ast/ast_types.html#optLineTrace	TOption.optLineTrace	
-optByRef	ast/ast_types.html#optByRef	TOption.optByRef	
-optProfiler	ast/ast_types.html#optProfiler	TOption.optProfiler	
-optImplicitStatic	ast/ast_types.html#optImplicitStatic	TOption.optImplicitStatic	
-optTrMacros	ast/ast_types.html#optTrMacros	TOption.optTrMacros	
-optMemTracker	ast/ast_types.html#optMemTracker	TOption.optMemTracker	
-optSinkInference	ast/ast_types.html#optSinkInference	TOption.optSinkInference	
-optCursorInference	ast/ast_types.html#optCursorInference	TOption.optCursorInference	
-optImportHidden	ast/ast_types.html#optImportHidden	TOption.optImportHidden	
-TOption	ast/ast_types.html#TOption	ast_types: TOption	
-TOptions	ast/ast_types.html#TOptions	ast_types: TOptions	
 FileIndex	ast/ast_types.html#FileIndex	ast_types: FileIndex	
 TLineInfo	ast/ast_types.html#TLineInfo	ast_types: TLineInfo	
 ccNimCall	ast/ast_types.html#ccNimCall	TCallingConvention.ccNimCall	

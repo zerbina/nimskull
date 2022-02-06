@@ -185,7 +185,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -222,19 +222,19 @@ class="link-seesrc" target="_blank">Source</a>
 
 return where the error was instantiated in the compiler
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L69"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L69"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L69" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
 <div id="errorKind,PNode">
-<dt><pre><span class="Keyword">func</span> <a href="#errorKind%2CPNode"><span class="Identifier">errorKind</span></a><span class="Other">(</span><span class="Identifier">e</span><span class="Other">:</span> <a href="ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span><span class="Other">:</span> <a href="reports.html#SemReportKind"><span class="Identifier">SemReportKind</span></a> {.<span class="Identifier">inline</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dt><pre><span class="Keyword">func</span> <a href="#errorKind%2CPNode"><span class="Identifier">errorKind</span></a><span class="Other">(</span><span class="Identifier">e</span><span class="Other">:</span> <a href="ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span><span class="Other">:</span> <a href="report_enums.html#SemReportKind"><span class="Identifier">SemReportKind</span></a> {.<span class="Identifier">inline</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 property to retrieve the error kind
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L62"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L62"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L62" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -246,21 +246,21 @@ class="link-seesrc" target="_blank">Source</a>
 
 find the first error node, or nil, under <tt class="docutils literal"><span class="pre"><span class="Identifier">n</span></span></tt> using a depth first traversal
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L48"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L48"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L48" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
 <div id="newError,ConfigRef,PNode,ReportKind,ReportId,InstantiationInfo,varargs[PNode]">
-<dt><pre><span class="Keyword">proc</span> <a href="#newError%2CConfigRef%2CPNode%2CReportKind%2CReportId%2CInstantiationInfo%2Cvarargs%5BPNode%5D"><span class="Identifier">newError</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">;</span> <span class="Identifier">wrongNode</span><span class="Other">:</span> <a href="ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">errorKind</span><span class="Other">:</span> <a href="reports.html#ReportKind"><span class="Identifier">ReportKind</span></a><span class="Other">;</span>
+<dt><pre><span class="Keyword">proc</span> <a href="#newError%2CConfigRef%2CPNode%2CReportKind%2CReportId%2CInstantiationInfo%2Cvarargs%5BPNode%5D"><span class="Identifier">newError</span></a><span class="Other">(</span><span class="Identifier">conf</span><span class="Other">:</span> <a href="../front/options.html#ConfigRef"><span class="Identifier">ConfigRef</span></a><span class="Other">;</span> <span class="Identifier">wrongNode</span><span class="Other">:</span> <a href="ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">errorKind</span><span class="Other">:</span> <a href="report_enums.html#ReportKind"><span class="Identifier">ReportKind</span></a><span class="Other">;</span>
               <span class="Identifier">report</span><span class="Other">:</span> <a href="ast_types.html#ReportId"><span class="Identifier">ReportId</span></a><span class="Other">;</span> <span class="Identifier">inst</span><span class="Other">:</span> <a href="reports.html#InstantiationInfo"><span class="Identifier">InstantiationInfo</span></a><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><a href="ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <a href="ast_types.html#PNode"><span class="Identifier">PNode</span></a> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 Create <tt class="docutils literal"><span class="pre"><span class="Identifier">nkError</span></span></tt> node with given error report and additional subnodes.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L75"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L75"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L75" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -275,7 +275,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L105"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L105"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L105" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -292,7 +292,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 <tt class="docutils literal"><span class="pre"><span class="Identifier">wrongNodeContainer</span></span></tt> doesn't directly have an error but one may exist further down the tree. If an error does exist it will wrap <tt class="docutils literal"><span class="pre"><span class="Identifier">wrongNodeContainer</span></span></tt> in an nkError node but no message will be reported for this wrapping. If there is no error, the <tt class="docutils literal"><span class="pre"><span class="Identifier">wrongNodeContainer</span></span></tt> will be returned as is.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L149"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L149"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L149" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -313,7 +313,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 for debugging, walk n yielding any errors found
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L209"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L209"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L209" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -326,7 +326,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 traverse the ast like <tt class="docutils literal"><span class="pre"><span class="Identifier">walkErrors</span></span></tt>, but will only do so if <tt class="docutils literal"><span class="pre"><span class="Identifier">n</span></span></tt> is not nil or an error -- useful when guarding isn't beneficial.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L202"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L202"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L202" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -338,7 +338,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 traverses the ast and yields errors from innermost to outermost. this is a linear traversal and two, or more, sibling errors will result in only the first error (per <tt class="docutils literal"><span class="pre"><span class="Identifier">PNode</span><span class="Operator">.</span><span class="Identifier">sons</span></span></tt>) being yielded.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L180"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L180"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L180" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -356,7 +356,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L127"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L127"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L127" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -368,7 +368,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 <tt class="docutils literal"><span class="pre"><span class="Identifier">wrongNodeContainer</span></span></tt> doesn't directly have an error but one exists further down the tree, this is used to wrap the <tt class="docutils literal"><span class="pre"><span class="Identifier">wrongNodeContainer</span></span></tt> in an nkError node but no message will be reported for it.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/9d0baf777824711d9ef5d467a3ad0e7b9234b054/compiler/ast/errorhandling.nim#L136"
+href="https://github.com/nim-works/nimskull/tree/854120b83605121b39a74331bb6d17c49288d0e5/compiler/ast/errorhandling.nim#L136"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/errorhandling.nim#L136" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -384,7 +384,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-03 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-06 00:00:00 UTC</small>
       </div>
     </div>
   </div>

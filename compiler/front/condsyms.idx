@@ -1,5 +1,1 @@
-defineSymbol	front/condsyms.html#defineSymbol,StringTableRef,string,string	condsyms: defineSymbol(symbols: StringTableRef; symbol: string; value: string = &quot;true&quot;)	
-undefSymbol	front/condsyms.html#undefSymbol,StringTableRef,string	condsyms: undefSymbol(symbols: StringTableRef; symbol: string)	
-definedSymbolNames	front/condsyms.html#definedSymbolNames.i,StringTableRef	condsyms: definedSymbolNames(symbols: StringTableRef): string	
-countDefinedSymbols	front/condsyms.html#countDefinedSymbols,StringTableRef	condsyms: countDefinedSymbols(symbols: StringTableRef): int	
 initDefines	front/condsyms.html#initDefines,StringTableRef	condsyms: initDefines(symbols: StringTableRef)	
