@@ -1911,6 +1911,10 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="sem: commonTypeBegin(): PType" href="sem/sem.html#commonTypeBegin.t">sem: commonTypeBegin(): PType</a></li>
           </ul></dd>
+<dt><a name="compactTReprConf" href="#compactTReprConf"><span>compactTReprConf:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: compactTReprConf" href="utils/astrepr.html#compactTReprConf">astrepr: compactTReprConf</a></li>
+          </ul></dd>
 <dt><a name="compareTypes" href="#compareTypes"><span>compareTypes:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="types: compareTypes(x, y: PType; cmp: TDistinctCompare = dcEq;
@@ -2573,17 +2577,17 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="ic: debug(tree: PackedTree; m: PackedModule)" href="ic/ic.html#debug%2CPackedTree%2CPackedModule">ic: debug(tree: PackedTree; m: PackedModule)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PNode)" href="utils/astrepr.html#debug%2CConfigRef%2CPNode">astrepr: debug(conf: ConfigRef; it: PNode)</a></li>
+          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PNode; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CConfigRef%2CPNode%2CTReprConf">astrepr: debug(conf: ConfigRef; it: PNode; tconf: TReprConf = implicitTReprConf)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PSym)" href="utils/astrepr.html#debug%2CConfigRef%2CPSym">astrepr: debug(conf: ConfigRef; it: PSym)</a></li>
+          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PSym; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CConfigRef%2CPSym%2CTReprConf">astrepr: debug(conf: ConfigRef; it: PSym; tconf: TReprConf = implicitTReprConf)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PType)" href="utils/astrepr.html#debug%2CConfigRef%2CPType">astrepr: debug(conf: ConfigRef; it: PType)</a></li>
+          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PType; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CConfigRef%2CPType%2CTReprConf">astrepr: debug(conf: ConfigRef; it: PType; tconf: TReprConf = implicitTReprConf)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(it: PNode)" href="utils/astrepr.html#debug%2CPNode">astrepr: debug(it: PNode)</a></li>
+          data-doc-search-tag="astrepr: debug(it: PNode; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CPNode%2CTReprConf">astrepr: debug(it: PNode; tconf: TReprConf = implicitTReprConf)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(it: PSym)" href="utils/astrepr.html#debug%2CPSym">astrepr: debug(it: PSym)</a></li>
+          data-doc-search-tag="astrepr: debug(it: PSym; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CPSym%2CTReprConf">astrepr: debug(it: PSym; tconf: TReprConf = implicitTReprConf)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(it: PType)" href="utils/astrepr.html#debug%2CPType">astrepr: debug(it: PType)</a></li>
+          data-doc-search-tag="astrepr: debug(it: PType; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CPType%2CTReprConf">astrepr: debug(it: PType; tconf: TReprConf = implicitTReprConf)</a></li>
           </ul></dd>
 <dt><a name="debugAst" href="#debugAst"><span>debugAst:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -2689,9 +2693,9 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="typesrenderer: defaultParamSeparator" href="ast/typesrenderer.html#defaultParamSeparator">typesrenderer: defaultParamSeparator</a></li>
           </ul></dd>
-<dt><a name="defaultTreeReprFlags" href="#defaultTreeReprFlags"><span>defaultTreeReprFlags:</span></a></dt><dd><ul class="simple">
+<dt><a name="defaultTReprConf" href="#defaultTReprConf"><span>defaultTReprConf:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="astrepr: defaultTreeReprFlags" href="utils/astrepr.html#defaultTreeReprFlags">astrepr: defaultTreeReprFlags</a></li>
+          data-doc-search-tag="astrepr: defaultTReprConf" href="utils/astrepr.html#defaultTReprConf">astrepr: defaultTReprConf</a></li>
           </ul></dd>
 <dt><a name="definedSymbolNames" href="#definedSymbolNames"><span>definedSymbolNames:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -4748,6 +4752,10 @@ window.addEventListener('DOMContentLoaded', main);
           data-doc-search-tag="pragmas: implicitPragmas(c: PContext; sym: PSym; info: TLineInfo;
                 validPragmas: TSpecialWords): PSym" href="sem/pragmas.html#implicitPragmas%2CPContext%2CPSym%2CTLineInfo%2CTSpecialWords">pragmas: implicitPragmas(c: PContext; sym: PSym; info: TLineInfo;
                 validPragmas: TSpecialWords): PSym</a></li>
+          </ul></dd>
+<dt><a name="implicitTReprConf" href="#implicitTReprConf"><span>implicitTReprConf:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: implicitTReprConf" href="utils/astrepr.html#implicitTReprConf">astrepr: implicitTReprConf</a></li>
           </ul></dd>
 <dt><a name="impliesNotNil" href="#impliesNotNil"><span>impliesNotNil:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -17449,27 +17457,21 @@ window.addEventListener('DOMContentLoaded', main);
           </ul></dd>
 <dt><a name="treeRepr" href="#treeRepr"><span>treeRepr:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; pnode: PNode;
-         flags: set[TReprFlag] = defaultTreeReprFlags; maxDepth: int = 120;
-         maxLen: int = 30; maxPath: int = 1; indentIncrease: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPNode%2Cset%5BTReprFlag%5D%2Cint%2Cint%2Cint%2Cint">astrepr: treeRepr(conf: ConfigRef; pnode: PNode;
-         flags: set[TReprFlag] = defaultTreeReprFlags; maxDepth: int = 120;
-         maxLen: int = 30; maxPath: int = 1; indentIncrease: int = 0): ColText</a></li>
+          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; pnode: PNode; rconf: TReprConf = defaultTReprConf;
+         indent: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPNode%2CTReprConf%2Cint">astrepr: treeRepr(conf: ConfigRef; pnode: PNode; rconf: TReprConf = defaultTReprConf;
+         indent: int = 0): ColText</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; sym: PSym;
-         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPSym%2Cset%5BTReprFlag%5D%2Cint">astrepr: treeRepr(conf: ConfigRef; sym: PSym;
-         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText</a></li>
+          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; sym: PSym; rconf: TReprConf = implicitTReprConf;
+         indent: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPSym%2CTReprConf%2Cint">astrepr: treeRepr(conf: ConfigRef; sym: PSym; rconf: TReprConf = implicitTReprConf;
+         indent: int = 0): ColText</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; typ: PType;
-         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPType%2Cset%5BTReprFlag%5D%2Cint">astrepr: treeRepr(conf: ConfigRef; typ: PType;
-         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText</a></li>
+          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; typ: PType; rconf: TReprConf = implicitTReprConf;
+         indent: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPType%2CTReprConf%2Cint">astrepr: treeRepr(conf: ConfigRef; typ: PType; rconf: TReprConf = implicitTReprConf;
+         indent: int = 0): ColText</a></li>
           </ul></dd>
 <dt><a name="treeReprAllFields" href="#treeReprAllFields"><span>treeReprAllFields:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="astrepr: treeReprAllFields" href="utils/astrepr.html#treeReprAllFields">astrepr: treeReprAllFields</a></li>
-          </ul></dd>
-<dt><a name="treeReprCompact" href="#treeReprCompact"><span>treeReprCompact:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="astrepr: treeReprCompact" href="utils/astrepr.html#treeReprCompact">astrepr: treeReprCompact</a></li>
           </ul></dd>
 <dt><a name="TRegister" href="#TRegister"><span>TRegister:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -17499,6 +17501,10 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="semtypinst: TReplTypeVars" href="sem/semtypinst.html#TReplTypeVars">semtypinst: TReplTypeVars</a></li>
           </ul></dd>
+<dt><a name="TReprConf" href="#TReprConf"><span>TReprConf:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: TReprConf" href="utils/astrepr.html#TReprConf">astrepr: TReprConf</a></li>
+          </ul></dd>
 <dt><a name="TReprFlag" href="#TReprFlag"><span>TReprFlag:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="astrepr: TReprFlag" href="utils/astrepr.html#TReprFlag">astrepr: TReprFlag</a></li>
@@ -17515,13 +17521,13 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfPackedFields" href="utils/astrepr.html#trfPackedFields">TReprFlag.trfPackedFields</a></li>
           </ul></dd>
-<dt><a name="trfPositionIndexed" href="#trfPositionIndexed"><span>trfPositionIndexed:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="TReprFlag.trfPositionIndexed" href="utils/astrepr.html#trfPositionIndexed">TReprFlag.trfPositionIndexed</a></li>
-          </ul></dd>
 <dt><a name="trfReportInfo" href="#trfReportInfo"><span>trfReportInfo:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfReportInfo" href="utils/astrepr.html#trfReportInfo">TReprFlag.trfReportInfo</a></li>
+          </ul></dd>
+<dt><a name="trfShowDefaultedFields" href="#trfShowDefaultedFields"><span>trfShowDefaultedFields:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="TReprFlag.trfShowDefaultedFields" href="utils/astrepr.html#trfShowDefaultedFields">TReprFlag.trfShowDefaultedFields</a></li>
           </ul></dd>
 <dt><a name="trfShowNodeComments" href="#trfShowNodeComments"><span>trfShowNodeComments:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -17546,10 +17552,6 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="trfShowNodeTypes" href="#trfShowNodeTypes"><span>trfShowNodeTypes:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowNodeTypes" href="utils/astrepr.html#trfShowNodeTypes">TReprFlag.trfShowNodeTypes</a></li>
-          </ul></dd>
-<dt><a name="trfShowNodeValue" href="#trfShowNodeValue"><span>trfShowNodeValue:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="TReprFlag.trfShowNodeValue" href="utils/astrepr.html#trfShowNodeValue">TReprFlag.trfShowNodeValue</a></li>
           </ul></dd>
 <dt><a name="trfShowSymAlignment" href="#trfShowSymAlignment"><span>trfShowSymAlignment:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -17595,6 +17597,10 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowSymTypes" href="utils/astrepr.html#trfShowSymTypes">TReprFlag.trfShowSymTypes</a></li>
           </ul></dd>
+<dt><a name="trfShowTypeAlloc" href="#trfShowTypeAlloc"><span>trfShowTypeAlloc:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="TReprFlag.trfShowTypeAlloc" href="utils/astrepr.html#trfShowTypeAlloc">TReprFlag.trfShowTypeAlloc</a></li>
+          </ul></dd>
 <dt><a name="trfShowTypeBaseId" href="#trfShowTypeBaseId"><span>trfShowTypeBaseId:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowTypeBaseId" href="utils/astrepr.html#trfShowTypeBaseId">TReprFlag.trfShowTypeBaseId</a></li>
@@ -17611,17 +17617,13 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowTypeOwner" href="utils/astrepr.html#trfShowTypeOwner">TReprFlag.trfShowTypeOwner</a></li>
           </ul></dd>
-<dt><a name="trfShowTypeSize" href="#trfShowTypeSize"><span>trfShowTypeSize:</span></a></dt><dd><ul class="simple">
+<dt><a name="trfShowTypeSym" href="#trfShowTypeSym"><span>trfShowTypeSym:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="TReprFlag.trfShowTypeSize" href="utils/astrepr.html#trfShowTypeSize">TReprFlag.trfShowTypeSize</a></li>
+          data-doc-search-tag="TReprFlag.trfShowTypeSym" href="utils/astrepr.html#trfShowTypeSym">TReprFlag.trfShowTypeSym</a></li>
           </ul></dd>
 <dt><a name="trfSkipAuxError" href="#trfSkipAuxError"><span>trfSkipAuxError:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfSkipAuxError" href="utils/astrepr.html#trfSkipAuxError">TReprFlag.trfSkipAuxError</a></li>
-          </ul></dd>
-<dt><a name="trfSymDefined" href="#trfSymDefined"><span>trfSymDefined:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="TReprFlag.trfSymDefined" href="utils/astrepr.html#trfSymDefined">TReprFlag.trfSymDefined</a></li>
           </ul></dd>
 <dt><a name="trmacrosSection" href="#trmacrosSection"><span>trmacrosSection:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"

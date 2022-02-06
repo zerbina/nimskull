@@ -1,9 +1,8 @@
-trfPositionIndexed	utils/astrepr.html#trfPositionIndexed	TReprFlag.trfPositionIndexed	
 trfReportInfo	utils/astrepr.html#trfReportInfo	TReprFlag.trfReportInfo	
 trfPackedFields	utils/astrepr.html#trfPackedFields	TReprFlag.trfPackedFields	
 trfSkipAuxError	utils/astrepr.html#trfSkipAuxError	TReprFlag.trfSkipAuxError	
-trfSymDefined	utils/astrepr.html#trfSymDefined	TReprFlag.trfSymDefined	
 trfIndexVisisted	utils/astrepr.html#trfIndexVisisted	TReprFlag.trfIndexVisisted	
+trfShowDefaultedFields	utils/astrepr.html#trfShowDefaultedFields	TReprFlag.trfShowDefaultedFields	
 trfShowSymFlags	utils/astrepr.html#trfShowSymFlags	TReprFlag.trfShowSymFlags	
 trfShowSymLineInfo	utils/astrepr.html#trfShowSymLineInfo	TReprFlag.trfShowSymLineInfo	
 trfShowSymTypes	utils/astrepr.html#trfShowSymTypes	TReprFlag.trfShowSymTypes	
@@ -17,29 +16,31 @@ trfShowSymBitsize	utils/astrepr.html#trfShowSymBitsize	TReprFlag.trfShowSymBitsi
 trfShowSymAlignment	utils/astrepr.html#trfShowSymAlignment	TReprFlag.trfShowSymAlignment	
 trfShowTypeCallConv	utils/astrepr.html#trfShowTypeCallConv	TReprFlag.trfShowTypeCallConv	
 trfShowTypeFlags	utils/astrepr.html#trfShowTypeFlags	TReprFlag.trfShowTypeFlags	
-trfShowTypeSize	utils/astrepr.html#trfShowTypeSize	TReprFlag.trfShowTypeSize	
+trfShowTypeSym	utils/astrepr.html#trfShowTypeSym	TReprFlag.trfShowTypeSym	
+trfShowTypeAlloc	utils/astrepr.html#trfShowTypeAlloc	TReprFlag.trfShowTypeAlloc	
 trfShowTypeOwner	utils/astrepr.html#trfShowTypeOwner	TReprFlag.trfShowTypeOwner	
 trfShowTypeBaseId	utils/astrepr.html#trfShowTypeBaseId	TReprFlag.trfShowTypeBaseId	
 trfShowNodeLineInfo	utils/astrepr.html#trfShowNodeLineInfo	TReprFlag.trfShowNodeLineInfo	
 trfShowNodeFlags	utils/astrepr.html#trfShowNodeFlags	TReprFlag.trfShowNodeFlags	
 trfShowNodeIds	utils/astrepr.html#trfShowNodeIds	TReprFlag.trfShowNodeIds	
-trfShowNodeValue	utils/astrepr.html#trfShowNodeValue	TReprFlag.trfShowNodeValue	
 trfShowNodeComments	utils/astrepr.html#trfShowNodeComments	TReprFlag.trfShowNodeComments	
 trfShowNodeErrors	utils/astrepr.html#trfShowNodeErrors	TReprFlag.trfShowNodeErrors	
 trfShowNodeTypes	utils/astrepr.html#trfShowNodeTypes	TReprFlag.trfShowNodeTypes	
 TReprFlag	utils/astrepr.html#TReprFlag	astrepr: TReprFlag	
+TReprConf	utils/astrepr.html#TReprConf	astrepr: TReprConf	
 treeReprAllFields	utils/astrepr.html#treeReprAllFields	astrepr: treeReprAllFields	
-defaultTreeReprFlags	utils/astrepr.html#defaultTreeReprFlags	astrepr: defaultTreeReprFlags	
-treeReprCompact	utils/astrepr.html#treeReprCompact	astrepr: treeReprCompact	
-treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PSym,set[TReprFlag],int	astrepr: treeRepr(conf: ConfigRef; sym: PSym;\n         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText	
-treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PType,set[TReprFlag],int	astrepr: treeRepr(conf: ConfigRef; typ: PType;\n         flags: set[TReprFlag] = defaultTreeReprFlags; indent: int = 0): ColText	
-treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PNode,set[TReprFlag],int,int,int,int	astrepr: treeRepr(conf: ConfigRef; pnode: PNode;\n         flags: set[TReprFlag] = defaultTreeReprFlags; maxDepth: int = 120;\n         maxLen: int = 30; maxPath: int = 1; indentIncrease: int = 0): ColText	
+defaultTReprConf	utils/astrepr.html#defaultTReprConf	astrepr: defaultTReprConf	
+compactTReprConf	utils/astrepr.html#compactTReprConf	astrepr: compactTReprConf	
+implicitTReprConf	utils/astrepr.html#implicitTReprConf	astrepr: implicitTReprConf	
+treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PSym,TReprConf,int	astrepr: treeRepr(conf: ConfigRef; sym: PSym; rconf: TReprConf = implicitTReprConf;\n         indent: int = 0): ColText	
+treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PType,TReprConf,int	astrepr: treeRepr(conf: ConfigRef; typ: PType; rconf: TReprConf = implicitTReprConf;\n         indent: int = 0): ColText	
+treeRepr	utils/astrepr.html#treeRepr,ConfigRef,PNode,TReprConf,int	astrepr: treeRepr(conf: ConfigRef; pnode: PNode; rconf: TReprConf = defaultTReprConf;\n         indent: int = 0): ColText	
 debugAst	utils/astrepr.html#debugAst,PNode	astrepr: debugAst(it: PNode)	
 debugType	utils/astrepr.html#debugType,PType	astrepr: debugType(it: PType)	
 debugSym	utils/astrepr.html#debugSym,PSym	astrepr: debugSym(it: PSym)	
-debug	utils/astrepr.html#debug,PNode	astrepr: debug(it: PNode)	
-debug	utils/astrepr.html#debug,PType	astrepr: debug(it: PType)	
-debug	utils/astrepr.html#debug,PSym	astrepr: debug(it: PSym)	
-debug	utils/astrepr.html#debug,ConfigRef,PNode	astrepr: debug(conf: ConfigRef; it: PNode)	
-debug	utils/astrepr.html#debug,ConfigRef,PType	astrepr: debug(conf: ConfigRef; it: PType)	
-debug	utils/astrepr.html#debug,ConfigRef,PSym	astrepr: debug(conf: ConfigRef; it: PSym)	
+debug	utils/astrepr.html#debug,PNode,TReprConf	astrepr: debug(it: PNode; tconf: TReprConf = implicitTReprConf)	
+debug	utils/astrepr.html#debug,PType,TReprConf	astrepr: debug(it: PType; tconf: TReprConf = implicitTReprConf)	
+debug	utils/astrepr.html#debug,PSym,TReprConf	astrepr: debug(it: PSym; tconf: TReprConf = implicitTReprConf)	
+debug	utils/astrepr.html#debug,ConfigRef,PNode,TReprConf	astrepr: debug(conf: ConfigRef; it: PNode; tconf: TReprConf = implicitTReprConf)	
+debug	utils/astrepr.html#debug,ConfigRef,PType,TReprConf	astrepr: debug(conf: ConfigRef; it: PType; tconf: TReprConf = implicitTReprConf)	
+debug	utils/astrepr.html#debug,ConfigRef,PSym,TReprConf	astrepr: debug(conf: ConfigRef; it: PSym; tconf: TReprConf = implicitTReprConf)	
