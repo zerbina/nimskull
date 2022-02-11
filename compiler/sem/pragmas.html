@@ -228,7 +228,7 @@ window.addEventListener('DOMContentLoaded', main);
   </ul>
   <ul class="simple nested-toc-section">illegalCustomPragma
       <li><a class="reference" href="#illegalCustomPragma%2CPContext%2CPNode%2CPSym"
-    title="illegalCustomPragma(c: PContext; n: PNode; s: PSym)">illegalCustomPragma(c: PContext; n: PNode; s: PSym)</a></li>
+    title="illegalCustomPragma(c: PContext; n: PNode; s: PSym): PNode">illegalCustomPragma(c: PContext; n: PNode; s: PSym): PNode</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">implicitPragmas
@@ -240,17 +240,7 @@ window.addEventListener('DOMContentLoaded', main);
   </ul>
   <ul class="simple nested-toc-section">invalidPragma
       <li><a class="reference" href="#invalidPragma%2CPContext%2CPNode"
-    title="invalidPragma(c: PContext; n: PNode)">invalidPragma(c: PContext; n: PNode)</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">newIllegalCustomPragmaNode
-      <li><a class="reference" href="#newIllegalCustomPragmaNode%2CPContext%2CPNode%2CPSym"
-    title="newIllegalCustomPragmaNode(c: PContext; n: PNode; s: PSym): PNode">newIllegalCustomPragmaNode(c: PContext; n: PNode; s: PSym): PNode</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">newInvalidPragmaNode
-      <li><a class="reference" href="#newInvalidPragmaNode%2CPContext%2CPNode"
-    title="newInvalidPragmaNode(c: PContext; n: PNode): PNode">newInvalidPragmaNode(c: PContext; n: PNode): PNode</a></li>
+    title="invalidPragma(c: PContext; n: PNode): PNode">invalidPragma(c: PContext; n: PNode): PNode</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">pragma
@@ -262,7 +252,7 @@ window.addEventListener('DOMContentLoaded', main);
   </ul>
   <ul class="simple nested-toc-section">pragmaAsm
       <li><a class="reference" href="#pragmaAsm%2CPContext%2CPNode"
-    title="pragmaAsm(c: PContext; n: PNode): char">pragmaAsm(c: PContext; n: PNode): char</a></li>
+    title="pragmaAsm(c: PContext; n: PNode): tuple[marker: char, err: PNode]">pragmaAsm(c: PContext; n: PNode): tuple[marker: char, err: PNode]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">pragmaCallable
@@ -283,7 +273,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -312,7 +302,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L119"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L119"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L119" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -326,7 +316,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L111"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L111"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L111" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -345,7 +335,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L70"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L70"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L70" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -357,7 +347,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L120"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L120"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L120" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -369,7 +359,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L81"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L81"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L81" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -383,7 +373,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L104"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L104"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L104" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -395,7 +385,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L55"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L55"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L55" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -407,7 +397,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L118"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L118"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L118" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -423,7 +413,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L77"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L77"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L77" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -438,7 +428,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L94"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L94"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L94" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -450,7 +440,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L56"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L56"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L56" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -466,7 +456,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L115"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L115"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L115" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -482,7 +472,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L74"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L74"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L74" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -500,7 +490,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L71"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L71"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L71" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -512,7 +502,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L114"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L114"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L114" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -531,7 +521,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L62"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L62"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L62" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -544,7 +534,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L116"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L116"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L116" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -564,7 +554,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L82"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L82"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L82" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -577,7 +567,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L72"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L72"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L72" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -593,7 +583,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L99"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L99"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L99" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -609,7 +599,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L106"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L106"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L106" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -627,7 +617,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L122"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L122"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L122" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -639,22 +629,22 @@ class="link-seesrc" target="_blank">Source</a>
 
 true if any of <tt class="docutils literal"><span class="pre"><span class="Identifier">n</span></span></tt>'s children are of <tt class="docutils literal"><span class="pre"><span class="Identifier">pragma</span></span></tt> special words
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L1896"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L1882"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1896" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1882" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
 <div id="illegalCustomPragma,PContext,PNode,PSym">
-<dt><pre><span class="Keyword">proc</span> <a href="#illegalCustomPragma%2CPContext%2CPNode%2CPSym"><span class="Identifier">illegalCustomPragma</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">s</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">)</span> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ERecoverableError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#illegalCustomPragma%2CPContext%2CPNode%2CPSym"><span class="Identifier">illegalCustomPragma</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">s</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">)</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-
+create an error node (<tt class="docutils literal"><span class="pre"><span class="Identifier">nkError</span></span></tt>) for an illegal custom pragma error
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L142"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L143"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L142" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L143" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -668,47 +658,21 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L1908"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L1894"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1908" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1894" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
 <div id="invalidPragma,PContext,PNode">
-<dt><pre><span class="Keyword">proc</span> <a href="#invalidPragma%2CPContext%2CPNode"><span class="Identifier">invalidPragma</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ERecoverableError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
-<dd>
-
-
-&nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L139"
-class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L139" class="link-seesrc" target="_blank" >Edit</a>
-
-</dd>
-</div>
-<div id="newIllegalCustomPragmaNode,PContext,PNode,PSym">
-<dt><pre><span class="Keyword">proc</span> <a href="#newIllegalCustomPragmaNode%2CPContext%2CPNode%2CPSym"><span class="Identifier">newIllegalCustomPragmaNode</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">s</span><span class="Other">:</span> <a href="../ast/ast_types.html#PSym"><span class="Identifier">PSym</span></a><span class="Other">)</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
-<dd>
-
-create an error node (<tt class="docutils literal"><span class="pre"><span class="Identifier">nkError</span></span></tt>) for an illegal custom pragma error
-&nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L150"
-class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L150" class="link-seesrc" target="_blank" >Edit</a>
-
-</dd>
-</div>
-<div id="newInvalidPragmaNode,PContext,PNode">
-<dt><pre><span class="Keyword">proc</span> <a href="#newInvalidPragmaNode%2CPContext%2CPNode"><span class="Identifier">newInvalidPragmaNode</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#invalidPragma%2CPContext%2CPNode"><span class="Identifier">invalidPragma</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 create an error node (<tt class="docutils literal"><span class="pre"><span class="Identifier">nkError</span></span></tt>) for an invalid pragma error
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L146"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L139"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L146" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L139" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -722,22 +686,22 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L1944"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L1930"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1944" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1930" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
 <div id="pragmaAsm,PContext,PNode">
-<dt><pre><span class="Keyword">proc</span> <a href="#pragmaAsm%2CPContext%2CPNode"><span class="Identifier">pragmaAsm</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">char</span> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ERecoverableError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#pragmaAsm%2CPContext%2CPNode"><span class="Identifier">pragmaAsm</span></a><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">tuple</span><span class="Other">[</span><span class="Identifier">marker</span><span class="Other">:</span> <span class="Identifier">char</span><span class="Other">,</span> <span class="Identifier">err</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">]</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-
+Gets the marker out of an asm stmts pragma list Returns ` as the default marker if no other markers are found
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L159"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L152"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L159" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L152" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -751,23 +715,22 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L1955"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L1941"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1955" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L1941" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
 <div id="semAsmOrEmit,PContext,PNode,char">
 <dt><pre><span class="Keyword">proc</span> <a href="#semAsmOrEmit%2CPContext%2CPNode%2Cchar"><span class="Identifier">semAsmOrEmit</span></a><span class="Other">(</span><span class="Identifier">con</span><span class="Other">:</span> <a href="semdata.html#PContext"><span class="Identifier">PContext</span></a><span class="Other">;</span> <span class="Identifier">n</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a><span class="Other">;</span> <span class="Identifier">marker</span><span class="Other">:</span> <span class="Identifier">char</span><span class="Other">)</span><span class="Other">:</span> <a href="../ast/ast_types.html#PNode"><span class="Identifier">PNode</span></a> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ERecoverableError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/3e81e76ca1fe88ff83d618cc46348ca7085b115b/compiler/sem/pragmas.nim#L796"
+href="https://github.com/nim-works/nimskull/tree/2e3f3024a1703370d7bbc61404e2be830f42251f/compiler/sem/pragmas.nim#L790"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L796" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/sem/pragmas.nim#L790" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -781,7 +744,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-10 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-11 00:00:00 UTC</small>
       </div>
     </div>
   </div>

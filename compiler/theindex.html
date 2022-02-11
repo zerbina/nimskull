@@ -4709,7 +4709,7 @@ window.addEventListener('DOMContentLoaded', main);
           </ul></dd>
 <dt><a name="illegalCustomPragma" href="#illegalCustomPragma"><span>illegalCustomPragma:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="pragmas: illegalCustomPragma(c: PContext; n: PNode; s: PSym)" href="sem/pragmas.html#illegalCustomPragma%2CPContext%2CPNode%2CPSym">pragmas: illegalCustomPragma(c: PContext; n: PNode; s: PSym)</a></li>
+          data-doc-search-tag="pragmas: illegalCustomPragma(c: PContext; n: PNode; s: PSym): PNode" href="sem/pragmas.html#illegalCustomPragma%2CPContext%2CPNode%2CPSym">pragmas: illegalCustomPragma(c: PContext; n: PNode; s: PSym): PNode</a></li>
           </ul></dd>
 <dt><a name="immutableView" href="#immutableView"><span>immutableView:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -5145,7 +5145,7 @@ window.addEventListener('DOMContentLoaded', main);
           </ul></dd>
 <dt><a name="invalidPragma" href="#invalidPragma"><span>invalidPragma:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="pragmas: invalidPragma(c: PContext; n: PNode)" href="sem/pragmas.html#invalidPragma%2CPContext%2CPNode">pragmas: invalidPragma(c: PContext; n: PNode)</a></li>
+          data-doc-search-tag="pragmas: invalidPragma(c: PContext; n: PNode): PNode" href="sem/pragmas.html#invalidPragma%2CPContext%2CPNode">pragmas: invalidPragma(c: PContext; n: PNode): PNode</a></li>
           </ul></dd>
 <dt><a name="ioFailure" href="#ioFailure"><span>ioFailure:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -7737,10 +7737,6 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="ast: newIdTable(): TIdTable" href="ast/ast.html#newIdTable">ast: newIdTable(): TIdTable</a></li>
           </ul></dd>
-<dt><a name="newIllegalCustomPragmaNode" href="#newIllegalCustomPragmaNode"><span>newIllegalCustomPragmaNode:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="pragmas: newIllegalCustomPragmaNode(c: PContext; n: PNode; s: PSym): PNode" href="sem/pragmas.html#newIllegalCustomPragmaNode%2CPContext%2CPNode%2CPSym">pragmas: newIllegalCustomPragmaNode(c: PContext; n: PNode; s: PSym): PNode</a></li>
-          </ul></dd>
 <dt><a name="newIntLit" href="#newIntLit"><span>newIntLit:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="lowerings: newIntLit(g: ModuleGraph; info: TLineInfo; value: BiggestInt): PNode" href="sem/lowerings.html#newIntLit%2CModuleGraph%2CTLineInfo%2CBiggestInt">lowerings: newIntLit(g: ModuleGraph; info: TLineInfo; value: BiggestInt): PNode</a></li>
@@ -7764,10 +7760,6 @@ window.addEventListener('DOMContentLoaded', main);
           data-doc-search-tag="ast: newIntTypeNode(intVal: BiggestInt; typ: PType): PNode" href="ast/ast.html#newIntTypeNode%2CBiggestInt%2CPType">ast: newIntTypeNode(intVal: BiggestInt; typ: PType): PNode</a></li>
           <li><a class="reference external"
           data-doc-search-tag="ast: newIntTypeNode(intVal: Int128; typ: PType): PNode" href="ast/ast.html#newIntTypeNode%2CInt128%2CPType">ast: newIntTypeNode(intVal: Int128; typ: PType): PNode</a></li>
-          </ul></dd>
-<dt><a name="newInvalidPragmaNode" href="#newInvalidPragmaNode"><span>newInvalidPragmaNode:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="pragmas: newInvalidPragmaNode(c: PContext; n: PNode): PNode" href="sem/pragmas.html#newInvalidPragmaNode%2CPContext%2CPNode">pragmas: newInvalidPragmaNode(c: PContext; n: PNode): PNode</a></li>
           </ul></dd>
 <dt><a name="newLib" href="#newLib"><span>newLib:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -10775,7 +10767,7 @@ window.addEventListener('DOMContentLoaded', main);
           </ul></dd>
 <dt><a name="pragmaAsm" href="#pragmaAsm"><span>pragmaAsm:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="pragmas: pragmaAsm(c: PContext; n: PNode): char" href="sem/pragmas.html#pragmaAsm%2CPContext%2CPNode">pragmas: pragmaAsm(c: PContext; n: PNode): char</a></li>
+          data-doc-search-tag="pragmas: pragmaAsm(c: PContext; n: PNode): tuple[marker: char, err: PNode]" href="sem/pragmas.html#pragmaAsm%2CPContext%2CPNode">pragmas: pragmaAsm(c: PContext; n: PNode): tuple[marker: char, err: PNode]</a></li>
           </ul></dd>
 <dt><a name="pragmaCallable" href="#pragmaCallable"><span>pragmaCallable:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -12556,10 +12548,6 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="rsemCannotAssignToDiscriminantWithCustomDestructor" href="#rsemCannotAssignToDiscriminantWithCustomDestructor"><span>rsemCannotAssignToDiscriminantWithCustomDestructor:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="ReportKind.rsemCannotAssignToDiscriminantWithCustomDestructor" href="ast/report_enums.html#rsemCannotAssignToDiscriminantWithCustomDestructor">ReportKind.rsemCannotAssignToDiscriminantWithCustomDestructor</a></li>
-          </ul></dd>
-<dt><a name="rsemCannotAttachPragma" href="#rsemCannotAttachPragma"><span>rsemCannotAttachPragma:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="ReportKind.rsemCannotAttachPragma" href="ast/report_enums.html#rsemCannotAttachPragma">ReportKind.rsemCannotAttachPragma</a></li>
           </ul></dd>
 <dt><a name="rsemCannotBeConvertedTo" href="#rsemCannotBeConvertedTo"><span>rsemCannotBeConvertedTo:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -19672,7 +19660,7 @@ window.addEventListener('DOMContentLoaded', main);
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-10 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-11 00:00:00 UTC</small>
       </div>
     </div>
   </div>

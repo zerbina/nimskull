@@ -20,11 +20,9 @@ forVarPragmas	sem/pragmas.html#forVarPragmas	pragmas: forVarPragmas
 allRoutinePragmas	sem/pragmas.html#allRoutinePragmas	pragmas: allRoutinePragmas	
 enumFieldPragmas	sem/pragmas.html#enumFieldPragmas	pragmas: enumFieldPragmas	
 getPragmaVal	sem/pragmas.html#getPragmaVal,PNode,TSpecialWord	pragmas: getPragmaVal(procAst: PNode; name: TSpecialWord): PNode	
-invalidPragma	sem/pragmas.html#invalidPragma,PContext,PNode	pragmas: invalidPragma(c: PContext; n: PNode)	
-illegalCustomPragma	sem/pragmas.html#illegalCustomPragma,PContext,PNode,PSym	pragmas: illegalCustomPragma(c: PContext; n: PNode; s: PSym)	
-newInvalidPragmaNode	sem/pragmas.html#newInvalidPragmaNode,PContext,PNode	pragmas: newInvalidPragmaNode(c: PContext; n: PNode): PNode	
-newIllegalCustomPragmaNode	sem/pragmas.html#newIllegalCustomPragmaNode,PContext,PNode,PSym	pragmas: newIllegalCustomPragmaNode(c: PContext; n: PNode; s: PSym): PNode	
-pragmaAsm	sem/pragmas.html#pragmaAsm,PContext,PNode	pragmas: pragmaAsm(c: PContext; n: PNode): char	
+invalidPragma	sem/pragmas.html#invalidPragma,PContext,PNode	pragmas: invalidPragma(c: PContext; n: PNode): PNode	
+illegalCustomPragma	sem/pragmas.html#illegalCustomPragma,PContext,PNode,PSym	pragmas: illegalCustomPragma(c: PContext; n: PNode; s: PSym): PNode	
+pragmaAsm	sem/pragmas.html#pragmaAsm,PContext,PNode	pragmas: pragmaAsm(c: PContext; n: PNode): tuple[marker: char, err: PNode]	
 semAsmOrEmit	sem/pragmas.html#semAsmOrEmit,PContext,PNode,char	pragmas: semAsmOrEmit(con: PContext; n: PNode; marker: char): PNode	
 hasPragma	sem/pragmas.html#hasPragma,PNode,TSpecialWord	pragmas: hasPragma(n: PNode; pragma: TSpecialWord): bool	
 implicitPragmas	sem/pragmas.html#implicitPragmas,PContext,PSym,TLineInfo,TSpecialWords	pragmas: implicitPragmas(c: PContext; sym: PSym; info: TLineInfo;\n                validPragmas: TSpecialWords): PSym	
