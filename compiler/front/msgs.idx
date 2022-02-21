@@ -41,7 +41,6 @@ toFileLineCol	front/msgs.html#toFileLineCol,ConfigRef,TLineInfo	msgs: toFileLine
 toReportPoint	front/msgs.html#toReportPoint,ConfigRef,TLineInfo	msgs: toReportPoint(conf: ConfigRef; info: TLineInfo): ReportLineInfo	
 `$`	front/msgs.html#$,ConfigRef,TLineInfo	msgs: `$`(conf: ConfigRef; info: TLineInfo): string	
 `$`	front/msgs.html#$,TLineInfo	msgs: `$`(info: TLineInfo): string	
-`??`	front/msgs.html#??,ConfigRef,TLineInfo,string	msgs: `??`(conf: ConfigRef; info: TLineInfo; filename: string): bool	
 msgWrite	front/msgs.html#msgWrite,ConfigRef,string,MsgFlags	msgs: msgWrite(conf: ConfigRef; s: string; flags: MsgFlags = {})	
 log	front/msgs.html#log,string	msgs: log(s: string)	
 `==`	front/msgs.html#==,TLineInfo,TLineInfo	msgs: `==`(a, b: TLineInfo): bool	

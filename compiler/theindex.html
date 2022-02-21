@@ -189,6 +189,8 @@ window.addEventListener('DOMContentLoaded', main);
           <li><a class="reference external"
           data-doc-search-tag="nilcheck: `+`(a: SetIndex; b: SetIndex): SetIndex" href="sem/nilcheck.html#%2B%2CSetIndex%2CSetIndex">nilcheck: `+`(a: SetIndex; b: SetIndex): SetIndex</a></li>
           <li><a class="reference external"
+          data-doc-search-tag="astrepr: `+`(conf: TReprConf; flag: TReprFlag | set[TReprFlag]): TReprConf" href="utils/astrepr.html#%2B%2CTReprConf%2C">astrepr: `+`(conf: TReprConf; flag: TReprFlag | set[TReprFlag]): TReprConf</a></li>
+          <li><a class="reference external"
           data-doc-search-tag="int128: `+`(a: BiggestInt; b: Int128): Int128" href="utils/int128.html#%2B%2CBiggestInt%2CInt128">int128: `+`(a: BiggestInt; b: Int128): Int128</a></li>
           <li><a class="reference external"
           data-doc-search-tag="int128: `+`(a: Int128; b: BiggestInt): Int128" href="utils/int128.html#%2B%2CInt128%2CBiggestInt">int128: `+`(a: Int128; b: BiggestInt): Int128</a></li>
@@ -204,6 +206,8 @@ window.addEventListener('DOMContentLoaded', main);
           data-doc-search-tag="nilcheck: `-`(a: ExprIndex; b: ExprIndex): ExprIndex" href="sem/nilcheck.html#-%2CExprIndex%2CExprIndex">nilcheck: `-`(a: ExprIndex; b: ExprIndex): ExprIndex</a></li>
           <li><a class="reference external"
           data-doc-search-tag="nilcheck: `-`(a: SetIndex; b: SetIndex): SetIndex" href="sem/nilcheck.html#-%2CSetIndex%2CSetIndex">nilcheck: `-`(a: SetIndex; b: SetIndex): SetIndex</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="astrepr: `-`(conf: TReprConf; flag: TReprFlag | set[TReprFlag]): TReprConf" href="utils/astrepr.html#-%2CTReprConf%2C">astrepr: `-`(conf: TReprConf; flag: TReprFlag | set[TReprFlag]): TReprConf</a></li>
           <li><a class="reference external"
           data-doc-search-tag="int128: `-`(a: BiggestInt; b: Int128): Int128" href="utils/int128.html#-%2CBiggestInt%2CInt128">int128: `-`(a: BiggestInt; b: Int128): Int128</a></li>
           <li><a class="reference external"
@@ -252,10 +256,6 @@ window.addEventListener('DOMContentLoaded', main);
           data-doc-search-tag="int128: `==`(a, b: Int128): bool" href="utils/int128.html#%3D%3D%2CInt128%2CInt128">int128: `==`(a, b: Int128): bool</a></li>
           <li><a class="reference external"
           data-doc-search-tag="pathutils: `==`[T: AnyPath](x, y: T): bool" href="utils/pathutils.html#%3D%3D%2CT%2CT">pathutils: `==`[T: AnyPath](x, y: T): bool</a></li>
-          </ul></dd>
-<dt><a name="%60%3F%3F%60" href="#%60%3F%3F%60"><span>`??`:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="msgs: `??`(conf: ConfigRef; info: TLineInfo; filename: string): bool" href="front/msgs.html#%3F%3F%2CConfigRef%2CTLineInfo%2Cstring">msgs: `??`(conf: ConfigRef; info: TLineInfo; filename: string): bool</a></li>
           </ul></dd>
 <dt><a name="%60%5B%5D%3D%60" href="#%60%5B%5D%3D%60"><span>`[]=`:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -2605,17 +2605,13 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="ic: debug(tree: PackedTree; m: PackedModule)" href="ic/ic.html#debug%2CPackedTree%2CPackedModule">ic: debug(tree: PackedTree; m: PackedModule)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PNode; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CConfigRef%2CPNode%2CTReprConf">astrepr: debug(conf: ConfigRef; it: PNode; tconf: TReprConf = implicitTReprConf)</a></li>
+          data-doc-search-tag="astrepr: debug(it: PNode | PSym | PNode)" href="utils/astrepr.html#debug">astrepr: debug(it: PNode | PSym | PNode)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PSym; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CConfigRef%2CPSym%2CTReprConf">astrepr: debug(conf: ConfigRef; it: PSym; tconf: TReprConf = implicitTReprConf)</a></li>
+          data-doc-search-tag="astrepr: debug(it: PNode | PSym | PNode; tconf: TReprConf)" href="utils/astrepr.html#debug%2C%2CTReprConf">astrepr: debug(it: PNode | PSym | PNode; tconf: TReprConf)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PType; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CConfigRef%2CPType%2CTReprConf">astrepr: debug(conf: ConfigRef; it: PType; tconf: TReprConf = implicitTReprConf)</a></li>
+          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PNode | PType | PSym)" href="utils/astrepr.html#debug%2CConfigRef%2C">astrepr: debug(conf: ConfigRef; it: PNode | PType | PSym)</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(it: PNode; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CPNode%2CTReprConf">astrepr: debug(it: PNode; tconf: TReprConf = implicitTReprConf)</a></li>
-          <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(it: PSym; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CPSym%2CTReprConf">astrepr: debug(it: PSym; tconf: TReprConf = implicitTReprConf)</a></li>
-          <li><a class="reference external"
-          data-doc-search-tag="astrepr: debug(it: PType; tconf: TReprConf = implicitTReprConf)" href="utils/astrepr.html#debug%2CPType%2CTReprConf">astrepr: debug(it: PType; tconf: TReprConf = implicitTReprConf)</a></li>
+          data-doc-search-tag="astrepr: debug(conf: ConfigRef; it: PNode | PType | PSym; tconf: TReprConf)" href="utils/astrepr.html#debug%2CConfigRef%2C%2CTReprConf">astrepr: debug(conf: ConfigRef; it: PNode | PType | PSym; tconf: TReprConf)</a></li>
           </ul></dd>
 <dt><a name="debugAst" href="#debugAst"><span>debugAst:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -3338,6 +3334,8 @@ window.addEventListener('DOMContentLoaded', main);
           data-doc-search-tag="options: excl(conf`gensym45: ConfigRef; item`gensym45: LegacyFeature | set[LegacyFeature])" href="front/options.html#excl%2CConfigRef%2C_4">options: excl(conf`gensym45: ConfigRef; item`gensym45: LegacyFeature | set[LegacyFeature])</a></li>
           <li><a class="reference external"
           data-doc-search-tag="options: excl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)" href="front/options.html#excl%2CConfigRef%2CConfNoteSet%2CReportKind">options: excl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="astrepr: excl(conf: var TReprConf; flag: TReprFlag | set[TReprFlag])" href="utils/astrepr.html#excl%2CTReprConf%2C">astrepr: excl(conf: var TReprConf; flag: TReprFlag | set[TReprFlag])</a></li>
           </ul></dd>
 <dt><a name="excNone" href="#excNone"><span>excNone:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -4870,6 +4868,8 @@ window.addEventListener('DOMContentLoaded', main);
           data-doc-search-tag="options: incl(conf`gensym45: ConfigRef; item`gensym45: LegacyFeature | set[LegacyFeature])" href="front/options.html#incl%2CConfigRef%2C_4">options: incl(conf`gensym45: ConfigRef; item`gensym45: LegacyFeature | set[LegacyFeature])</a></li>
           <li><a class="reference external"
           data-doc-search-tag="options: incl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)" href="front/options.html#incl%2CConfigRef%2CConfNoteSet%2CReportKind">options: incl(conf: ConfigRef; nset: ConfNoteSet; note: ReportKind)</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="astrepr: incl(conf: var TReprConf; flag: TReprFlag | set[TReprFlag])" href="utils/astrepr.html#incl%2CTReprConf%2C">astrepr: incl(conf: var TReprConf; flag: TReprFlag | set[TReprFlag])</a></li>
           </ul></dd>
 <dt><a name="inclDynlibOverride" href="#inclDynlibOverride"><span>inclDynlibOverride:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -4918,6 +4918,16 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="inferStaticParam" href="#inferStaticParam"><span>inferStaticParam:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="sigmatch: inferStaticParam(c: var TCandidate; lhs: PNode; rhs: BiggestInt): bool" href="sem/sigmatch.html#inferStaticParam%2CTCandidate%2CPNode%2CBiggestInt">sigmatch: inferStaticParam(c: var TCandidate; lhs: PNode; rhs: BiggestInt): bool</a></li>
+          </ul></dd>
+<dt><a name="inFile" href="#inFile"><span>inFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: inFile(node: PNode | PSym; file: string;
+       lrange: Slice[int] = low(int) .. high(int)): bool" href="utils/astrepr.html#inFile%2C%2Cstring%2CSlice%5Bint%5D">astrepr: inFile(node: PNode | PSym; file: string;
+       lrange: Slice[int] = low(int) .. high(int)): bool</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="astrepr: inFile(conf: ConfigRef; node: PNode | PSym; file: string;
+       lrange: Slice[int] = low(int) .. high(int)): bool" href="utils/astrepr.html#inFile%2CConfigRef%2C%2Cstring%2CSlice%5Bint%5D">astrepr: inFile(conf: ConfigRef; node: PNode | PSym; file: string;
+       lrange: Slice[int] = low(int) .. high(int)): bool</a></li>
           </ul></dd>
 <dt><a name="info" href="#info"><span>info:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -5056,6 +5066,10 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="injectDestructorCalls" href="#injectDestructorCalls"><span>injectDestructorCalls:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="injectdestructors: injectDestructorCalls(g: ModuleGraph; idgen: IdGenerator; owner: PSym; n: PNode): PNode" href="sem/injectdestructors.html#injectDestructorCalls%2CModuleGraph%2CIdGenerator%2CPSym%2CPNode">injectdestructors: injectDestructorCalls(g: ModuleGraph; idgen: IdGenerator; owner: PSym; n: PNode): PNode</a></li>
+          </ul></dd>
+<dt><a name="inLines" href="#inLines"><span>inLines:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: inLines(node: PNode; lrange: Slice[int]): bool" href="utils/astrepr.html#inLines%2CPNode%2CSlice%5Bint%5D">astrepr: inLines(node: PNode; lrange: Slice[int]): bool</a></li>
           </ul></dd>
 <dt><a name="inSet" href="#inSet"><span>inSet:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -9080,6 +9094,10 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="OnHeap" href="#OnHeap"><span>OnHeap:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TStorageLoc.OnHeap" href="ast/ast_types.html#OnHeap">TStorageLoc.OnHeap</a></li>
+          </ul></dd>
+<dt><a name="onlyStructureTReprConf" href="#onlyStructureTReprConf"><span>onlyStructureTReprConf:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: onlyStructureTReprConf" href="utils/astrepr.html#onlyStructureTReprConf">astrepr: onlyStructureTReprConf</a></li>
           </ul></dd>
 <dt><a name="onProcessing" href="#onProcessing"><span>onProcessing:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -14827,6 +14845,10 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="nimsets: setHasRange(s: PNode): bool" href="ast/nimsets.html#setHasRange%2CPNode">nimsets: setHasRange(s: PNode): bool</a></li>
           </ul></dd>
+<dt><a name="setImplicitDebugConfRef" href="#setImplicitDebugConfRef"><span>setImplicitDebugConfRef:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: setImplicitDebugConfRef(conf: ConfigRef)" href="utils/astrepr.html#setImplicitDebugConfRef%2CConfigRef">astrepr: setImplicitDebugConfRef(conf: ConfigRef)</a></li>
+          </ul></dd>
 <dt><a name="setInfoContextLen" href="#setInfoContextLen"><span>setInfoContextLen:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="msgs: setInfoContextLen(conf: ConfigRef; L: int)" href="front/msgs.html#setInfoContextLen%2CConfigRef%2Cint">msgs: setInfoContextLen(conf: ConfigRef; L: int)</a></li>
@@ -17511,8 +17533,8 @@ window.addEventListener('DOMContentLoaded', main);
           </ul></dd>
 <dt><a name="treeRepr" href="#treeRepr"><span>treeRepr:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; pnode: PNode; rconf: TReprConf = defaultTReprConf;
-         indent: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPNode%2CTReprConf%2Cint">astrepr: treeRepr(conf: ConfigRef; pnode: PNode; rconf: TReprConf = defaultTReprConf;
+          data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; pnode: PNode; rconf: TReprConf = implicitTReprConf;
+         indent: int = 0): ColText" href="utils/astrepr.html#treeRepr%2CConfigRef%2CPNode%2CTReprConf%2Cint">astrepr: treeRepr(conf: ConfigRef; pnode: PNode; rconf: TReprConf = implicitTReprConf;
          indent: int = 0): ColText</a></li>
           <li><a class="reference external"
           data-doc-search-tag="astrepr: treeRepr(conf: ConfigRef; sym: PSym; rconf: TReprConf = implicitTReprConf;
@@ -17611,6 +17633,10 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowSymAlignment" href="utils/astrepr.html#trfShowSymAlignment">TReprFlag.trfShowSymAlignment</a></li>
           </ul></dd>
+<dt><a name="trfShowSymAst" href="#trfShowSymAst"><span>trfShowSymAst:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="TReprFlag.trfShowSymAst" href="utils/astrepr.html#trfShowSymAst">TReprFlag.trfShowSymAst</a></li>
+          </ul></dd>
 <dt><a name="trfShowSymBitsize" href="#trfShowSymBitsize"><span>trfShowSymBitsize:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowSymBitsize" href="utils/astrepr.html#trfShowSymBitsize">TReprFlag.trfShowSymBitsize</a></li>
@@ -17618,6 +17644,10 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="trfShowSymFlags" href="#trfShowSymFlags"><span>trfShowSymFlags:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowSymFlags" href="utils/astrepr.html#trfShowSymFlags">TReprFlag.trfShowSymFlags</a></li>
+          </ul></dd>
+<dt><a name="trfShowSymId" href="#trfShowSymId"><span>trfShowSymId:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="TReprFlag.trfShowSymId" href="utils/astrepr.html#trfShowSymId">TReprFlag.trfShowSymId</a></li>
           </ul></dd>
 <dt><a name="trfShowSymKind" href="#trfShowSymKind"><span>trfShowSymKind:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -17630,6 +17660,10 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="trfShowSymMagic" href="#trfShowSymMagic"><span>trfShowSymMagic:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowSymMagic" href="utils/astrepr.html#trfShowSymMagic">TReprFlag.trfShowSymMagic</a></li>
+          </ul></dd>
+<dt><a name="trfShowSymName" href="#trfShowSymName"><span>trfShowSymName:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="TReprFlag.trfShowSymName" href="utils/astrepr.html#trfShowSymName">TReprFlag.trfShowSymName</a></li>
           </ul></dd>
 <dt><a name="trfShowSymOffset" href="#trfShowSymOffset"><span>trfShowSymOffset:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -17655,10 +17689,6 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowTypeAlloc" href="utils/astrepr.html#trfShowTypeAlloc">TReprFlag.trfShowTypeAlloc</a></li>
           </ul></dd>
-<dt><a name="trfShowTypeBaseId" href="#trfShowTypeBaseId"><span>trfShowTypeBaseId:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="TReprFlag.trfShowTypeBaseId" href="utils/astrepr.html#trfShowTypeBaseId">TReprFlag.trfShowTypeBaseId</a></li>
-          </ul></dd>
 <dt><a name="trfShowTypeCallConv" href="#trfShowTypeCallConv"><span>trfShowTypeCallConv:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowTypeCallConv" href="utils/astrepr.html#trfShowTypeCallConv">TReprFlag.trfShowTypeCallConv</a></li>
@@ -17666,6 +17696,10 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="trfShowTypeFlags" href="#trfShowTypeFlags"><span>trfShowTypeFlags:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="TReprFlag.trfShowTypeFlags" href="utils/astrepr.html#trfShowTypeFlags">TReprFlag.trfShowTypeFlags</a></li>
+          </ul></dd>
+<dt><a name="trfShowTypeId" href="#trfShowTypeId"><span>trfShowTypeId:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="TReprFlag.trfShowTypeId" href="utils/astrepr.html#trfShowTypeId">TReprFlag.trfShowTypeId</a></li>
           </ul></dd>
 <dt><a name="trfShowTypeOwner" href="#trfShowTypeOwner"><span>trfShowTypeOwner:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -18310,6 +18344,10 @@ window.addEventListener('DOMContentLoaded', main);
 <dt><a name="verbosePass" href="#verbosePass"><span>verbosePass:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="passaux: verbosePass" href="sem/passaux.html#verbosePass">passaux: verbosePass</a></li>
+          </ul></dd>
+<dt><a name="verboseTReprConf" href="#verboseTReprConf"><span>verboseTReprConf:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="astrepr: verboseTReprConf" href="utils/astrepr.html#verboseTReprConf">astrepr: verboseTReprConf</a></li>
           </ul></dd>
 <dt><a name="Version" href="#Version"><span>Version:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
