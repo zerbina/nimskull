@@ -121,6 +121,7 @@ window.addEventListener('DOMContentLoaded', main);
 <li><a class="reference" id="crossminuscompilation-for-nintendo-switch_toc" href="#crossminuscompilation-for-nintendo-switch">Cross-compilation for Nintendo Switch</a></li>
 <li><a class="reference" id="dll-generation_toc" href="#dll-generation">DLL generation</a></li>
 <li><a class="reference" id="additional-compilation-switches_toc" href="#additional-compilation-switches">Additional compilation switches</a></li>
+<li><a class="reference" id="configuration-variables_toc" href="#configuration-variables">Configuration variables</a></li>
 <li><a class="reference" id="additional-features_toc" href="#additional-features">Additional Features</a></li>
 <ul class="simple"><li><a class="reference" id="additional-features-linedir-option_toc" href="#additional-features-linedir-option">LineDir option</a></li>
 <li><a class="reference" id="additional-features-stacktrace-option_toc" href="#additional-features-stacktrace-option">StackTrace option</a></li>
@@ -140,7 +141,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/fe9e942ef80d0fbf6055926725364d56130432f4/doc/nimc.rst#L1"
+href="https://github.com/nim-works/nimskull/tree/34a1306649a52e82d8cf710b40fd8b5b27157f33/doc/nimc.rst#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/doc/nimc.rst#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -148,7 +149,7 @@ class="link-seesrc" target="_blank">Source</a>
   <div id="tocRoot"></div>
   
   <p class="module-desc"><table class="docinfo" frame="void" rules="none"><col class="docinfo-name" /><col class="docinfo-content" /><tbody valign="top"><tr><th class="docinfo-name">Author:</th><td>Andreas Rumpf</td></tr>
-<tr><th class="docinfo-name">Version:</th><td>0.1.0-dev.20060</td></tr>
+<tr><th class="docinfo-name">Version:</th><td>0.1.0-dev.20062</td></tr>
 </tbody></table><blockquote><p>&quot;Look at you, hacker. A pathetic creature of meat and bone, panting and sweating as you run through my corridors. How can you challenge a perfect, immortal machine?&quot;</p></blockquote>
 
 <h1><a class="toc-backref" id="introduction" href="#introduction">Introduction</a></h1><p>This document describes the usage of the <em>Nim compiler</em> on the different supported platforms. It is not a definition of the Nim programming language (which is covered in the <a class="reference external" href="manual.html">manual</a>).</p>
@@ -475,6 +476,28 @@ arm.linux.gcc.linkerexe = &quot;arm-linux-gcc&quot;</pre>
 <tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">noSignalHandler</span></span></tt></td><td>Disable the crash handler from <tt class="docutils literal"><span class="pre">system.nim</span></tt>.</td></tr>
 <tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">globalSymbols</span></span></tt></td><td>Load all <tt class="docutils literal"><span class="pre"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">dynlib</span><span class="Operator">.</span><span class="Punctuation">}</span></span></tt> libraries with the <tt class="docutils literal"><span class="pre"><span class="Identifier">RTLD_GLOBAL</span></span></tt> flag on Posix systems to resolve symbols in subsequently loaded libraries.</td></tr>
 </table>
+<h1><a class="toc-backref" id="configuration-variables" href="#configuration-variables">Configuration variables</a></h1><p>Configuration variables can be either supplied via command-line or using <tt class="docutils literal"><span class="pre"><span class="Operator">.</span><span class="Identifier">cfg</span></span></tt> files. In configuration file you can use multiline strings for options like <tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">item</span></span></tt> or <tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">file</span></span></tt></p>
+<table border="1" class="docutils"><tr><th>Variable</th><th>Effect</th></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">modulename</span><span class="Operator">&gt;.</span><span class="Identifier">always</span></span></tt></td><td>Pass compilation flag to the specific module</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">toc</span></span></tt></td><td>Documentation generator table of contents text</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">compiler</span><span class="Operator">&gt;.</span><span class="Identifier">options</span><span class="Operator">.</span><span class="Identifier">always</span></span></tt></td><td>Flags for a specific C compiler</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">compiler</span><span class="Operator">&gt;.</span><span class="Identifier">path</span></span></tt></td><td>Path to the compiler executable</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">compiler</span><span class="Operator">&gt;.</span><span class="Identifier">exe</span></span></tt></td><td>Compiler executable</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">compiler</span><span class="Operator">&gt;.</span><span class="Identifier">options</span><span class="Operator">.</span><span class="Identifier">debug</span></span></tt></td><td>Flags for debug compilation</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">compiler</span><span class="Operator">&gt;.</span><span class="Identifier">options</span><span class="Operator">.</span><span class="Identifier">size</span></span></tt></td><td>Flags for 'size' optimization</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">compiler</span><span class="Operator">&gt;.</span><span class="Identifier">options</span><span class="Operator">.</span><span class="Identifier">speed</span></span></tt></td><td>Flags for 'speed' compiler optimization</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">compiler</span><span class="Operator">&gt;.</span><span class="Identifier">options</span><span class="Operator">.</span><span class="Identifier">linker</span></span></tt></td><td>Linker exe</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">dump</span><span class="Operator">.</span><span class="Identifier">format</span></span></tt></td><td>Format of the compiler state dump output</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">file</span></span></tt></td><td>Generated documentation template body</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">item</span></span></tt></td><td>Template for a documentation entry item</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">listing_end</span></span></tt></td><td>HTML end of the code listing</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">listing_start</span></span></tt></td><td>HTML start of the code listing</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">listing_button</span></span></tt></td><td></td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">doc</span><span class="Operator">.</span><span class="Identifier">smiley_format</span></span></tt></td><td></td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">git</span><span class="Operator">.</span><span class="Identifier">url</span></span></tt></td><td>Github repository URL</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">git</span><span class="Operator">.</span><span class="Identifier">devel</span></span></tt></td><td>Git branch</td></tr>
+<tr><td><tt class="docutils literal"><span class="pre"><span class="Identifier">git</span><span class="Operator">.</span><span class="Identifier">commit</span></span></tt></td><td>Current git commit</td></tr>
+</table>
 <h1><a class="toc-backref" id="additional-features" href="#additional-features">Additional Features</a></h1><p>This section describes Nim's additional features that are not listed in the Nim manual. Some of the features here only make sense for the C code generator and are subject to change.</p>
 
 <h2><a class="toc-backref" id="additional-features-linedir-option" href="#additional-features-linedir-option">LineDir option</a></h2><p>The <tt class="docutils literal"><span class="pre option">--lineDir</span></tt> option can be turned on or off. If turned on the generated C code contains <tt class="docutils literal"><span class="pre"><span class="Preprocessor">#line</span></span></tt> directives. This may be helpful for debugging with GDB.</p>
@@ -498,7 +521,7 @@ arm.linux.gcc.linkerexe = &quot;arm-linux-gcc&quot;</pre>
 <li>The <tt class="docutils literal"><span class="pre option">-d:useMalloc</span></tt> option configures Nim to use only the standard C memory manage primitives <tt class="docutils literal"><span class="pre"><span class="Identifier">malloc</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">free</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">realloc</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt>.</li>
 </ul>
 <p>If your platform does not provide these functions it should be trivial to provide an implementation for them and link these to your program.</p>
-<p>For targets with very restricted memory, it might be beneficial to pass some additional flags to both the Nim compiler and the C compiler and/or linker to optimize the build for size. For example, the following flags can be used when targeting a gcc compiler:</p>
+<p>For targets with a very restricted memory, it might be beneficial to pass some additional flags to both the Nim compiler and the C compiler and/or linker to optimize the build for size. For example, the following flags can be used when targeting a gcc compiler:</p>
 <p><tt class="docutils literal"><span class="pre option">--opt:size --passC:-flto --passL:-flto</span></tt></p>
 <p>The <tt class="docutils literal"><span class="pre option">--opt:size</span></tt> flag instructs Nim to optimize code generation for small size (with the help of the C compiler), the <tt class="docutils literal"><span class="pre option">-flto</span></tt> flags enable link-time optimization in the compiler and linker.</p>
 <p>Check the <a class="reference internal" href="#crossminuscompilation">Cross-compilation</a> section for instructions on how to compile the program for your target.</p>

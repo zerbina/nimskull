@@ -22,6 +22,7 @@ Cross-compilation for Nintendo Switch	nimc.html#crossminuscompilation-for-ninten
 DLL generation	nimc.html#dll-generation	 DLL generation	
 Additional compilation switches	nimc.html#additional-compilation-switches	 Additional compilation switches	
 malloc	nimc.html#malloc_1	Additional compilation switches	
+Configuration variables	nimc.html#configuration-variables	 Configuration variables	
 Additional Features	nimc.html#additional-features	 Additional Features	
 LineDir option	nimc.html#additional-features-linedir-option	  LineDir option	
 StackTrace option	nimc.html#additional-features-stacktrace-option	  StackTrace option	

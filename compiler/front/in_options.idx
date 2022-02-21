@@ -192,3 +192,4 @@ cnCmdline	front/in_options.html#cnCmdline	ConfNoteSet.cnCmdline
 cnModifiedy	front/in_options.html#cnModifiedy	ConfNoteSet.cnModifiedy	
 ConfNoteSet	front/in_options.html#ConfNoteSet	in_options: ConfNoteSet	
 CurrentConf	front/in_options.html#CurrentConf	in_options: CurrentConf	
+flip	front/in_options.html#flip,set[I],I,bool	in_options: flip[I](s: var set[I]; it: I; val: bool)	
