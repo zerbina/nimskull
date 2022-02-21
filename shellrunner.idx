@@ -1,0 +1,26 @@
+ShellResult	shellrunner.html#ShellResult	shellrunner: ShellResult	
+cpkArgument	shellrunner.html#cpkArgument	ShellArgKind.cpkArgument	
+cpkTemplated	shellrunner.html#cpkTemplated	ShellArgKind.cpkTemplated	
+ShellArgKind	shellrunner.html#ShellArgKind	shellrunner: ShellArgKind	
+ShellArg	shellrunner.html#ShellArg	shellrunner: ShellArg	
+ShellCmd	shellrunner.html#ShellCmd	shellrunner: ShellCmd	
+shArg	shellrunner.html#shArg,string	shellrunner: shArg(arg: string): ShellArg	
+shSub	shellrunner.html#shSub,string	shellrunner: shSub(arg: string): ShellArg	
+shSub	shellrunner.html#shSub,ShellCmd,openArray[string]	shellrunner: shSub(cmd: var ShellCmd; subs: openArray[string])	
+args	shellrunner.html#args,ShellCmd,openArray[ShellArg]	shellrunner: args(cmd: var ShellCmd; args: openArray[ShellArg])	
+args	shellrunner.html#args,ShellCmd,openArray[string]	shellrunner: args(cmd: var ShellCmd; args: openArray[string])	
+arg	shellrunner.html#arg,ShellCmd,string,varargs[string]	shellrunner: arg(cmd: var ShellCmd; format: string; args: varargs[string])	
+shell	shellrunner.html#shell,string,openArray[string]	shellrunner: shell(bin: string; args: openArray[string] = @[]): ShellCmd	
+shell	shellrunner.html#shell,string,openArray[ShellArg]	shellrunner: shell(bin: string; args: openArray[ShellArg]): ShellCmd	
+add	shellrunner.html#add,ShellCmd,ShellArg	shellrunner: add(cmd: var ShellCmd; arg: ShellArg)	
+add	shellrunner.html#add,ShellCmd,openArray[ShellArg]	shellrunner: add(cmd: var ShellCmd; args: openArray[ShellArg])	
+toStr	shellrunner.html#toStr,ShellArg	shellrunner: toStr(part: ShellArg): string	
+ShInterpolate	shellrunner.html#ShInterpolate	shellrunner: ShInterpolate	
+interpolate	shellrunner.html#interpolate,ShellArg,ShInterpolate	shellrunner: interpolate(part: ShellArg; map: ShInterpolate): seq[ShellArg]	
+interpolate	shellrunner.html#interpolate,ShellCmd,ShInterpolate	shellrunner: interpolate(cmd: ShellCmd; map: ShInterpolate): ShellCmd	
+interpolate	shellrunner.html#interpolate,ShellCmd,openArray[]	shellrunner: interpolate(cmd: ShellCmd; map: openArray[(string, seq[string])]): ShellCmd	
+argsToStr	shellrunner.html#argsToStr,ShellCmd	shellrunner: argsToStr(cmd: ShellCmd): seq[string]	
+toStr	shellrunner.html#toStr,ShellCmd	shellrunner: toStr(cmd: ShellCmd): seq[string]	
+exec	shellrunner.html#exec,ShellCmd,string,string,set[ProcessOption],int	shellrunner: exec(cmd: ShellCmd; dir: string = &quot;&quot;; stdin: string = &quot;&quot;;\n     options: set[ProcessOption] = {poUsePath}; maxOutSize: int = 40960 * 1024): ShellResult	
+start	shellrunner.html#start,ShellCmd,string,set[ProcessOption]	shellrunner: start(cmd: ShellCmd; dir: string = &quot;&quot;; options: set[ProcessOption] = {poUsePath}): Process	
+exec	shellrunner.html#exec,openArray[ShellCmd],set[ProcessOption],int,string,proc(int),proc(int,Process)	shellrunner: exec(cmds: openArray[ShellCmd]; options: set[ProcessOption] = {poUsePath};\n     maxParallel: int = countProcessors(); dir: string = &quot;&quot;;\n     beforeRunEvent: proc (idx: int) = nil;\n     afterRunEvent: proc (idx: int; p: Process) = nil): seq[ShellResult]	
