@@ -109,4 +109,5 @@ addReport	ast/reports.html#addReport,ReportList,R	reports: addReport[R: ReportTy
 getReport	ast/reports.html#getReport,ReportList,ReportId	reports: getReport(list: ReportList; id: ReportId): Report	
 actualType	ast/reports.html#actualType,SemReport	reports: actualType(r: SemReport): PType	
 formalType	ast/reports.html#formalType,SemReport	reports: formalType(r: SemReport): PType	
+formalTypeKind	ast/reports.html#formalTypeKind,SemReport	reports: formalTypeKind(r: SemReport): set[TTypeKind]	
 symstr	ast/reports.html#symstr,SemReport	reports: symstr(r: SemReport): string	

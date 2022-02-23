@@ -3,4 +3,5 @@ defaultParamSeparator	ast/typesrenderer.html#defaultParamSeparator	typesrenderer
 renderPlainSymbolName	ast/typesrenderer.html#renderPlainSymbolName,PNode	typesrenderer: renderPlainSymbolName(n: PNode): string	
 renderParamTypes	ast/typesrenderer.html#renderParamTypes,PNode	typesrenderer: renderParamTypes(n: PNode; sep = defaultParamSeparator): string	
 addTypeHeader	ast/typesrenderer.html#addTypeHeader,string,ConfigRef,PType,TPreferedDesc	typesrenderer: addTypeHeader(result: var string; conf: ConfigRef; typ: PType;\n              prefer: TPreferedDesc = preferMixed; getDeclarationPath = true)	
+typeToStr	ast/typesrenderer.html#typeToStr	typesrenderer: typeToStr	
 typeToString	ast/typesrenderer.html#typeToString,PType,TPreferedDesc	typesrenderer: typeToString(typ: PType; prefer: TPreferedDesc = preferName): string	

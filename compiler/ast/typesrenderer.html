@@ -106,6 +106,28 @@ window.addEventListener('DOMContentLoaded', main);
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#defaultParamSeparator"
     title="defaultParamSeparator = &quot;,&quot;">defaultParamSeparator</a></li>
+  <li><a class="reference" href="#typeToStr"
+    title="typeToStr: array[TTypeKind, string] = [&quot;None&quot;, &quot;bool&quot;, &quot;char&quot;, &quot;empty&quot;, &quot;Alias&quot;,
+                                       &quot;typeof(nil)&quot;, &quot;untyped&quot;, &quot;typed&quot;,
+                                       &quot;typeDesc&quot;, &quot;GenericInvocation&quot;,
+                                       &quot;GenericBody&quot;, &quot;GenericInst&quot;,
+                                       &quot;GenericParam&quot;, &quot;distinct $1&quot;, &quot;enum&quot;,
+                                       &quot;ordinal[$1]&quot;, &quot;array[$1, $2]&quot;, &quot;object&quot;,
+                                       &quot;tuple&quot;, &quot;set[$1]&quot;, &quot;range[$1]&quot;, &quot;ptr &quot;,
+                                       &quot;ref &quot;, &quot;var &quot;, &quot;seq[$1]&quot;, &quot;proc&quot;,
+                                       &quot;pointer&quot;, &quot;OpenArray[$1]&quot;, &quot;string&quot;,
+                                       &quot;cstring&quot;, &quot;Forward&quot;, &quot;int&quot;, &quot;int8&quot;,
+                                       &quot;int16&quot;, &quot;int32&quot;, &quot;int64&quot;, &quot;float&quot;,
+                                       &quot;float32&quot;, &quot;float64&quot;, &quot;float128&quot;, &quot;uint&quot;,
+                                       &quot;uint8&quot;, &quot;uint16&quot;, &quot;uint32&quot;, &quot;uint64&quot;,
+                                       &quot;owned&quot;, &quot;sink&quot;, &quot;lent &quot;, &quot;varargs[$1]&quot;,
+                                       &quot;UncheckedArray[$1]&quot;, &quot;Error Type&quot;,
+                                       &quot;BuiltInTypeClass&quot;, &quot;UserTypeClass&quot;,
+                                       &quot;UserTypeClassInst&quot;,
+                                       &quot;CompositeTypeClass&quot;, &quot;inferred&quot;, &quot;and&quot;,
+                                       &quot;or&quot;, &quot;not&quot;, &quot;any&quot;, &quot;static&quot;,
+                                       &quot;TypeFromExpr&quot;, &quot;concept&quot;, &quot;void&quot;,
+                                       &quot;iterable&quot;]">typeToStr</a></li>
 
   </ul>
 </li>
@@ -153,7 +175,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/703784a979bd90a6a4801b220a4171ceb0329ed4/compiler/ast/typesrenderer.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -175,9 +197,41 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/703784a979bd90a6a4801b220a4171ceb0329ed4/compiler/ast/typesrenderer.nim#L20"
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L20"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L20" class="link-seesrc" target="_blank" >Edit</a>
+
+</dd>
+</div>
+<div id="typeToStr">
+<dt><pre><a href="typesrenderer.html#typeToStr"><span class="Identifier">typeToStr</span></a><span class="Other">:</span> <span class="Identifier">array</span><span class="Other">[</span><span class="Identifier">TTypeKind</span><span class="Other">,</span> <span class="Identifier">string</span><span class="Other">]</span> <span class="Other">=</span> <span class="Other">[</span><span class="StringLit">&quot;None&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;bool&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;char&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;empty&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;Alias&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;typeof(nil)&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;untyped&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;typed&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;typeDesc&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;GenericInvocation&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;GenericBody&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;GenericInst&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;GenericParam&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;distinct $1&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;enum&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;ordinal[$1]&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;array[$1, $2]&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;object&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;tuple&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;set[$1]&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;range[$1]&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;ptr &quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;ref &quot;</span><span class="Other">,</span> <span class="StringLit">&quot;var &quot;</span><span class="Other">,</span> <span class="StringLit">&quot;seq[$1]&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;proc&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;pointer&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;OpenArray[$1]&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;string&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;cstring&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;Forward&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;int&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;int8&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;int16&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;int32&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;int64&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;float&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;float32&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;float64&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;float128&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;uint&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;uint8&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;uint16&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;uint32&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;uint64&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;owned&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;sink&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;lent &quot;</span><span class="Other">,</span> <span class="StringLit">&quot;varargs[$1]&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;UncheckedArray[$1]&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;Error Type&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;BuiltInTypeClass&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;UserTypeClass&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;UserTypeClassInst&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;CompositeTypeClass&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;inferred&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;and&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;or&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;not&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;any&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;static&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;TypeFromExpr&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;concept&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;void&quot;</span><span class="Other">,</span>
+                                       <span class="StringLit">&quot;iterable&quot;</span><span class="Other">]</span></pre></dt>
+<dd>
+
+
+&nbsp;&nbsp;<a
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L160"
+class="link-seesrc" target="_blank">Source</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L160" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -195,7 +249,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Calls <tt class="docutils literal"><span class="pre"><span class="Identifier">typeToString</span></span></tt> on given <tt class="docutils literal"><span class="pre"><span class="Identifier">typ</span></span></tt>. If <tt class="docutils literal"><span class="pre"><span class="Identifier">getDeclarationPath</span></span></tt> is true, it will add the declared location.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/703784a979bd90a6a4801b220a4171ceb0329ed4/compiler/ast/typesrenderer.nim#L138"
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L138"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L138" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -210,7 +264,7 @@ class="link-seesrc" target="_blank">Source</a>
 <p>This proc expects to be passed as <tt class="docutils literal"><span class="pre"><span class="Identifier">n</span></span></tt> the parameters of any callable. The string output is meant for the HTML renderer. If there are no parameters, the empty string is returned. The parameters will be joined by <tt class="docutils literal"><span class="pre"><span class="Identifier">sep</span></span></tt> but other characters may appear too, like <tt class="docutils literal"><span class="pre">[]</span></tt> or <tt class="docutils literal"><span class="pre">|</span></tt>.</p>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/703784a979bd90a6a4801b220a4171ceb0329ed4/compiler/ast/typesrenderer.nim#L125"
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L125"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L125" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -224,7 +278,7 @@ class="link-seesrc" target="_blank">Source</a>
 <p>Use this on documentation name nodes to extract the <em>raw</em> symbol name, without decorations, parameters, or anything. That can be used as the base for the HTML hyperlinks.</p>
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/703784a979bd90a6a4801b220a4171ceb0329ed4/compiler/ast/typesrenderer.nim#L26"
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L26"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L26" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -237,7 +291,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 Formats types to strings
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/703784a979bd90a6a4801b220a4171ceb0329ed4/compiler/ast/typesrenderer.nim#L181"
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L181"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L181" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -254,7 +308,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/703784a979bd90a6a4801b220a4171ceb0329ed4/compiler/ast/typesrenderer.nim#L24"
+href="https://github.com/nim-works/nimskull/tree/b47c543fb550b65bad3dba1627d98748110c7d0d/compiler/ast/typesrenderer.nim#L24"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/compiler/ast/typesrenderer.nim#L24" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -270,7 +324,7 @@ class="link-seesrc" target="_blank">Source</a>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-22 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-23 00:00:00 UTC</small>
       </div>
     </div>
   </div>
