@@ -17,7 +17,7 @@
 <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,500,600' rel='stylesheet' type='text/css'/>
 
 <!-- CSS -->
-<title>std/mersenne</title>
+<title>std/private/win_getsysteminfo</title>
 <link rel="stylesheet" type="text/css" href="nimdoc.out.css">
 
 <script type="text/javascript" src="dochack.js"></script>
@@ -69,7 +69,7 @@ window.addEventListener('DOMContentLoaded', main);
 <body>
 <div class="document" id="documentId">
   <div class="container">
-    <h1 class="title">std/mersenne</h1>
+    <h1 class="title">std/private/win_getsysteminfo</h1>
     <div class="row">
   <div class="three columns">
   <div class="theme-switch-wrapper">
@@ -98,24 +98,27 @@ window.addEventListener('DOMContentLoaded', main);
 <li>
   <a class="reference reference-toplevel" href="#7" id="57">Types</a>
   <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#MersenneTwister"
-    title="MersenneTwister = object
-  mt: array[0 .. 623, uint32]
-  index: int">MersenneTwister</a></li>
+      <li><a class="reference" href="#SystemInfo"
+    title="SystemInfo = object
+  u1: uint32
+  dwPageSize: uint32
+  lpMinimumApplicationAddress: pointer
+  lpMaximumApplicationAddress: pointer
+  dwActiveProcessorMask: ptr uint32
+  dwNumberOfProcessors*: uint32
+  dwProcessorType: uint32
+  dwAllocationGranularity*: uint32
+  wProcessorLevel: uint16
+  wProcessorRevision: uint16">SystemInfo</a></li>
 
   </ul>
 </li>
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
-      <ul class="simple nested-toc-section">getNum
-      <li><a class="reference" href="#getNum%2CMersenneTwister"
-    title="getNum(m: var MersenneTwister): uint32">getNum(m: var MersenneTwister): uint32</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">newMersenneTwister
-      <li><a class="reference" href="#newMersenneTwister%2Cuint32"
-    title="newMersenneTwister(seed: uint32): MersenneTwister">newMersenneTwister(seed: uint32): MersenneTwister</a></li>
+      <ul class="simple nested-toc-section">getSystemInfo
+      <li><a class="reference" href="#getSystemInfo%2Cptr.SystemInfo"
+    title="getSystemInfo(lpSystemInfo: ptr SystemInfo)">getSystemInfo(lpSystemInfo: ptr SystemInfo)</a></li>
 
   </ul>
 
@@ -126,36 +129,37 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/lib/pure/mersenne.nim#L1"
+href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/lib/std/private/win_getsysteminfo.nim#L1"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/pure/mersenne.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/std/private/win_getsysteminfo.nim#L1" class="link-seesrc" target="_blank" >Edit</a>
 
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
-    <div class="deprecation-message">
-    <b>Deprecated:</b> use `std/random` instead
-  </div>
-
-  <p class="module-desc">The <a class="reference external" href="https://en.wikipedia.org/wiki/Mersenne_Twister">Mersenne Twister</a> random number generator. .. note:: The procs in this module work at compile-time.
-<p><strong class="examples_text">Example:</strong></p>
-<pre class="listing"><span class="Keyword">import</span> <span class="Identifier">std</span><span class="Operator">/</span><span class="Identifier">mersenne</span>
-<span class="Keyword">var</span> <span class="Identifier">rand</span> <span class="Operator">=</span> <span class="Identifier">newMersenneTwister</span><span class="Punctuation">(</span><span class="Identifier">uint32</span><span class="Operator">.</span><span class="Identifier">high</span><span class="Punctuation">)</span>  <span class="Comment">## must be &quot;var&quot;</span>
-<span class="Identifier">doAssert</span> <span class="Identifier">rand</span><span class="Operator">.</span><span class="Identifier">getNum</span><span class="Punctuation">(</span><span class="Punctuation">)</span> <span class="Operator">!=</span> <span class="Identifier">rand</span><span class="Operator">.</span><span class="Identifier">getNum</span><span class="Punctuation">(</span><span class="Punctuation">)</span>  <span class="Comment">## pseudorandom number</span></pre></p>
+  
+  <p class="module-desc"></p>
   <div class="section" id="7">
 <h1><a class="toc-backref" href="#7">Types</a></h1>
 <dl class="item">
-<div id="MersenneTwister">
-<dt><pre><a href="mersenne.html#MersenneTwister"><span class="Identifier">MersenneTwister</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">mt</span><span class="Other">:</span> <a href="system.html#array"><span class="Identifier">array</span></a><span class="Other">[</span><span class="DecNumber">0</span> <span class="Operator">..</span> <span class="DecNumber">623</span><span class="Other">,</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a><span class="Other">]</span>
-  <span class="Identifier">index</span><span class="Other">:</span> <a href="system.html#int"><span class="Identifier">int</span></a>
+<div id="SystemInfo">
+<dt><pre><a href="win_getsysteminfo.html#SystemInfo"><span class="Identifier">SystemInfo</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">u1</span><span class="Other">:</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a>
+  <span class="Identifier">dwPageSize</span><span class="Other">:</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a>
+  <span class="Identifier">lpMinimumApplicationAddress</span><span class="Other">:</span> <a href="system.html#pointer"><span class="Identifier">pointer</span></a>
+  <span class="Identifier">lpMaximumApplicationAddress</span><span class="Other">:</span> <a href="system.html#pointer"><span class="Identifier">pointer</span></a>
+  <span class="Identifier">dwActiveProcessorMask</span><span class="Other">:</span> <span class="Keyword">ptr</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a>
+  <span class="Identifier">dwNumberOfProcessors</span><span class="Operator">*</span><span class="Other">:</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a>
+  <span class="Identifier">dwProcessorType</span><span class="Other">:</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a>
+  <span class="Identifier">dwAllocationGranularity</span><span class="Operator">*</span><span class="Other">:</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a>
+  <span class="Identifier">wProcessorLevel</span><span class="Other">:</span> <a href="system.html#uint16"><span class="Identifier">uint16</span></a>
+  <span class="Identifier">wProcessorRevision</span><span class="Other">:</span> <a href="system.html#uint16"><span class="Identifier">uint16</span></a>
 </pre></dt>
 <dd>
 
-The Mersenne Twister.
+
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/lib/pure/mersenne.nim#L20"
+href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/lib/std/private/win_getsysteminfo.nim#L2"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/pure/mersenne.nim#L20" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/std/private/win_getsysteminfo.nim#L2" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>
@@ -164,27 +168,16 @@ class="link-seesrc" target="_blank">Source</a>
 <div class="section" id="12">
 <h1><a class="toc-backref" href="#12">Procs</a></h1>
 <dl class="item">
-<div id="getNum,MersenneTwister">
-<dt><pre><span class="Keyword">proc</span> <a href="#getNum%2CMersenneTwister"><span class="Identifier">getNum</span></a><span class="Other">(</span><span class="Identifier">m</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="mersenne.html#MersenneTwister"><span class="Identifier">MersenneTwister</span></a><span class="Other">)</span><span class="Other">:</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<div id="getSystemInfo,ptr.SystemInfo">
+<dt><pre><span class="Keyword">proc</span> <a href="#getSystemInfo%2Cptr.SystemInfo"><span class="Identifier">getSystemInfo</span></a><span class="Other">(</span><span class="Identifier">lpSystemInfo</span><span class="Other">:</span> <span class="Keyword">ptr</span> <a href="win_getsysteminfo.html#SystemInfo"><span class="Identifier">SystemInfo</span></a><span class="Other">)</span> {.<span class="Identifier">stdcall</span><span class="Other">,</span> <span class="Identifier">dynlib</span><span class="Other">:</span> <span class="StringLit">&quot;kernel32&quot;</span><span class="Other">,</span>
+    <span class="Identifier">importc</span><span class="Other">:</span> <span class="StringLit">&quot;GetSystemInfo&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-Returns the next pseudorandom <tt class="docutils literal"><span class="pre"><span class="Identifier">uint32</span></span></tt>.
-&nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/lib/pure/mersenne.nim#L42"
-class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/pure/mersenne.nim#L42" class="link-seesrc" target="_blank" >Edit</a>
 
-</dd>
-</div>
-<div id="newMersenneTwister,uint32">
-<dt><pre><span class="Keyword">proc</span> <a href="#newMersenneTwister%2Cuint32"><span class="Identifier">newMersenneTwister</span></a><span class="Other">(</span><span class="Identifier">seed</span><span class="Other">:</span> <a href="system.html#uint32"><span class="Identifier">uint32</span></a><span class="Other">)</span><span class="Other">:</span> <a href="mersenne.html#MersenneTwister"><span class="Identifier">MersenneTwister</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
-<dd>
-
-Creates a new <tt class="docutils literal"><span class="pre"><span class="Identifier">MersenneTwister</span></span></tt> with seed <tt class="docutils literal"><span class="pre"><span class="Identifier">seed</span></span></tt>.
 &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/lib/pure/mersenne.nim#L25"
+href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/lib/std/private/win_getsysteminfo.nim#L14"
 class="link-seesrc" target="_blank">Source</a>
-&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/pure/mersenne.nim#L25" class="link-seesrc" target="_blank" >Edit</a>
+&nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/lib/std/private/win_getsysteminfo.nim#L14" class="link-seesrc" target="_blank" >Edit</a>
 
 </dd>
 </div>

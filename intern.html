@@ -128,7 +128,7 @@ window.addEventListener('DOMContentLoaded', main);
 
   </div>
   &nbsp;&nbsp;<a
-href="https://github.com/nim-works/nimskull/tree/7f94bf3363e4b6e26b10e4346cf799b41cf15c42/doc/intern.rst#L1"
+href="https://github.com/nim-works/nimskull/tree/2a399aa3df5d3175c750f94d9be1cd535c0a3759/doc/intern.rst#L1"
 class="link-seesrc" target="_blank">Source</a>
 &nbsp;&nbsp;<a href="https://github.com/nim-works/nimskull/edit/devel/doc/intern.rst#L1" class="link-seesrc" target="_blank" >Edit</a>
 
@@ -248,7 +248,7 @@ class="link-seesrc" target="_blank">Source</a>
 
 <h2><a class="toc-backref" id="bisecting-for-regressions" href="#bisecting-for-regressions">Bisecting for regressions</a></h2><p><tt class="docutils literal"><span class="pre"><span class="program">./koch.py</span> <span class="option">temp</span></span></tt> returns 125 as the exit code in case the compiler compilation fails. This exit code tells <tt class="docutils literal"><span class="pre"><span class="program">git</span> <span class="option">bisect</span></span></tt> to skip the current commit:</p>
 <pre class="listing"><span class="program">git</span> <span class="option">bisect</span> <span class="option">start</span> <span class="option">bad-commit</span> <span class="option">good-commit</span>
-<span class="program">git</span> <span class="option">bisect</span> <span class="option">run</span> <span class="Identifier">./koch.py</span> <span class="option">temp</span> <span class="option">-r</span> <span class="option">c</span> <span class="Identifier">test-source.nim</span></pre><p>You can also bisect using custom options to build the compiler, for example if you don't need a debug version of the compiler (which runs slower), you can replace <tt class="docutils literal"><span class="pre"><span class="program">./koch.py</span> <span class="option">temp</span></span></tt> by explicit compilation command, see <a class="reference internal" href="#Rebuilding">Rebuilding</a>.</p>
+<span class="program">git</span> <span class="option">bisect</span> <span class="option">run</span> <span class="Identifier">./koch.py</span> <span class="option">temp</span> <span class="option">-r</span> <span class="option">c</span> <span class="Identifier">test-source.nim</span></pre><p>You can also bisect using custom options to build the compiler, for example if you don't need a debug version of the compiler (which runs slower), you can replace <tt class="docutils literal"><span class="pre"><span class="program">./koch.py</span> <span class="option">temp</span></span></tt> by explicit compilation command, see <a class="reference internal" href="#bootstrapping-the-compiler">Bootstrapping the compiler</a>.</p>
 
 <h2><a class="toc-backref" id="runtimes" href="#runtimes">Runtimes</a></h2><p> NimSkull has two different runtimes, the &quot;old runtime&quot; and the &quot;new runtime&quot;. The old runtime supports the old GCs (markAndSweep, refc, Boehm), the new runtime supports ARC/ORC. The new runtime is active <tt class="docutils literal"><span class="pre">when defined(nimV2)</span></tt>.</p>
 
@@ -402,7 +402,7 @@ n.typ.n == n</pre>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-24 00:00:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2022-02-26 00:00:00 UTC</small>
       </div>
     </div>
   </div>

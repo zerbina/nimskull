@@ -591,6 +591,7 @@ mUnown	ast/ast_types.html#mUnown	TMagic.mUnown
 mFinished	ast/ast_types.html#mFinished	TMagic.mFinished	
 mIsolate	ast/ast_types.html#mIsolate	TMagic.mIsolate	
 mAccessEnv	ast/ast_types.html#mAccessEnv	TMagic.mAccessEnv	
+mAccessTypeField	ast/ast_types.html#mAccessTypeField	TMagic.mAccessTypeField	
 mReset	ast/ast_types.html#mReset	TMagic.mReset	
 mArray	ast/ast_types.html#mArray	TMagic.mArray	
 mOpenArray	ast/ast_types.html#mOpenArray	TMagic.mOpenArray	

@@ -48,7 +48,7 @@ iterable	system.html#iterable	system: iterable
 Ordinal	system.html#Ordinal	system: Ordinal	
 declared	system.html#declared,untyped	system: declared(x: untyped): bool	
 declaredInScope	system.html#declaredInScope,untyped	system: declaredInScope(x: untyped): bool	
-`addr`	system.html#addr,T	system: `addr`[T](x: var T): ptr T	
+`addr`	system.html#addr,T	system: `addr`[T](x: T): ptr T	
 unsafeAddr	system.html#unsafeAddr,T	system: unsafeAddr[T](x: T): ptr T	
 `static`	system.html#static	system: static	
 `type`	system.html#type	system: type	

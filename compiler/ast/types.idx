@@ -123,3 +123,4 @@ isDefectException	ast/types.html#isDefectException,PType	types: isDefectExceptio
 isSinkTypeForParam	ast/types.html#isSinkTypeForParam,PType	types: isSinkTypeForParam(t: PType): bool	
 lookupFieldAgain	ast/types.html#lookupFieldAgain,PType,PSym	types: lookupFieldAgain(ty: PType; field: PSym): PSym	
 isCharArrayPtr	ast/types.html#isCharArrayPtr,PType,bool	types: isCharArrayPtr(t: PType; allowPointerToChar: bool): bool	
+lacksMTypeField	ast/types.html#lacksMTypeField,PType	types: lacksMTypeField(typ: PType): bool	
