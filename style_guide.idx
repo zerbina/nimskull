@@ -11,7 +11,7 @@ Best practices	style_guide.html#best-practices	 Best practices
 Avoid primitive types for an API	style_guide.html#best-practices-avoid-primitive-types-for-an-api	  Avoid primitive types for an API	
 Define needs prefix	style_guide.html#best-practices-define-needs-prefix	  Define needs prefix	
 No implicit bool	style_guide.html#best-practices-no-implicit-bool	  No implicit bool	
-Desing for method call syntax	style_guide.html#best-practices-desing-for-method-call-syntax	  Desing for method call syntax	
+Designing for method call syntax	style_guide.html#best-practices-designing-for-method-call-syntax	  Designing for method call syntax	
 Avoid quit	style_guide.html#best-practices-avoid-quit	  Avoid quit	
 Use doAssert in tests	style_guide.html#best-practices-use-doassert-in-tests	  Use <tt class="docutils literal"><span class="pre">doAssert</span></tt> in tests	
 Use assert in runnable examples	style_guide.html#best-practices-use-assert-in-runnable-examples	  Use assert in runnable examples	
