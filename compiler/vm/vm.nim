@@ -2449,23 +2449,11 @@ proc rawExecute(c: var TCtx, pc: var int, tos: var StackFrameIndex): RegisterInd
       regs[ra].setHandle(c.complexConsts[rbx])
 
     of opcRepr:
-      # Depending on whether or not arc/orc is used for the active compilation.
-      # opcRepr is:
-      # - arc/orc: used only for `repr(NimNode)` (see `system/repr_v2`)
-      # - refc: used for every non user-supplied `repr` call
-
-      # HACK: We need type information to deserialize. But this is very
-      #       inefficient. Not only is opcRepr a two-instruction-word opcode
-      #       now, we're also deserializing an object just to throw it away
-      #       after rendering
-      let typ = c.rtti[instr.regBx - wordExcess]
-      inc pc
-      let instr2 = c.code[pc]
-      let rb = instr2.regB
-
+      # implements ``repr`` for ``NimNode``s
+      let rb = instr.regB
       checkHandle(regs[rb])
 
-      let str = renderTree(c.regToNode(regs[rb], typ.nimType, c.debug[pc]),
+      let str = renderTree(regs[rb].nimNode,
                            {renderNoComments, renderDocComments})
 
       regs[ra].initLocReg(c.typeInfoCache.stringType, c.memory)

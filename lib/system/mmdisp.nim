@@ -97,7 +97,13 @@ when not declared(nimNewSeqOfCap) and not defined(nimSeqsV2):
     else:
       let s = align(GenericSeqSize, typ.base.align) + cap * typ.base.size
       when declared(newObjNoInit):
-        result = if ntfNoRefs in typ.base.flags: newObjNoInit(typ, s) else: newObj(typ, s)
+        let noDestroy =
+          when defined(nimSmallerRtti):
+            typ.base.destroy == nil
+          else:
+            ntfNoRefs in typ.base.flags
+
+        result = if false: newObjNoInit(typ, s) else: newObj(typ, s)
       else:
         result = newObj(typ, s)
       cast[PGenericSeq](result).len = 0

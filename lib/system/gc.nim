@@ -209,7 +209,7 @@ proc collectCT(gch: var GcHeap) {.benign, raises: [].}
 proc isOnStack(p: pointer): bool {.noinline, benign, raises: [].}
 proc forAllChildren(cell: PCell, op: WalkOp) {.benign, raises: [].}
 proc doOperation(p: pointer, op: WalkOp) {.benign, raises: [].}
-proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) {.benign, raises: [].}
+proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) {.legacyRtti, benign, raises: [].}
 # we need the prototype here for debugging purposes
 
 proc incRef(c: PCell) {.inline.} =
@@ -321,7 +321,7 @@ proc cellsetReset(s: var CellSet) =
 
 {.push stacktrace:off.}
 
-proc forAllSlotsAux(dest: pointer, n: ptr TNimNode, op: WalkOp) {.benign.} =
+proc forAllSlotsAux(dest: pointer, n: ptr TNimNode, op: WalkOp) {.legacyRtti, benign.} =
   var d = cast[ByteAddress](dest)
   case n.kind
   of nkSlot: forAllChildrenAux(cast[pointer](d +% n.offset), n.typ, op)
@@ -341,7 +341,7 @@ proc forAllSlotsAux(dest: pointer, n: ptr TNimNode, op: WalkOp) {.benign.} =
     if m != nil: forAllSlotsAux(dest, m, op)
   of nkNone: sysAssert(false, "forAllSlotsAux")
 
-proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) =
+proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) {.legacyRtti.} =
   var d = cast[ByteAddress](dest)
   if dest == nil: return # nothing to do
   if ntfNoRefs notin mt.flags:
@@ -355,7 +355,7 @@ proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) =
         forAllChildrenAux(cast[pointer](d +% i *% mt.base.size), mt.base, op)
     else: discard
 
-proc forAllChildren(cell: PCell, op: WalkOp) =
+proc forAllChildren(cell: PCell, op: WalkOp) {.legacyRtti.} =
   gcAssert(cell != nil, "forAllChildren: cell is nil")
   gcAssert(isAllocatedPtr(gch.region, cell), "forAllChildren: pointer not part of the heap")
   gcAssert(cell.typ != nil, "forAllChildren: cell.typ is nil")
@@ -374,6 +374,15 @@ proc forAllChildren(cell: PCell, op: WalkOp) =
         for i in 0..s.len-1:
           forAllChildrenAux(cast[pointer](d +% align(GenericSeqSize, cell.typ.base.align) +% i *% cell.typ.base.size), cell.typ.base, op)
     else: discard
+
+proc forAllChildren(cell: PCell, op: WalkOp) {.newRtti.} =
+  gcAssert(cell != nil, "forAllChildren: cell is nil")
+  gcAssert(isAllocatedPtr(gch.region, cell), "forAllChildren: pointer not part of the heap")
+  gcAssert(cell.typ != nil, "forAllChildren: cell.typ is nil")
+  let marker = cell.typ.marker
+  gcAssert(marker != nil, "forAllChildren: marker is missing")
+
+  marker(cellToUsr(cell), op.int)
 
 proc addNewObjToZCT(res: PCell, gch: var GcHeap) {.inline.} =
   # we check the last 8 entries (cache line) for a slot that could be reused.
@@ -439,7 +448,7 @@ proc rawNewObj(typ: PNimType, size: int, gch: var GcHeap): pointer =
   # generates a new object and sets its reference counter to 0
   incTypeSize typ, size
   sysAssert(allocInv(gch.region), "rawNewObj begin")
-  gcAssert(typ.kind in {tyRef, tyString, tySequence}, "newObj: 1")
+  #gcAssert(typ.kind in {tyRef, tyString, tySequence}, "newObj: 1")
   collectCT(gch)
   var res = cast[PCell](rawAlloc(gch.region, size + sizeof(Cell)))
   #gcAssert typ.kind in {tyString, tySequence} or size >= typ.base.size, "size too small"
@@ -487,7 +496,7 @@ proc newObjRC1(typ: PNimType, size: int): pointer {.compilerRtl, noinline.} =
   # generates a new object and sets its reference counter to 1
   incTypeSize typ, size
   sysAssert(allocInv(gch.region), "newObjRC1 begin")
-  gcAssert(typ.kind in {tyRef, tyString, tySequence}, "newObj: 1")
+  #gcAssert(typ.kind in {tyRef, tyString, tySequence}, "newObj: 1")
   collectCT(gch)
   sysAssert(allocInv(gch.region), "newObjRC1 after collectCT")
 
@@ -523,12 +532,13 @@ proc growObj(old: pointer, newsize: int, gch: var GcHeap): pointer =
   collectCT(gch)
   var ol = usrToCell(old)
   sysAssert(ol.typ != nil, "growObj: 1")
-  gcAssert(ol.typ.kind in {tyString, tySequence}, "growObj: 2")
+  #gcAssert(ol.typ.kind in {tyString, tySequence}, "growObj: 2")
   sysAssert(allocInv(gch.region), "growObj begin")
 
   var res = cast[PCell](rawAlloc(gch.region, newsize + sizeof(Cell)))
   var elemSize,elemAlign = 1
-  if ol.typ.kind != tyString:
+  # for the string RTTI object, `base` is nil
+  if ol.typ.base != nil:
     elemSize = ol.typ.base.size
     elemAlign = ol.typ.base.align
   incTypeSize ol.typ, newsize

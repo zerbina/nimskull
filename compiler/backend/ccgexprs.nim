@@ -275,11 +275,12 @@ proc genGenericAsgn(p: BProc, dest, src: TLoc, flags: TAssignmentFlags) =
            "#nimCopyMem((void*)$1, (NIM_CONST void*)$2, sizeof($3));$n",
            [addrLoc(p.config, dest), addrLoc(p.config, src), rdLoc(dest)])
     else:
-      linefmt(p, cpsStmts, "#genericShallowAssign((void*)$1, (void*)$2, $3);$n",
-              [addrLoc(p.config, dest), addrLoc(p.config, src), genTypeInfoV1(p.module, dest.t, dest.lode.info)])
+      let prc = genAsgnProc(p.module, dest.t)
+      linefmt(p, cpsStmts, "$1((void*)$2, (void*)$3, true);$n", [prc, addrLoc(p.config, dest), addrLoc(p.config, src)])
+
   else:
-    linefmt(p, cpsStmts, "#genericAssign((void*)$1, (void*)$2, $3);$n",
-            [addrLoc(p.config, dest), addrLoc(p.config, src), genTypeInfoV1(p.module, dest.t, dest.lode.info)])
+    let prc = genAsgnProc(p.module, dest.t)
+    linefmt(p, cpsStmts, "$1((void*)$2, (void*)$3, false);$n", [prc, addrLoc(p.config, dest), addrLoc(p.config, src)])
 
 proc genOpenArrayConv(p: BProc; d: TLoc; a: TLoc) =
   assert d.k != locNone
@@ -326,9 +327,8 @@ proc genAssignment(p: BProc, dest, src: TLoc, flags: TAssignmentFlags) =
     elif (needToCopy notin flags and src.storage != OnStatic) or canMove(p, src.lode, dest):
       genRefAssign(p, dest, src)
     else:
-      linefmt(p, cpsStmts, "#genericSeqAssign($1, $2, $3);$n",
-              [addrLoc(p.config, dest), rdLoc(src),
-              genTypeInfoV1(p.module, dest.t, dest.lode.info)])
+      genGenericAsgn(p, dest, src, flags)
+
   of tyString:
     if optSeqDestructors in p.config.globalOptions:
       genGenericAsgn(p, dest, src, flags)
@@ -860,6 +860,29 @@ proc genRecordField(p: BProc, e: PNode, d: var TLoc) =
 
 proc genInExprAux(p: BProc, e: PNode, a, b, d: var TLoc)
 
+proc genReprDiscriminant(p: BProc, val: Rope, field: PSym): Rope =
+  let typ = field.typ.skipTypes(abstractRange)
+  let first = p.config.firstOrd(typ)
+  let firstLit = int64Literal(cast[int](first))
+
+  case typ.kind
+  of tyEnum:
+    let toStrProc = getToStringProc(p.module.g.graph, typ)
+
+    var prc: TLoc
+    expr(p, newSymNode(toStrProc), prc)
+
+    result = prc.r
+
+  of tyBool, tyChar, tyInt..tyInt64, tyUInt..tyUInt64:
+    result = cgsym(p.module, "reprDiscriminant")
+
+  else:
+    echo typ.kind
+    p.config.internalAssert(false, $typ.kind)
+
+  result.addf("(((NI)$1) + (NI)$2)", [val, firstLit])
+
 proc genFieldCheck(p: BProc, e: PNode, obj: Rope, field: PSym) =
   var test, u, v: TLoc
   for i in 1..<e.len:
@@ -904,15 +927,12 @@ proc genFieldCheck(p: BProc, e: PNode, obj: Rope, field: PSym) =
         linefmt(p, cpsStmts, code, [strLit, raiseInstr(p), discIndex])
     else:
       # complication needed for signed types
-      let first = p.config.firstOrd(disc.sym.typ)
-      let firstLit = int64Literal(cast[int](first))
-      let discName = genTypeInfo(p.config, p.module, disc.sym.typ, e.info)
       if p.config.getStdlibVersion < (1,5,1):
         const code = "{ #raiseFieldError($1); $2} $n"
         linefmt(p, cpsStmts, code, [strLit, raiseInstr(p)])
       else:
-        const code = "{ #raiseFieldError2($1, #reprDiscriminant(((NI)$3) + (NI)$4, $5)); $2} $n"
-        linefmt(p, cpsStmts, code, [strLit, raiseInstr(p), discIndex, firstLit, discName])
+        const code = "{ #raiseFieldError2($1, $3); $2} $n"
+        linefmt(p, cpsStmts, code, [strLit, raiseInstr(p), genReprDiscriminant(p, discIndex, disc.sym)])
 
 proc genCheckedRecordField(p: BProc, e: PNode, d: var TLoc) =
   assert e[0].kind == nkDotExpr
@@ -1457,120 +1477,6 @@ proc handleConstExpr(p: BProc, n: PNode, d: var TLoc): bool =
     result = true
   else:
     result = false
-
-# XXX: maybe move the `specializeInitObject` procs into a separate module
-#      (similiar to `specializeReset`)
-
-proc specializeInitObject(p: BProc, accessor: Rope, typ: PType,
-                          info: TLineInfo)
-
-proc specializeInitObjectL(p: BProc, accessor: Rope, loc: TLoc) =
-  ## Generates type field (if there are any) initialization code for the given
-  ## `loc`. `accessor` is the path to `loc`, excluding loc itself
-  specializeInitObject(p, "$1.$2" % [accessor, loc.r], loc.t, loc.lode.info)
-
-proc specializeInitObjectN(p: BProc, accessor: Rope, n: PNode, typ: PType) =
-  ## Generates type field initialization code for the record node
-
-  # XXX: this proc shares alot of code with `specializeResetN` (it's based on
-  #      a copy of it, after all)
-  if n == nil: return
-  case n.kind
-  of nkRecList:
-    for i in 0..<n.len:
-      specializeInitObjectN(p, accessor, n[i], typ)
-  of nkRecCase:
-    p.config.internalAssert(n[0].kind == nkSym, n.info,
-                            "specializeInitObjectN")
-    let disc = n[0].sym
-    if disc.loc.r == nil: fillObjectFields(p.module, typ)
-    p.config.internalAssert(disc.loc.t != nil, n.info,
-                            "specializeInitObjectN()")
-    lineF(p, cpsStmts, "switch ($1.$2) {$n", [accessor, disc.loc.r])
-    for i in 1..<n.len:
-      let branch = n[i]
-      assert branch.kind in {nkOfBranch, nkElse}
-      if branch.kind == nkOfBranch:
-        genCaseRange(p, branch)
-      else:
-        lineF(p, cpsStmts, "default:$n", [])
-      specializeInitObjectN(p, accessor, lastSon(branch), typ)
-      lineF(p, cpsStmts, "break;$n", [])
-    lineF(p, cpsStmts, "} $n", [])
-  of nkSym:
-    let field = n.sym
-    if field.typ.kind == tyVoid: return
-    if field.loc.r == nil: fillObjectFields(p.module, typ)
-    p.config.internalAssert(field.loc.t != nil, n.info,
-                            "specializeInitObjectN()")
-    specializeInitObjectL(p, accessor, field.loc)
-  else: internalError(p.config, n.info, "specializeInitObjectN()")
-
-proc specializeInitObject(p: BProc, accessor: Rope, typ: PType,
-                          info: TLineInfo) =
-  ## Generates type field (if there are any) initialization code for an
-  ## variable of `typ` at `accessor`. Specialiaztion for the run-time
-  ## `objectInit` function (that's also only available for the old runtime)
-  if typ == nil:
-    return
-
-  let typ = typ.skipTypes(abstractInst)
-
-  # XXX: this function trades compililation time for run-time efficiency by
-  #      potentially performing lots of redundant walks over the same types,
-  #      in order to not generate code for records that don't need it. The
-  #      better solution would be to run type field analysis only once for
-  #      each record type and then cache the result. `cgen` lacks a general
-  #      mechanism for caching type related info.
-  #      A further improvement would be to emit the code into a separate
-  #      function and then just call that
-
-  case typ.kind
-  of tyArray:
-    # To not generate an empty `for` loop, first check if the array contains
-    # any type fields. This optimizes for the case where there are none,
-    # making the case where type fields exist slower (compile time)
-    if analyseObjectWithTypeField(typ) == frNone:
-      return
-
-    let arraySize = lengthOrd(p.config, typ[0])
-    var i: TLoc
-    getTemp(p, getSysType(p.module.g.graph, info, tyInt), i)
-    linefmt(p, cpsStmts, "for ($1 = 0; $1 < $2; $1++) {$n",
-            [i.r, arraySize])
-    specializeInitObject(p, ropecg(p.module, "$1[$2]", [accessor, i.r]),
-                         typ[1], info)
-    lineF(p, cpsStmts, "}$n", [])
-  of tyObject:
-    proc pred(t: PType): bool = not isObjLackingTypeField(t)
-
-    var
-      t = typ
-      a = accessor
-
-    # walk the type hierarchy and generate object initialization code for
-    # all bases that contain type fields
-    while t != nil:
-      t = t.skipTypes(skipPtrs)
-
-      if t.n != nil and searchTypeNodeFor(t.n, pred):
-        specializeInitObjectN(p, a, t.n, t)
-
-      a = a.parentObj(p.module)
-      t = t.base
-
-    # type header:
-    if pred(typ):
-      genObjectInitHeader(p, cpsStmts, typ, accessor, info)
-
-  of tyTuple:
-    let typ = getUniqueType(typ)
-    for i in 0..<typ.len:
-      specializeInitObject(p, ropecg(p.module, "$1.Field$2", [accessor, i]),
-                           typ[i], info)
-
-  else:
-    discard
 
 proc genObjConstr(p: BProc, e: PNode, d: var TLoc) =
   #echo renderTree e, " ", e.isDeepConstExpr
@@ -2501,10 +2407,7 @@ proc genMagicExpr(p: BProc, e: PNode, d: var TLoc, op: TMagic) =
   of mStrToStr, mUnown: expr(p, e[1], d)
   of mIsolate, mFinished: genCall(p, e, d)
   of mEnumToStr:
-    if optTinyRtti in p.config.globalOptions:
-      genEnumToStr(p, e, d)
-    else:
-      genRepr(p, e, d)
+    genEnumToStr(p, e, d)
   of mOf: genOf(p, e, d)
   of mNew: genNew(p, e)
   of mNewFinalize:

@@ -143,6 +143,11 @@ type
     generatedHeader*: BModule
     typeInfoMarker*: TypeCacheWithOwner
     typeInfoMarkerV2*: TypeCacheWithOwner
+
+    asgnProcMarker*: TypeCacheWithOwner
+    objInitProcMarker*: HashSet[SigHash] ## remembers for which types the 'init'
+                                         ## procedure was already created
+
     config*: ConfigRef
     graph*: ModuleGraph
     strVersion*, seqVersion*: int ## version of the string/seq implementation to use
@@ -178,6 +183,10 @@ type
     headerFiles*: seq[string] ## needed headers to include
     typeInfoMarker*: TypeCache ## needed for generating type information
     typeInfoMarkerV2*: TypeCache
+
+    asgnProcMarker*: TypeCache ## remembers all used generated assignment
+                               ## procedure for this module
+
     initProc*: BProc          ## code for init procedure
     preInitProc*: BProc       ## code executed before the init proc
     hcrCreateTypeInfosProc*: Rope ## type info globals are in here when HCR=on

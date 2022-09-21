@@ -90,3 +90,29 @@ proc specializeResetT(p: BProc, accessor: Rope, typ: PType) =
 
 proc specializeReset(p: BProc, a: TLoc) =
   specializeResetT(p, rdLoc(a), a.t)
+
+
+proc genResetProc(m: BModule, typ: PType, sig: SigHash): Rope =
+  assert tfHasGCedMem in typ.flags
+
+  result = "Reset_" & getTypeName(m, typ, sig)
+
+  let
+    header = "static N_NIMCALL(void, $1)(void* p)" % [result]
+    p = newProc(nil, m)
+    typ = typ.skipTypes(abstractInstOwned)
+    tdesc = getTypeDesc(m, typ)
+
+  # TODO: make this work for array types
+
+  lineF(p, cpsLocals, "$1* a;$n", [tdesc])
+  lineF(p, cpsInit, "a = ($1*) p;$n", [tdesc])
+
+  specializeResetT(p, ~"(*a)", typ)
+
+  let generatedProc = "$1 {$n$2$3$4}$n" %
+        [header, p.s(cpsLocals), p.s(cpsInit), p.s(cpsStmts)]
+
+  # register the procedure to the owning module
+  m.s[cfsProcHeaders].addf("$1;$n", [header])
+  m.s[cfsProcs].add(generatedProc)

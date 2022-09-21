@@ -550,6 +550,13 @@ const
 
 include "system/inclrtl"
 
+when defined(nimSmallerRtti):
+  template legacyRtti(body): untyped = discard
+  {.pragma: newRtti.}
+else:
+  template newRtti(body): untyped = discard
+  {.pragma: legacyRtti.}
+
 const
   isNimVmTarget = defined(nimscript) or defined(vm)
   notJSnotNims = not defined(js) and not isNimVmTarget
@@ -572,7 +579,10 @@ when notJSnotNims and not defined(nimSeqsV2):
     s.reserved and not (seqShallowFlag or strlitFlag)
 
 when notJSnotNims:
-  include "system/hti"
+  when defined(nimSmallerRtti):
+    include "system/hti2"
+  else:
+    include "system/hti"
 
 type
   byte* = uint8 ## This is an alias for `uint8`, that is an unsigned
@@ -2209,8 +2219,12 @@ when not defined(js):
 
     when not usesDestructors:
       {.push profiler: off.}
-      var
-        strDesc = TNimType(size: sizeof(string), kind: tyString, flags: {ntfAcyclic})
+      when defined(nimSmallerRtti):
+        var strDesc = TNimType(size: sizeof(string))
+      else:
+        var
+          strDesc = TNimType(size: sizeof(string), kind: tyString, flags: {ntfAcyclic})
+
       {.pop.}
 
   {.pop.}
@@ -2368,7 +2382,7 @@ when notJSnotNims:
   else:
     const GenericSeqSize = (2 * sizeof(int))
 
-  proc getDiscriminant(aa: pointer, n: ptr TNimNode): uint =
+  proc getDiscriminant(aa: pointer, n: ptr TNimNode): uint {.legacyRtti.} =
     sysAssert(n.kind == nkCase, "getDiscriminant: node != nkCase")
     var d: uint
     var a = cast[uint](aa)
@@ -2382,7 +2396,7 @@ when notJSnotNims:
       sysAssert(false, "getDiscriminant: invalid n.typ.size")
     return d
 
-  proc selectBranch(aa: pointer, n: ptr TNimNode): ptr TNimNode =
+  proc selectBranch(aa: pointer, n: ptr TNimNode): ptr TNimNode {.legacyRtti.} =
     var discr = getDiscriminant(aa, n)
     if discr < cast[uint](n.len):
       result = n.sons[discr]
@@ -2398,12 +2412,18 @@ when notJSnotNims and hasAlloc:
   {.push stackTrace: off, profiler: off.}
   when not defined(nimSeqsV2):
     include "system/sysstr"
+    when defined(nimSmallerRtti):
+      include "system/seqs_v1"
+
   {.pop.}
 
   include "system/strmantle"
-  include "system/assign"
+  when defined(nimSmallerRtti):
+    include "system/assign_v1"
+  else:
+    include "system/assign"
 
-  when not defined(nimV2):
+  when not defined(nimV2) and not defined(nimSmallerRtti):
     include "system/repr"
 
 when notJSnotNims and hasThreadSupport and hostOS != "standalone":
@@ -2807,7 +2827,7 @@ type
   NimNode* {.magic: "PNimrodNode".} = ref NimNodeObj
     ## Represents a Nim AST node. Macros operate on this type.
 
-when defined(nimV2):
+when defined(nimV2) or defined(nimSmallerRtti):
   import system/repr_v2
   export repr_v2
 
@@ -2973,7 +2993,8 @@ when hasAlloc and notJSnotNims:
     ## Convenience wrapper around `deepCopy` overload.
     deepCopy(result, y)
 
-  include "system/deepcopy"
+  when not defined(nimSmallerRtti):
+    include "system/deepcopy"
 
 proc procCall*(x: untyped) {.magic: "ProcCall", compileTime.} =
   ## Special magic to prohibit dynamic binding for `method`:idx: calls.

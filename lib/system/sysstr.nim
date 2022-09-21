@@ -246,7 +246,7 @@ proc setLengthStr(s: NimString, newLen: int): NimString {.compilerRtl.} =
 
 # ----------------- sequences ----------------------------------------------
 
-proc incrSeq(seq: PGenericSeq, elemSize, elemAlign: int): PGenericSeq {.compilerproc.} =
+proc incrSeq(seq: PGenericSeq, elemSize, elemAlign: int): PGenericSeq {.legacyRtti, compilerproc.} =
   # increments the length by one:
   # this is needed for supporting ``add``;
   #
@@ -260,7 +260,7 @@ proc incrSeq(seq: PGenericSeq, elemSize, elemAlign: int): PGenericSeq {.compiler
     result.reserved = r
   inc(result.len)
 
-proc incrSeqV2(seq: PGenericSeq, elemSize, elemAlign: int): PGenericSeq {.compilerproc.} =
+proc incrSeqV2(seq: PGenericSeq, elemSize, elemAlign: int): PGenericSeq {.legacyRtti, compilerproc.} =
   # incrSeq version 2
   result = seq
   if result.len >= result.space:
@@ -268,7 +268,7 @@ proc incrSeqV2(seq: PGenericSeq, elemSize, elemAlign: int): PGenericSeq {.compil
     result = cast[PGenericSeq](growObj(result, align(GenericSeqSize, elemAlign) + elemSize * r))
     result.reserved = r
 
-proc incrSeqV3(s: PGenericSeq, typ: PNimType): PGenericSeq {.compilerproc.} =
+proc incrSeqV3(s: PGenericSeq, typ: PNimType): PGenericSeq {.legacyRtti, compilerproc.} =
   if s == nil:
     result = cast[PGenericSeq](newSeq(typ, 1))
     result.len = 0
@@ -287,7 +287,7 @@ proc incrSeqV3(s: PGenericSeq, typ: PNimType): PGenericSeq {.compilerproc.} =
         result.reserved = r
 
 proc setLengthSeq(seq: PGenericSeq, elemSize, elemAlign, newLen: int): PGenericSeq {.
-    compilerRtl, inl.} =
+    legacyRtti, compilerRtl, inl.} =
   result = seq
   if result.space < newLen:
     let r = max(resize(result.space), newLen)
@@ -323,7 +323,7 @@ proc setLengthSeq(seq: PGenericSeq, elemSize, elemAlign, newLen: int): PGenericS
   result.len = newLen
 
 proc setLengthSeqV2(s: PGenericSeq, typ: PNimType, newLen: int): PGenericSeq {.
-    compilerRtl.} =
+    legacyRtti, compilerRtl.} =
   sysAssert typ.kind == tySequence, "setLengthSeqV2: type is not a seq"
   if s == nil:
     result = cast[PGenericSeq](newSeq(typ, newLen))

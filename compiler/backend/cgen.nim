@@ -433,6 +433,8 @@ proc genObjectInit(p: BProc, section: TCProcSection, t: PType, a: TLoc,
     else:
       # worst case for performance:
       var r = if mode == constructObj: addrLoc(p.config, a) else: rdLoc(a)
+      # make sure the specialized init procedure exists
+      requestObjectInit(p.module, t, a.lode.info)
       linefmt(p, section, "#objectInit($1, $2);$n", [r, genTypeInfoV1(p.module, t, a.lode.info)])
 
 proc genRefAssign(p: BProc, dest, src: TLoc)
@@ -484,6 +486,8 @@ proc resetLoc(p: BProc, loc: var TLoc; doInitObj = true) =
       # on the bytes following the m_type field?
       if doInitObj:
         genObjectInit(p, cpsStmts, loc.t, loc, constructObj)
+
+include ccgassign
 
 proc constructLoc(p: BProc, loc: var TLoc, isTemp = false; doInitObj = true) =
   let typ = loc.t

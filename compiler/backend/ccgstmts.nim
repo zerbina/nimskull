@@ -1482,20 +1482,6 @@ proc genPragma(p: BProc, n: PNode) =
     of wEmit: genEmit(p, it)
     else: discard
 
-
-proc genDiscriminantCheck(p: BProc, a, tmp: TLoc, objtype: PType,
-                          field: PSym) =
-  var t = skipTypes(objtype, abstractVar)
-  assert t.kind == tyObject
-  discard genTypeInfoV1(p.module, t, a.lode.info)
-  if not containsOrIncl(p.module.declaredThings, field.id):
-    appcg(p.module, cfsVars, "extern $1",
-          [discriminatorTableDecl(p.module, t, field)])
-  lineCg(p, cpsStmts,
-        "#FieldDiscriminantCheck((NI)(NU)($1), (NI)(NU)($2), $3, $4);$n",
-        [rdLoc(a), rdLoc(tmp), discriminatorTableName(p.module, t, field),
-         intLiteral(toInt64(lengthOrd(p.config, field.typ))+1)])
-
 when false:
   proc genCaseObjDiscMapping(p: BProc, e: PNode, t: PType, field: PSym; d: var TLoc) =
     const ObjDiscMappingProcSlot = -5
@@ -1519,10 +1505,13 @@ proc asgnFieldDiscriminant(p: BProc, e: PNode) =
   initLocExpr(p, e[0], a)
   getTemp(p, a.t, tmp)
   expr(p, e[1], tmp)
-  if optTinyRtti notin p.config.globalOptions:
-    let field = dotExpr[1].sym
-    genDiscriminantCheck(p, a, tmp, dotExpr[0].typ, field)
-    localReport(p.config, e, reportSem rsemCaseTransition)
+  # XXX: a no-op for now
+  when false:
+    if optTinyRtti notin p.config.globalOptions:
+      let field = dotExpr[1].sym
+      genDiscriminantCheck(p, a, tmp, dotExpr[0].typ, field)
+      localReport(p.config, e, reportSem rsemCaseTransition)
+
   genAssignment(p, a, tmp, {})
 
 proc genAsgn(p: BProc, e: PNode, fastAsgn: bool) =

@@ -1302,11 +1302,14 @@ proc genSetElem(c: var TCtx, n: PNode, typ: PType): TRegister {.inline.} =
   let first = toInt(c.config.firstOrd(t))
   genSetElem(c, n, first)
 
+func isNimNode(t: PType): bool =
+  t.sym != nil and t.sym.magic == mPNimrodNode
+
 proc fitsRegister*(t: PType): bool =
   assert t != nil
   let st = t.skipTypes(abstractInst + {tyStatic} - {tyTypeDesc})
   st.kind in { tyRange, tyEnum, tyBool, tyInt..tyUInt64, tyChar, tyPtr, tyPointer} or
-    (st.sym != nil and st.sym.magic == mPNimrodNode) # NimNode goes into register too
+    isNimNode(st) # NimNode goes into register too
 
 proc ldNullOpcode(t: PType): TOpcode =
   assert t != nil
@@ -1481,10 +1484,12 @@ proc genMagic(c: var TCtx; n: PNode; dest: var TDest; m: TMagic) =
     c.freeTemp(tmp)
     c.freeTemp(tmp2)
   of mRepr:
+    assert n[1].typ.skipTypes(abstractVar).isNimNode
     let tmp = c.genx(n[1])
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABx(n, opcRepr, dest, c.genTypeInfo(n[1].typ))
-    c.gABC(n, opcRepr, dest, tmp)
+    if dest.isUnset:
+      dest = c.getTemp(n.typ)
+
+    c.gABx(n, opcRepr, dest, tmp)
     c.freeTemp(tmp)
   of mExit:
     unused(c, n, dest)
