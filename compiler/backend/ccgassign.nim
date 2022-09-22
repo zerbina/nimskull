@@ -201,11 +201,9 @@ proc genAsgnProc(m: BModule, origTyp: PType; sig: SigHash): Rope =
 
   case typ.kind
   of tySequence:
-    let prc =
-      if tfHasGCedMem in typ[0].flags:
-        genAsgnProc(c.p.module, typ[0])
-      else:
-        ~"NIM_NIL"
+    var prc = genAsgnProc(c.p.module, typ[0])
+    if prc == nil:
+      prc = ~"NIM_NIL"
 
     lineCg(p, cpsStmts, "#copySeq(a, (#TGenericSeq*)*b, $1, $2, shallow);$n", [genTypeInfoV1(m, typ, unknownLineInfo), prc])
 
@@ -225,11 +223,9 @@ proc genAsgnProc(m: BModule, origTyp: PType; sig: SigHash): Rope =
     if typ.n != nil:
       genAsgnProc(c, ~"", typ.n, typ)
 
-  of tyTuple:
+  of tyTuple, tyArray:
     c.dst = ~"(*a)"
     c.src = ~"(*b)"
-    genAsgnProc(c, ~"", typ)
-  of tyArray:
     genAsgnProc(c, ~"", typ)
   else:
     echo "missing: ", typ.kind
@@ -247,5 +243,11 @@ proc genAsgnProc(m: BModule, t: PType): Rope =
     cgsym(m, "assignString")
   of tyRef:
     cgsym(m, "genericRefAssign")
-  else:
+  of tySequence:
     genAsgnProc(m, t, hashType(t))
+  else:
+    if tfHasGCedMem in t.flags or tfHasGCedMem in st.flags:
+      genAsgnProc(m, t, hashType(t))
+    else:
+      # type doesn't need a code-specialized assignment procedure
+      nil

@@ -1004,7 +1004,7 @@ proc genTypeInfoAuxBase(m: BModule; typ, origType: PType;
   )
   # compute type flags for GC optimization
   if not containsGarbageCollectedRef(typ):
-    discard #m.s[cfsTypeInit3].addf("$1.flags = $2;$n", [nameHcr, rope(1)])
+    m.s[cfsTypeInit3].addf("$1.flags = $2;$n", [nameHcr, rope(1)])
 
   discard cgsym(m, "TNimType")
   if isDefined(m.config, "nimTypeNames"):

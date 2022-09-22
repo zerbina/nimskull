@@ -1371,7 +1371,7 @@ proc insert*[T](x: var seq[T], item: sink T, i = 0.Natural) {.noSideEffect.} =
         defaultImpl()
     x[i] = item
 
-when not defined(nimV2):
+when not defined(nimV2) and not defined(nimSmallerRtti):
   proc repr*[T](x: T): string {.magic: "Repr", noSideEffect.}
     ## Takes any Nim variable and returns its string representation.
     ## No trailing newline is inserted (so `echo` won't add an empty newline).
@@ -2419,7 +2419,8 @@ when notJSnotNims and hasAlloc:
 
   include "system/strmantle"
   when defined(nimSmallerRtti):
-    include "system/assign_v1"
+    when not defined(nimV2):
+      include "system/assign_v1"
   else:
     include "system/assign"
 

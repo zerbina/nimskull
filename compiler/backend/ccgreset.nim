@@ -92,6 +92,8 @@ proc specializeReset(p: BProc, a: TLoc) =
   specializeResetT(p, rdLoc(a), a.t)
 
 
+# TODO: this has nothing to do with `reset` now anymore. Move it somewhere
+#       else
 proc genResetProc(m: BModule, typ: PType, sig: SigHash): Rope =
   assert tfHasGCedMem in typ.flags
 
@@ -108,7 +110,9 @@ proc genResetProc(m: BModule, typ: PType, sig: SigHash): Rope =
   lineF(p, cpsLocals, "$1* a;$n", [tdesc])
   lineF(p, cpsInit, "a = ($1*) p;$n", [tdesc])
 
-  specializeResetT(p, ~"(*a)", typ)
+  let c = TTraversalClosure(p: p, visitorFrmt: "2") # 2 = waZctDecRef
+
+  genTraverseProc(c, "(*a)".rope, typ)
 
   let generatedProc = "$1 {$n$2$3$4}$n" %
         [header, p.s(cpsLocals), p.s(cpsInit), p.s(cpsStmts)]

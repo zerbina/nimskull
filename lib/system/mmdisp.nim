@@ -97,13 +97,10 @@ when not declared(nimNewSeqOfCap) and not defined(nimSeqsV2):
     else:
       let s = align(GenericSeqSize, typ.base.align) + cap * typ.base.size
       when declared(newObjNoInit):
-        let noDestroy =
-          when defined(nimSmallerRtti):
-            typ.base.destroy == nil
-          else:
-            ntfNoRefs in typ.base.flags
-
-        result = if false: newObjNoInit(typ, s) else: newObj(typ, s)
+        # if the seq's element type contains no refs, zero-initializing the
+        # memory isn't required, as all initial writes to the locations use
+        # blit-copies
+        result = if ntfNoRefs in typ.base.flags: newObjNoInit(typ, s) else: newObj(typ, s)
       else:
         result = newObj(typ, s)
       cast[PGenericSeq](result).len = 0

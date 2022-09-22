@@ -206,7 +206,7 @@ proc initGC() =
     gch.gcThreadId = atomicInc(gHeapidGenerator) - 1
     gcAssert(gch.gcThreadId >= 0, "invalid computed thread ID")
 
-proc forAllSlotsAux(dest: pointer, n: ptr TNimNode, op: WalkOp) {.benign.} =
+proc forAllSlotsAux(dest: pointer, n: ptr TNimNode, op: WalkOp) {.legacyRtti, benign.} =
   var d = cast[ByteAddress](dest)
   case n.kind
   of nkSlot: forAllChildrenAux(cast[pointer](d +% n.offset), n.typ, op)
@@ -218,7 +218,7 @@ proc forAllSlotsAux(dest: pointer, n: ptr TNimNode, op: WalkOp) {.benign.} =
     if m != nil: forAllSlotsAux(dest, m, op)
   of nkNone: sysAssert(false, "forAllSlotsAux")
 
-proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) =
+proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) {.legacyRtti.} =
   var d = cast[ByteAddress](dest)
   if dest == nil: return # nothing to do
   if ntfNoRefs notin mt.flags:
@@ -232,7 +232,7 @@ proc forAllChildrenAux(dest: pointer, mt: PNimType, op: WalkOp) =
         forAllChildrenAux(cast[pointer](d +% i *% mt.base.size), mt.base, op)
     else: discard
 
-proc forAllChildren(cell: PCell, op: WalkOp) =
+proc forAllChildren(cell: PCell, op: WalkOp) {.legacyRtti.} =
   gcAssert(cell != nil, "forAllChildren: 1")
   gcAssert(cell.typ != nil, "forAllChildren: 2")
   gcAssert cell.typ.kind in {tyRef, tySequence, tyString}, "forAllChildren: 3"
@@ -252,10 +252,17 @@ proc forAllChildren(cell: PCell, op: WalkOp) =
             forAllChildrenAux(cast[pointer](d +% align(GenericSeqSize, cell.typ.base.align) +% i *% cell.typ.base.size), cell.typ.base, op)
     else: discard
 
+proc forAllChildren(cell: PCell, op: WalkOp) {.newRtti.} =
+  gcAssert(cell != nil, "forAllChildren: 1")
+  gcAssert(cell.typ != nil, "forAllChildren: 2")
+  gcAssert(cell.typ.marker != nil, "forAllChildren: 3")
+  let marker = cell.typ.marker
+  marker(cellToUsr(cell), op.int)
+
 proc rawNewObj(typ: PNimType, size: int, gch: var GcHeap): pointer =
   # generates a new object and sets its reference counter to 0
   incTypeSize typ, size
-  gcAssert(typ.kind in {tyRef, tyString, tySequence}, "newObj: 1")
+  #gcAssert(typ.kind in {tyRef, tyString, tySequence}, "newObj: 1")
   collectCT(gch, size + sizeof(Cell))
   var res = cast[PCell](rawAlloc(gch.region, size + sizeof(Cell)))
   gcAssert((cast[ByteAddress](res) and (MemAlign-1)) == 0, "newObj: 2")
@@ -315,11 +322,11 @@ when not defined(nimSeqsV2):
     collectCT(gch, newsize + sizeof(Cell))
     var ol = usrToCell(old)
     sysAssert(ol.typ != nil, "growObj: 1")
-    gcAssert(ol.typ.kind in {tyString, tySequence}, "growObj: 2")
+    #gcAssert(ol.typ.kind in {tyString, tySequence}, "growObj: 2")
 
     var res = cast[PCell](rawAlloc(gch.region, newsize + sizeof(Cell)))
     var elemSize, elemAlign = 1
-    if ol.typ.kind != tyString:
+    if ol.typ.base != nil:
       elemSize = ol.typ.base.size
       elemAlign = ol.typ.base.align
     incTypeSize ol.typ, newsize
