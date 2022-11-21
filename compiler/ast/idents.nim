@@ -28,6 +28,7 @@ type
     buckets: array[0..4096 * 2 - 1, PIdent]
     wordCounter: int
     idAnon*, idDelegator*, emptyIdent*, identNotFound: PIdent
+    unique: PIdent
 
 proc resetIdentCache*() = discard
 
@@ -101,6 +102,13 @@ proc getIdent*(ic: IdentCache; identifier: string): PIdent =
 
 proc getIdent*(ic: IdentCache; identifier: string, h: Hash): PIdent =
   result = getIdent(ic, cstring(identifier), identifier.len, h)
+
+proc makeUniqueIdent*(ic: IdentCache, identifier: sink string): PIdent =
+  ## Creates an identifier that is guaranteed to be unique. That is, it only
+  ## matches with the same ``PIdent`` instance.
+  inc ic.wordCounter
+  result = PIdent(id: -ic.wordCounter, s: identifier, next: ic.unique)
+  ic.unique = result
 
 proc getNotFoundIdent*(ic: IdentCache): PIdent =
   ## returns the identifier associated with an error, this will create the

@@ -3111,17 +3111,14 @@ proc rawExecute(c: var TCtx, pc: var int, tos: var StackFrameIndex): RegisterInd
         delSon(regs[ra].nimNode, bb)
     of opcGenSym:
       decodeBC(rkNimNode)
-      let k = regs[rb].intVal
+      # TODO: don't emit the symbol kind as an operand in the first place -- it's unused
+      discard regs[rb].intVal
       checkHandle(regs[rc])
       assert regs[rc].handle.typ.kind == akString
       # XXX: costly stringify of strVal... `getIdent` doesn't use openArray :(
       let name = if regs[rc].strVal.len == 0: ":tmp"
                  else: $regs[rc].strVal
-      guestValidate(k in 0..ord(high(TSymKind)),
-        "request to create symbol of invalid kind")
-      var sym = newSym(k.TSymKind, getIdent(c.cache, name), nextSymId c.idgen, c.module.owner, c.debug[pc])
-      incl(sym.flags, sfGenSym)
-      regs[ra].nimNode = newSymNode(sym)
+      regs[ra].nimNode = newIdentNode(makeUniqueIdent(c.cache, name), c.debug[pc])
     of opcNccValue:
       decodeB(rkInt)
       checkHandle(regs[rb])
