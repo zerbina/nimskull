@@ -52,7 +52,8 @@ import
     debugutils,
     int128,
     astrepr,
-    idioms
+    idioms,
+    tracer
   ],
   compiler/sem/[
     semfold,
@@ -838,6 +839,7 @@ proc semStmtAndGenerateGenerics(c: PContext, n: PNode): PNode =
   ## accumulator across the various top level statements, modules, and overall
   ## program compilation.
   addInNimDebugUtils(c.config, "semStmtAndGenerateGenerics", n, result)
+  c.config.timeTracer.traceSem(n.kind, n.info)
 
   if c.isfirstTopLevelStmt and not isImportSystemStmt(c.graph, n):
     if sfSystemModule notin c.module.flags and not isEmptyTree(n):

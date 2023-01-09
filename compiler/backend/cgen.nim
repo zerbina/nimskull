@@ -49,7 +49,8 @@ import
     bitsets,
     ropes,
     pathutils,
-    idioms
+    idioms,
+    tracer
   ],
   compiler/sem/[
     rodutils,
@@ -1008,6 +1009,8 @@ proc genProcAux(m: BModule, prc: PSym) =
 
   procBody = canonicalizeWithInject(m.g.graph, m.idgen, prc, procBody, {})
 
+  m.config.timeTracer.traceSym(tikCodegen, prc)
+
   if sfPure notin prc.flags and prc.typ[0] != nil:
     m.config.internalAssert(resultPos < prc.ast.len, prc.info, "proc has no result symbol")
     let resNode = prc.ast[resultPos]
@@ -1649,7 +1652,9 @@ proc getCFile(m: BModule): AbsoluteFile =
   result = changeFileExt(completeCfilePath(m.config, withPackageName(m.config, m.cfilename)), ".nim.c")
 
 proc genTopLevelStmt*(m: BModule; n: PNode) =
-  ## Called from `ic/cbackend.nim` and ``backend/cbackend.nim``.
+  ## Also called from `ic/cbackend.nim`.
+  m.config.timeTracer.traceLoc(tikCodegen, n.info)
+  if passes.skipCodegen(m.config, n): return
   m.initProc.options = initProcOptions(m)
   #softRnl = if optLineDir in m.config.options: noRnl else: rnl
   # XXX replicate this logic!
@@ -1756,6 +1761,8 @@ proc finalCodegenActions*(graph: ModuleGraph; m: BModule; n: PNode) =
   m.g.modulesClosed.add m
 
 proc cgenWriteModules*(backend: RootRef, config: ConfigRef) =
+  config.timeTracer.traceStr("cgenWriteModules")
+
   let g = BModuleList(backend)
   g.config = config
 

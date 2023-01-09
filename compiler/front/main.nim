@@ -52,6 +52,7 @@ import
     pathutils,   # Input file handling
     astrepr,     # Output parsed data, for compiler development
     idioms,
+    tracer
   ],
   compiler/vm/[
     compilerbridge, # Configuration file evaluation, `nim e`
@@ -201,7 +202,8 @@ proc commandCompileToC(graph: ModuleGraph) =
   if not extccomp.ccHasSaneOverflow(conf):
     conf.defineSymbol("nimEmulateOverflowChecks")
 
-  compileProject(graph)
+  graph.config.timeTracer.traceStr("compile"):
+    compileProject(graph)
   if graph.config.errorCounter > 0:
     return # issue #9933
   if conf.symbolFiles == disabledSf:

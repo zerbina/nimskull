@@ -36,7 +36,8 @@ import
   ],
   compiler/utils/[
     debugutils,
-    idioms
+    idioms,
+    tracer
   ],
   compiler/vm/[
     vmaux,
@@ -429,6 +430,7 @@ proc evalStmt(c: var TCtx, n: PNode): PNode =
   let n = transformExpr(c.graph, c.idgen, c.module, n)
   let info = genStmt(c, n).returnOnErr(c.config, n)
 
+  c.config.timeTracer.traceLoc(tikVm, n.info)
   # execute new instructions; this redundant opcEof check saves us lots
   # of allocations in 'execute':
   if c.code[info.start].opcode != opcEof:
@@ -484,6 +486,7 @@ proc evalConstExprAux(module: PSym; idgen: IdGenerator;
     else:
       mkCallback(c, r): newNodeI(nkEmpty, n.info)
 
+  c.config.timeTracer.traceLoc(tikVm, n.info)
   result = execute(c[], start, tos, cb).unpackResult(c.config, n)
 
 proc evalConstExpr*(module: PSym; idgen: IdGenerator; g: ModuleGraph; e: PNode): PNode {.inline.} =
@@ -557,7 +560,8 @@ proc evalMacroCall*(module: PSym; idgen: IdGenerator; g: ModuleGraph; templInstC
       setupMacroParam(tos.slots[idx], c[], args[idx - 1], gp[i].sym.typ)
 
   let cb = mkCallback(c, r): r.nimNode
-  result = execute(c[], start, tos, cb).unpackResult(c.config, call)
+  c.config.timeTracer.traceSym(tikVm, sym):
+    result = execute(c[], start, tos, cb).unpackResult(c.config, call)
 
   if result.kind != nkError and cyclicTree(result):
     result = c.config.newError(call, PAstDiag(kind: adCyclicTree))

@@ -3168,6 +3168,8 @@ proc semRoutineDef(c: PContext, n: PNode): PNode =
     # already sem-checked
     return
 
+  c.config.timeTracer.traceSem(n.kind, n.info)
+
   let kind =
     case n.kind
     of nkProcDef:      skProc
@@ -3206,6 +3208,7 @@ proc semRoutineDef(c: PContext, n: PNode): PNode =
 
 
 proc incMod(c: PContext, n: PNode, it: PNode, includeStmtResult: PNode) =
+  c.config.timeTracer.traceStr(tikInclude, getModuleName(c.config, it))
   var f = checkModuleName(c.config, it)
   if f != InvalidFileIdx:
     addIncludeFileDep(c, f)

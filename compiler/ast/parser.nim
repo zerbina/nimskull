@@ -48,6 +48,7 @@ import
     pathutils,
     astrepr,
     idioms,
+    tracer
   ]
 
 type
@@ -2327,6 +2328,7 @@ proc parseAll(p: var Parser): ParsedNode =
 proc parseTopLevelStmt(p: var Parser): ParsedNode =
   ## Implements an iterator which, when called repeatedly, returns the next
   ## top-level statement or emptyNode if end of stream.
+  p.lex.config.timeTracer.traceStr(tikParser, "parseTopLevelStmt")
   result = p.emptyNode
   # progress guaranteed
   while true:

@@ -30,7 +30,8 @@ import
     varpartitions
   ],
   compiler/utils/[
-    astrepr
+    astrepr,
+    tracer
   ]
 
 export GenOption
@@ -124,6 +125,7 @@ proc canonicalizeWithInject*(graph: ModuleGraph, idgen: IdGenerator,
   # the MIR translation/processing
   let inject = shouldInjectDestructorCalls(owner)
   if inject and optCursorInference in config.options:
+    graph.config.timeTracer.traceStr("cursors")
     computeCursors(owner, body, graph)
 
   echoInput(config, owner, body)
@@ -134,6 +136,7 @@ proc canonicalizeWithInject*(graph: ModuleGraph, idgen: IdGenerator,
 
   # step 2: run the ``injectdestructors`` pass
   if inject:
+    graph.config.timeTracer.traceSym(tikInjectDestr, owner)
     injectDestructorCalls(graph, idgen, owner, tree, sourceMap)
 
   # step 3: translate the MIR code back to an AST

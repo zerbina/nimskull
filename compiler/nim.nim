@@ -31,7 +31,9 @@ import
     modulegraphs
   ],
   compiler/utils/[
-    pathutils
+    pathutils,
+    tracer,
+    trace_dump
   ],
   compiler/ast/[
     idents,
@@ -50,6 +52,17 @@ when defined(profiler) or defined(memProfiler):
   {.hint: "Profiling support is turned on!".}
   import sdt/nimprof
 
+import std/[streams, times]
+
+proc dumpTrace(c: ConfigRef) =
+  let
+    suffix = now().format("YYYY-MM-dd'T'HH-mm-ss")
+    dir = c.absOutFile.string.parentDir
+
+  createDir dir
+  let f = newFileStream(dir / (c.projectName & "_trace" & suffix & ".json"), fmWrite)
+
+  writeToStream(c.timeTracer, f)
 
 proc getNimRunExe(conf: ConfigRef): string =
   # xxx consider defining `conf.getConfigVar("nimrun.exe")` to allow users to
@@ -69,6 +82,7 @@ proc handleCmdLine(cache: IdentCache; conf: ConfigRef): CmdLineHandlingResult =
   ## Main entry point to the compiler - dispatches command-line commands
   ## into different subsystems, sets up configuration options for the
   ## `conf`:arg: and so on.
+  conf.timeTracer = startTracer()
   let self = NimProg(
     supportsStdinFile: true,
     processCmdLine: processCmdLine
@@ -88,6 +102,9 @@ proc handleCmdLine(cache: IdentCache; conf: ConfigRef): CmdLineHandlingResult =
   mainCommand(graph)
   if optCmdExitGcStats in conf.globalOptions:
     conf.logGcStats(GC_getStatistics())
+
+  conf.timeTracer.finish()
+  dumpTrace(conf)
 
   if conf.errorCounter != 0: return
   when hasTinyCBackend:

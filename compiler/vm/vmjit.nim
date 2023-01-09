@@ -32,6 +32,9 @@ import
     vmmemory,
     vmtypegen
   ],
+  compiler/utils/[
+    tracer
+  ],
   experimental/[
     results
   ]
@@ -113,6 +116,8 @@ func removeLastEof(c: var TCtx) =
 
 proc genStmt*(c: var TCtx; n: PNode): VmGenResult =
   ## Generates and emits code for the standalone statement `n`
+  c.config.timeTracer.traceLoc(tikVmCodegen, n.info)
+
   c.removeLastEof()
   c.setupLinkState()
 
@@ -133,6 +138,8 @@ proc genStmt*(c: var TCtx; n: PNode): VmGenResult =
 
 proc genExpr*(c: var TCtx; n: PNode, requiresValue = true): VmGenResult =
   ## Generates and emits code for the standalone expression `n`
+  c.config.timeTracer.traceLoc(tikVmCodegen, n.info)
+
   c.removeLastEof()
   c.setupLinkState()
 
@@ -148,6 +155,8 @@ proc genExpr*(c: var TCtx; n: PNode, requiresValue = true): VmGenResult =
 proc genProc(c: var TCtx, s: PSym): VmGenResult =
   # remember the previous 'eof' (if there's one) for later retrieval of it's
   # operand
+  c.config.timeTracer.traceSym(tikVmCodegen, s)
+
   let last = c.code.len-1
   var eofInstr: TInstr
   if last >= 0 and c.code[last].opcode == opcEof:

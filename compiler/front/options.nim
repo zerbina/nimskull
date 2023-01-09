@@ -9,7 +9,7 @@
 
 import
   std/[os, strutils, strtabs, sets, tables, packedsets],
-  compiler/utils/[prefixmatches, pathutils, platform],
+  compiler/utils/[prefixmatches, pathutils, platform, tracer],
   compiler/ast/[lineinfos],
   compiler/modules/nimpaths
 
@@ -305,6 +305,9 @@ type
     setMsgFormat*: proc(config: ConfigRef, fmt: MsgFormatKind) {.closure.}
       ## callback that sets the message format for legacy reporting, needs to
       ## set before CLI handling, because reports are just that awful
+
+    timeTracer*: Tracer
+
     hack*: HackController ## Configuration values for debug printing
     when defined(nimDebugUtils):
       debugUtilsStack*: seq[string] ## which proc name to stop trace output

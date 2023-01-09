@@ -47,7 +47,8 @@ import
     cgmeth
   ],
   compiler/utils/[
-    idioms
+    idioms,
+    tracer
   ]
 
 proc transformBody*(g: ModuleGraph; idgen: IdGenerator, prc: PSym, cache: bool): PNode
@@ -1226,6 +1227,8 @@ proc transformBody*(g: ModuleGraph, idgen: IdGenerator, prc: PSym, body: PNode):
 proc transformBody*(g: ModuleGraph; idgen: IdGenerator; prc: PSym; cache: bool): PNode =
   assert prc.kind in routineKinds - {skMacro}
 
+  g.config.timeTracer.traceSym(tikTransform, prc)
+
   if prc.transformedBody != nil:
     result = prc.transformedBody
   elif nfTransf in getBody(g, prc).flags or prc.kind in {skTemplate}:
@@ -1246,6 +1249,7 @@ proc transformStmt*(g: ModuleGraph; idgen: IdGenerator; module: PSym, n: PNode):
   if nfTransf in n.flags:
     result = n
   else:
+    g.config.timeTracer.traceLoc(tikTransform, n.info)
     var c = PTransf(graph: g, module: module, idgen: idgen)
     result = processTransf(c, n, module)
     liftDefer(c, result)
@@ -1256,6 +1260,7 @@ proc transformExpr*(g: ModuleGraph; idgen: IdGenerator; module: PSym, n: PNode):
   if nfTransf in n.flags:
     result = n
   else:
+    g.config.timeTracer.traceLoc(tikTransform, n.info)
     var c = PTransf(graph: g, module: module, idgen: idgen)
     result = processTransf(c, n, module)
     liftDefer(c, result)
