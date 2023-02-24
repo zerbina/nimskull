@@ -153,7 +153,7 @@ template initImpl(result: typed, size: int) =
 template insertImpl() = # for CountTable
   if t.dataLen == 0: initImpl(t, defaultInitialSize)
   if mustRehash(t): enlarge(t)
-  ctRawInsert(t, t.data, key, val)
+  ctRawInsert(noalias t, t.data, key, val)
   inc(t.counter)
 
 template getOrDefaultImpl(t, key): untyped =

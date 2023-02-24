@@ -425,7 +425,8 @@ proc evalFrom*(c: PContext, n: PNode): PNode =
       of nkNilLit:
         discard # no op
       else:
-        let imported = importSymbol(c, n[i], m, im.imported)
+        # TODO: wrong overlap analysis
+        let imported = importSymbol(c, noalias n[i], m, im.imported)
         case imported.kind
         of skError:
           hasError = true

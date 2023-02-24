@@ -1152,6 +1152,52 @@ proc setGenericParams(c: PContext, n: PNode) =
   for i in 1..<n.len:
     n[i].typ = semTypeNode(c, n[i], nil)
 
+proc checkOverlapping(c: PContext, n: PNode): PNode =
+  assert n.kind in nkCallKinds
+
+  var mutable: seq[PNode]
+  for i in 1..<n.len:
+    # treat the presence of a hidden addr as "location is mutated by the call"
+    if n[i].kind == nkHiddenAddr:
+      mutable.add n[i][0]
+
+  if mutable.len == 0:
+    # short-circuit: there's nothing to do if none of the parameters is a ``var``
+    # parameter
+    return n
+
+  result = shallowCopy(n)
+  result[0] = n[0]
+
+  var hasError = false
+
+  for i in 1..<n.len:
+    # check if the location of an an immutable parameter would overlaps with a
+    # mutable one, but only if it's either a view, compound type, or something
+    # that could become dangling
+    # XXX: we could test for either ``tfHasGCedMem`` or the presence of a
+    #      destructor instead...
+    assert n[i].typ != nil
+    if n[i].kind != nkHiddenAddr and n[i].typ.skipTypes(abstractVar).kind in {tyRef, tySequence, tyString, tyObject, tyTuple, tyArray, tyOpenArray, tyVarargs}:
+      var overlap = false
+      for it in mutable.items:
+        if isPartOf(it, n[i]) != arNo:# or isPartOf(n[i], it) != arNo:
+          overlap = true
+          break
+
+      result[i] =
+        if overlap:
+          hasError = true
+          c.config.newError(n[i], PAstDiag(kind: adSemInvalidExpression))
+        else:
+          n[i]
+
+    else:
+      result[i] = n[i]
+
+  if hasError:
+    result = c.config.wrapError(result)
+
 proc afterCallActions(c: PContext; n: PNode, flags: TExprFlags): PNode =
   if n.kind == nkError:
     return n
@@ -1171,6 +1217,8 @@ proc afterCallActions(c: PContext; n: PNode, flags: TExprFlags): PNode =
     result = fixVarArgumentsAndAnalyse(c, result)
     if callee.magic != mNone:
       result = magicsAfterOverloadResolution(c, result, flags)
+    elif not result.isError:
+      result = checkOverlapping(c, result)
     when false:
       if result.typ != nil and
           not (result.typ.kind == tySequence and result.typ[0].kind == tyEmpty):
@@ -2724,6 +2772,13 @@ proc semMagic(c: PContext, n: PNode, s: PSym, flags: TExprFlags): PNode =
   of mSizeOf:
     markUsed(c, n.info, s)
     result = semSizeof(c, setMs(n, s))
+  of mNoAlias:
+    result[0] = newSymNode(s, n[0].info)
+    result[1] = semExprWithType(c, n[1])
+    if result[1].isError:
+      result = c.config.wrapError(result)
+    else:
+      result.typ = result[1].typ
   else:
     result = semDirectOp(c, n, flags)
 

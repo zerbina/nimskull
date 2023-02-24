@@ -841,11 +841,11 @@ proc symHeaderFromPacked(c: var PackedDecoder; g: var PackedModuleGraph;
 
 template loadAstBody(p, field) =
   if p.field != emptyNodeId:
-    result.field = loadNodes(c, g, si, g[si].fromDisk.bodies, NodePos p.field)
+    result.field = loadNodes(c, g, si, noalias g[si].fromDisk.bodies, NodePos p.field)
 
 template loadAstBodyLazy(p, field) =
   if p.field != emptyNodeId:
-    result.field = loadProcHeader(c, g, si, g[si].fromDisk.bodies, NodePos p.field)
+    result.field = loadProcHeader(c, g, si, noalias g[si].fromDisk.bodies, NodePos p.field)
 
 proc loadLib(c: var PackedDecoder; g: var PackedModuleGraph;
              si, item: int32; l: PackedLib): PLib =
@@ -889,10 +889,10 @@ proc loadSym(c: var PackedDecoder; g: var PackedModuleGraph; thisModule: int; s:
 
     if g[si].syms[s.item] == nil:
       if g[si].fromDisk.syms[s.item].kind != skModule:
-        result = symHeaderFromPacked(c, g, g[si].fromDisk.syms[s.item], si, s.item)
+        result = symHeaderFromPacked(c, g, noalias g[si].fromDisk.syms[s.item], si, s.item)
         # store it here early on, so that recursions work properly:
         g[si].syms[s.item] = result
-        symBodyFromPacked(c, g, g[si].fromDisk.syms[s.item], si, s.item, result)
+        symBodyFromPacked(c, g, noalias g[si].fromDisk.syms[s.item], si, s.item, result)
       else:
         result = g[si].module
         assert result != nil
@@ -936,10 +936,10 @@ proc loadType(c: var PackedDecoder; g: var PackedModuleGraph; thisModule: int; t
       setLen g[si].types, g[si].fromDisk.types.len
 
     if g[si].types[t.item] == nil:
-      result = typeHeaderFromPacked(c, g, g[si].fromDisk.types[t.item], si, t.item)
+      result = typeHeaderFromPacked(c, g, noalias g[si].fromDisk.types[t.item], si, t.item)
       # store it here early on, so that recursions work properly:
       g[si].types[t.item] = result
-      typeBodyFromPacked(c, g, g[si].fromDisk.types[t.item], si, t.item, result)
+      typeBodyFromPacked(c, g, noalias g[si].fromDisk.types[t.item], si, t.item, result)
     else:
       result = g[si].types[t.item]
     assert result.itemId.item > 0
@@ -1067,7 +1067,7 @@ proc loadProcBody*(config: ConfigRef, cache: IdentCache;
     cache: cache)
   let pos = g[mId].fromDisk.syms[s.itemId.item].ast
   assert pos != emptyNodeId
-  result = loadProcBody(decoder, g, mId, g[mId].fromDisk.bodies, NodePos pos)
+  result = loadProcBody(decoder, g, mId, noalias g[mId].fromDisk.bodies, NodePos pos)
 
 proc loadTypeFromId*(config: ConfigRef, cache: IdentCache;
                      g: var PackedModuleGraph; module: int; id: PackedItemId): PType =

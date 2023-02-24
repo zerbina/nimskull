@@ -972,7 +972,8 @@ proc nextOverloadIter*(o: var TOverloadIter, c: PContext, n: PNode): PSym =
       while result == nil:
         o.currentScope = o.currentScope.parent
         if o.currentScope != nil:
-          result = initIdentIter(o.it, o.currentScope.symbols, o.it.name).skipAlias(n, c.config)
+          let name = o.it.name
+          result = initIdentIter(o.it, o.currentScope.symbols, name).skipAlias(n, c.config)
           # BUGFIX: o.it.name <-> n.ident
         else:
           o.importIdx = 0

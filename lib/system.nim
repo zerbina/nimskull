@@ -3053,6 +3053,11 @@ proc toOpenArrayByte*(x: openArray[char]; first, last: int): openArray[byte] {.
 proc toOpenArrayByte*(x: seq[char]; first, last: int): openArray[byte] {.
   magic: "Slice".}
 
+when defined(nimHasNoalias):
+  proc noalias*[T](n: T): T {.magic: "NoAlias".}
+else:
+  template noalias*(x: untyped): untyped = x
+
 import system/widestrs
 export widestrs
 

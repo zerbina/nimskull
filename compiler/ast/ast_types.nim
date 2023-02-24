@@ -714,6 +714,8 @@ type
     mException, mBuiltinType, mSymOwner, mUncheckedArray, mGetImplTransf,
     mSymIsInstantiationOf, mNodeId, mPrivateAccess
 
+    mNoAlias
+
 
 # things that we can evaluate safely at compile time, even if not asked for it:
 const

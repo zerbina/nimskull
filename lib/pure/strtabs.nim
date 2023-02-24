@@ -246,7 +246,7 @@ proc `[]=`*(t: StringTableRef, key, val: string) {.
     t.data[index].val = val
   else:
     if mustRehash(len(t.data), t.counter): enlarge(t)
-    rawInsert(t, t.data, key, val)
+    rawInsert(noalias t, t.data, key, val) # TODO: wrong; noalias shouldn't be needed
     inc(t.counter)
 
 proc newStringTable*(mode: StringTableMode): owned(StringTableRef) {.

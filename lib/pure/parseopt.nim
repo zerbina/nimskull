@@ -341,7 +341,7 @@ proc next*(p: var OptParser) {.rtl, extern: "npo$1".} =
         p.kind = cmdEnd
         return
     else:
-      handleShortOption(p, p.cmds[p.idx])
+      handleShortOption(p, noalias p.cmds[p.idx])
       return
 
   if i < p.cmds[p.idx].len and p.cmds[p.idx][i] == '-':
@@ -370,7 +370,7 @@ proc next*(p: var OptParser) {.rtl, extern: "npo$1".} =
       p.pos = 0
     else:
       p.pos = i
-      handleShortOption(p, p.cmds[p.idx])
+      handleShortOption(p, noalias p.cmds[p.idx])
   else:
     p.kind = cmdArgument
     p.key =  p.cmds[p.idx]

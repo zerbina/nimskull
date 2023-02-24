@@ -334,7 +334,7 @@ proc assignType*(dest, src: PType) =
     if dest.sym != nil:
       dest.sym.flags.incl src.sym.flags-{sfExported}
       if dest.sym.annex == nil: dest.sym.annex = src.sym.annex
-      mergeLoc(dest.sym.loc, src.sym.loc)
+      mergeLoc(dest.sym.loc, noalias(src.sym.loc))
     else:
       dest.sym = src.sym
   newSons(dest, src.len)

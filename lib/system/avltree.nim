@@ -83,7 +83,8 @@ proc del(a: var MemRegion, t: var PAvlNode, x: int) {.benign.} =
     a.deleted.upperBound = t.upperBound
     a.deleted = getBottom(a)
     t = t.link[1]
-    deallocAvlNode(a, a.last)
+    let tmp = a.last
+    deallocAvlNode(a, tmp)
   elif t.link[0].level < t.level-1 or
        t.link[1].level < t.level-1:
     dec t.level

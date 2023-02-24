@@ -237,7 +237,7 @@ proc lcs(dataA: var DiffData; lowerA, upperA: int; dataB: var DiffData; lowerB, 
 
   else:
     # Find the middle snake and length of an optimal path for A and B
-    let smsrd = sms(dataA, lowerA, upperA, dataB, lowerB, upperB, downVector, upVector)
+    let smsrd = sms(dataA, lowerA, upperA, noalias dataB, lowerB, upperB, downVector, upVector)
     # Debug.Write(2, "MiddleSnakeData", String.Format("{0},{1}", smsrd.x, smsrd.y))
 
     # The path is from LowerX to (x,y) and (x,y) to UpperX

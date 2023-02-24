@@ -413,7 +413,7 @@ func asCString*(s: VmString): cstring =
 func allocVmString(a: var VmAllocator, len: Natural): MemRegionPtr {.inline.} =
   # +1 for the terminating '\0'
   let len = len + 1
-  a.allocTypedLocations(a.byteType, len, len)
+  a.allocTypedLocations(noalias a.byteType, len, len)
 
 func asgnVmString*(dest: var VmString, src: VmString, a: var VmAllocator) =
   a.dealloc(dest.data)
@@ -499,14 +499,14 @@ func add*(s: var VmString, chars: openArray[char], mm: var VmAllocator) =
 
 # TODO: rename to `append`?
 func add*(s: var VmString, str: VmString, mm: var VmAllocator) =
-  add(s, toOpenArray(str), mm)
+  add(s, noalias toOpenArray(str), mm)
 
 func add*(s: var string, str: VmString) =
   # XXX: should a `add(var string, openArray[char])` be added to the stdlib?
   #s.add toOpenArray(str)
   let i = s.len
   s.setLen(i + str.len)
-  safeCopyMem(s.toOpenArray(i, s.high), str.data.subView(str.len), str.len)
+  safeCopyMem(s.toOpenArray(i, s.high), noalias str.data.subView(str.len), str.len)
 
 
 func getItemHandle*(loc: LocHandle, index: Natural): LocHandle =
@@ -560,7 +560,8 @@ func shrink(s: var VmSeq, typ: PVmType, newLen: Natural, mm: var VmMemoryManager
 
   for i in newLen..<s.length:
     # Reset locations of remaining elements
-    mm.resetLocation(oldData.subView(i * typ.seqElemStride, typ.seqElemType.sizeInBytes), typ.seqElemType)
+    # TODO: incorrect analysis result
+    mm.resetLocation(oldData.subView(i * typ.seqElemStride, typ.seqElemType.sizeInBytes), noalias typ.seqElemType)
 
   mm.allocator.dealloc(oldData)
   s.length = newLen
@@ -724,19 +725,19 @@ proc copyToLocation*(mm: var VmMemoryManager, dest: var VmMemoryRegion, src: Mem
 
   case typ.kind
   of akInt, akFloat, akPtr, akSet:
-    safeCopyMem(dest, src.subView(size), size)
+    safeCopyMem(dest, noalias src.subView(size), size)
   of akString:
-    asgnVmString(dstAtom.strVal, srcAtom.strVal, mm.allocator)
+    asgnVmString(dstAtom.strVal, noalias srcAtom.strVal, mm.allocator)
   of akSeq:
-    copyVmSeq(dstAtom.seqVal, srcAtom.seqVal, typ, mm)
+    copyVmSeq(dstAtom.seqVal, noalias srcAtom.seqVal, typ, mm)
   of akRef:
-    asgnRef(dstAtom.refVal, srcAtom.refVal, mm, reset)
+    asgnRef(dstAtom.refVal, noalias srcAtom.refVal, mm, reset)
   of akCallable:
     dstAtom.callableVal = srcAtom.callableVal
   of akClosure:
-    asgnClosure(dstAtom.closureVal, srcAtom.closureVal, mm, reset)
+    asgnClosure(dstAtom.closureVal, noalias srcAtom.closureVal, mm, reset)
   of akDiscriminator:
-    safeCopyMem(dest, src.subView(size), size)
+    safeCopyMem(dest, noalias src.subView(size), size)
   of akPNode:
     dstAtom.nodeVal = srcAtom.nodeVal
   of akObject:

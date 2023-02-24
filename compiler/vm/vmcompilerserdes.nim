@@ -165,7 +165,7 @@ proc deserializeObjectPart(c: TCtx,
     result.cIdx = 1 # the child at index 0 is the constructor symbol node
   else:
     let p = vt.objFields[0].typ
-    result = deserializeObjectPart(c, m.subView(0, p.sizeInBytes), p, ty[0].skipTypes(skipPtrs), info, dest)
+    result = deserializeObjectPart(c, noalias m.subView(0, p.sizeInBytes), p, ty[0].skipTypes(skipPtrs), info, dest)
     start = 1
 
   template constrField(f, sym): untyped =
@@ -576,7 +576,8 @@ proc serialize*(c: var TCtx, n: PNode, dest: LocHandle, t: PType = nil) =
   of tySet:
     assert n.kind == nkCurly
     if t[0].kind != tyEmpty: # Prevent `set[Empty]` from reaching `lengthOrd`
-      inclTreeSet(mbitSet(dest), c.config, n)
+      # TODO: incorrect analysis result
+      inclTreeSet(mbitSet(dest), noalias c.config, n)
 
   of tyVar, tyLent:
     # XXX: var and lent should either be rejected during sem check or supported

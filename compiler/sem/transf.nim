@@ -193,7 +193,8 @@ proc transformVarSection(c: PTransf, v: PNode): PNode =
         
         let x = freshVar(c, it[0].sym)
         
-        idNodeTablePut(c.transCon.mapping, it[0].sym, x)
+        # TODO: incorrect analysis result
+        idNodeTablePut(c.transCon.mapping, noalias it[0].sym, x)
         
         var defs = newTreeI(nkIdentDefs, it.info):
           [x, it[1], transform(c, it[2])]
@@ -217,7 +218,8 @@ proc transformVarSection(c: PTransf, v: PNode): PNode =
         defs[j] =
           if it[j].kind == nkSym:
             let x = freshVar(c, it[j].sym)
-            idNodeTablePut(c.transCon.mapping, it[j].sym, x)
+            # TOOD: incorrect analysis result
+            idNodeTablePut(c.transCon.mapping, noalias it[j].sym, x)
             x
           else:
             transform(c, it[j])
@@ -263,7 +265,8 @@ proc transformBlock(c: PTransf, n: PNode): PNode =
   var labl: PSym
   if c.inlining > 0:
     labl = newLabel(c, n[0])
-    idNodeTablePut(c.transCon.mapping, n[0].sym, newSymNode(labl))
+    # TODO: incorrect analysis result
+    idNodeTablePut(c.transCon.mapping, noalias n[0].sym, newSymNode(labl))
   else:
     labl =
       if n[0].kind != nkEmpty:
@@ -816,6 +819,8 @@ proc transformCall(c: PTransf, n: PNode): PNode =
     # but do not change to its dispatcher:
     result = transformSons(c, n[1])
   elif magic == mStrToStr:
+    result = transform(c, n[1])
+  elif magic == mNoAlias:
     result = transform(c, n[1])
   else:
     let s = transformSons(c, n)

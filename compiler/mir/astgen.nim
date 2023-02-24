@@ -820,11 +820,11 @@ proc tbStmt(tree: TreeWithSource, cl: var TranslateCl, n: MirNode,
 
 proc tbSingleStmt(tree: TreeWithSource, cl: var TranslateCl,
                   cr: var TreeCursor): PNode {.inline.} =
-  tbSingleStmt(tree, cl, get(tree, cr), cr)
+  tbSingleStmt(tree, cl, noalias get(tree, cr), cr)
 
 proc tbStmt(tree: TreeWithSource, cl: var TranslateCl, cr: var TreeCursor
            ): PNode {.inline.} =
-  tbStmt(tree, cl, get(tree, cr), cr)
+  tbStmt(tree, cl, noalias get(tree, cr), cr)
 
 proc tbCaseStmt(tree: TreeWithSource, cl: var TranslateCl, n: MirNode,
                 prev: sink Values, cr: var TreeCursor): PNode =

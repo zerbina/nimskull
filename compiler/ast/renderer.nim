@@ -286,7 +286,7 @@ proc gcom(g: var TSrcGen, n: PNode) =
     putComment(g, n.comment)  #assert(g.comStack[high(g.comStack)] = n);
 
 proc gcoms(g: var TSrcGen) =
-  for i in 0..high(g.comStack): gcom(g, g.comStack[i])
+  for i in 0..high(g.comStack): gcom(g, noalias g.comStack[i])
   popAllComs(g)
 
 proc lsub(g: TSrcGen; n: PNode): int

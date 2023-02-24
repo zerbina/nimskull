@@ -247,7 +247,7 @@ proc newEnvVarAccess(ctx: Ctx, s: PSym): PNode =
 
 proc newTmpResultAccess(ctx: var Ctx): PNode =
   if ctx.tmpResultSym.isNil:
-    ctx.tmpResultSym = ctx.newEnvVar(":tmpResult", ctx.fn.typ[0])
+    ctx.tmpResultSym = ctx.newEnvVar(":tmpResult", noalias ctx.fn.typ[0])
   ctx.newEnvVarAccess(ctx.tmpResultSym)
 
 proc newUnrollFinallyAccess(ctx: var Ctx, info: TLineInfo): PNode =
@@ -1248,7 +1248,7 @@ proc wrapIntoTryExcept(ctx: var Ctx, n: PNode): PNode {.inline.} =
     ctx.newCurExcAccess())
 
   let tryBody = newTree(nkStmtList, setupExc, n)
-  let exceptBranch = newTree(nkExceptBranch, ctx.newCatchBody(ctx.fn.info))
+  let exceptBranch = newTree(nkExceptBranch, ctx.newCatchBody(noalias ctx.fn.info))
 
   result = newTree(nkTryStmt, tryBody, exceptBranch)
 
@@ -1411,7 +1411,7 @@ proc preprocess(c: var PreprocessContext; n: PNode): PNode =
         result = newNodeI(nkStmtList, n.info)
         for i in countdown(c.finallys.high, fin):
           var vars = FreshVarsContext(tab: initTable[int, PSym](), config: c.config, info: n.info, idgen: c.idgen)
-          result.add freshVars(preprocess(c, c.finallys[i]), vars)
+          result.add freshVars(preprocess(c, noalias c.finallys[i]), vars)
           c.idgen = vars.idgen
         result.add n
   of nkSkip: discard

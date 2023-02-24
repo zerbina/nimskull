@@ -195,7 +195,8 @@ func computeValuesAndEffects*(body: MirTree): Values =
   template popEffects(op: Operation) =
     let v = num.pop().int
     if v < stack.len:
-      result.effects.add op, toOpenArray(stack, v, stack.high)
+      # TODO: incorrect analysis result
+      result.effects.add op, noalias(toOpenArray(stack, v, stack.high))
       stack.setLen(v)
 
   # we're doing three things here:

@@ -617,8 +617,9 @@ func emit(dest: var CodeFragment, sp: var SourceProvider, src: CodeFragment,
   # appending
   applySource(dest, sp)
 
-  dest.nodes.add toOpenArray(src.nodes, span)
-  dest.source.add toOpenArray(src.source, span)
+  # TODO: shouldn't be treated as potentially overlapping
+  dest.nodes.add noalias(toOpenArray(src.nodes, span))
+  dest.source.add noalias(toOpenArray(src.source, span))
 
   result = EValue(typ: dest.nodes[^1].typ)
 

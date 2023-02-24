@@ -288,7 +288,7 @@ proc connect(v: var Partitions; a, b: PSym; info: TLineInfo) =
       g.connectedVia = info
       g.flags.incl paramFlags + rbFlags
       if gb != nil:
-        g.mutations.add gb.mutations
+        g.mutations.add noalias(gb.mutations)
     else:
       assert false, "cannot happen"
 
