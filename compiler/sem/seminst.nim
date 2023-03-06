@@ -301,7 +301,7 @@ proc fillMixinScope(c: PContext) =
   while p != nil:
     for bnd in p.localBindStmts:
       for n in bnd:
-        addSym(c.currentScope, n.sym)
+        addSym(c.currentScope, n.sym, c.graph.lookupTime)
     p = p.next
 
 proc generateInstance(c: PContext, fn: PSym, pt: TIdTable,

@@ -1476,6 +1476,16 @@ type
     counter*: int
     data*: seq[PSym]
 
+  TabEntry* = tuple[sym: PSym, time: uint32]
+
+  # TODO: shouldn't be located here
+  SymbolTable* = object
+    ## An efficient implmentation of a ``Table[PIdent, SymbolLike]``. Instead
+    ## of storing both a separate hash value and ``PIdent`` for each internal
+    ## table entry, they're provided by the symbol-like `T`.
+    counter*: int
+    data*: seq[TabEntry]
+
   # -------------- backend information -------------------------------
   TLocKind* = enum
     locNone,                  ## no location
@@ -1544,7 +1554,7 @@ type
 
   TScope* {.acyclic.} = object
     depthLevel*: int
-    symbols*: TStrTable
+    symbols*: SymbolTable
     parent*: PScope
     allowPrivateAccess*: seq[PSym] #  # enable access to private fields
 

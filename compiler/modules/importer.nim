@@ -23,6 +23,7 @@ import
     wordrecg,
     errorhandling,
     errorreporting,
+    symtabs
   ],
   compiler/modules/[
     modulepaths,
@@ -47,7 +48,7 @@ proc declarePureEnumField*(c: PContext; s: PSym) =
   # XXX Remove the outer 'if' statement and see what breaks.
   var amb = false
   if someSymFromImportTable(c, s.name, amb) == nil:
-    strTableAdd(c.pureEnumFields, s)
+    add(c.pureEnumFields, s, c.graph.lookupTime)
     when false:
       let checkB = strTableGet(c.pureEnumFields, s.name)
       if checkB == nil:
@@ -60,11 +61,11 @@ proc declarePureEnumField*(c: PContext; s: PSym) =
 proc importPureEnumField(c: PContext; s: PSym) =
   var amb = false
   if someSymFromImportTable(c, s.name, amb) == nil:
-    strTableAdd(c.pureEnumFields, s)
+    add(c.pureEnumFields, s, c.graph.lookupTime)
     when false:
       let checkB = strTableGet(c.pureEnumFields, s.name)
       if checkB == nil:
-        strTableAdd(c.pureEnumFields, s)
+        add(c.pureEnumFields, s, c.graph.lookupTime)
     when false:
       # mark as ambiguous:
       incl(c.ambiguousSymbols, checkB.id)

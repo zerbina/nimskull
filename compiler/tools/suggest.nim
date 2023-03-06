@@ -50,6 +50,7 @@ import
     types,
     typesrenderer,
     wordrecg,
+    symtabs
   ],
   compiler/front/[
     msgs,

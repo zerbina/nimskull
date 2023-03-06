@@ -108,6 +108,10 @@ type
                                             # first module that included it
     importStack*: seq[FileIndex]  # The current import stack. Used for detecting recursive
                                   # module dependencies.
+    lookupTime*: uint32 ## represents the current abstract symbol table time.
+                        ## Symbols are stored together with an a time value in
+                        ## the symbol table, using the `lookupTime` value on
+                        ## insertion
     backend*: RootRef # minor hack so that a backend can extend this easily
     config*: ConfigRef
     cache*: IdentCache

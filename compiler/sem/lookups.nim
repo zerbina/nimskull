@@ -18,6 +18,7 @@ import
   compiler/ast/[
     ast,
     astalgo,
+    symtabs,
     idents,
     renderer,
     lineinfos,
@@ -148,15 +149,15 @@ proc legacyConsiderQuotedIdent*(c: PContext; n, origin: PNode): PIdent =
 
       localReport(c.config, finalErr)
 
-template addSym*(scope: PScope, s: PSym) =
-  strTableAdd(scope.symbols, s)
+template addSym*(scope: PScope, s: PSym, time: uint32) =
+  add(scope.symbols, s, time)
 
-proc addUniqueSym*(scope: PScope, s: PSym): PSym =
-  result = strTableInclReportConflict(scope.symbols, s)
+proc addUniqueSym*(scope: PScope, s: PSym, time: uint32): PSym =
+  result = inclReportConflict(scope.symbols, s, time)
 
 proc openScope*(c: PContext): PScope {.discardable.} =
   result = PScope(parent: c.currentScope,
-                  symbols: newStrTable(),
+                  symbols: initSymbolTable(),
                   depthLevel: c.scopeDepth + 1)
   c.currentScope = result
 
@@ -194,11 +195,11 @@ proc isShadowScope*(s: PScope): bool {.inline.} =
 
 proc localSearchInScope*(c: PContext, s: PIdent): PSym =
   var scope = c.currentScope
-  result = strTableGet(scope.symbols, s)
+  result = get(scope.symbols, s)
   while result == nil and scope.isShadowScope:
     # We are in a shadow scope, check in the parent too
     scope = scope.parent
-    result = strTableGet(scope.symbols, s)
+    result = get(scope.symbols, s)
 
 proc initIdentIter(ti: var ModuleIter; marked: var IntSet; im: ImportedModule; name: PIdent;
                    g: ModuleGraph): PSym =
@@ -243,7 +244,7 @@ iterator importedItems*(c: PContext; name: PIdent): PSym =
       yield s
 
 proc allPureEnumFields(c: PContext; name: PIdent): seq[PSym] =
-  var ti: TIdentIter
+  var ti: symtabs.TIdentIter
   result = @[]
   var res = initIdentIter(ti, c.pureEnumFields, name)
   while res != nil:
@@ -285,7 +286,7 @@ proc someSymFromImportTable*(c: PContext; name: PIdent; ambiguous: var bool): PS
 
 proc searchInScopes*(c: PContext, s: PIdent; ambiguous: var bool): PSym =
   for scope in allScopes(c.currentScope):
-    result = strTableGet(scope.symbols, s)
+    result = get(scope.symbols, s)
     if result != nil: return result
   result = someSymFromImportTable(c, s, ambiguous)
 
@@ -294,11 +295,10 @@ proc debugScopes*(c: PContext; limit=0, max = int.high) {.deprecated.} =
   var count = 0
   for scope in allScopes(c.currentScope):
     echo "scope ", i
-    for h in 0..high(scope.symbols.data):
-      if scope.symbols.data[h] != nil:
-        if count >= max: return
-        echo count, ": ", scope.symbols.data[h].name.s
-        count.inc
+    for it in scope.symbols.items:
+      if count >= max: return
+      echo count, ": ", it.name.s
+      count.inc
     if i == limit: return
     inc i
 
@@ -306,7 +306,7 @@ proc searchInScopesFilterBy*(c: PContext, s: PIdent, filter: TSymKinds): seq[PSy
   result = @[]
   block outer:
     for scope in allScopes(c.currentScope):
-      var ti: TIdentIter
+      var ti: symtabs.TIdentIter
       var candidate = initIdentIter(ti, scope.symbols, s)
       while candidate != nil:
         if candidate.kind in filter:
@@ -338,7 +338,7 @@ type
 
 proc ensureNoMissingOrUnusedSymbols(c: PContext; scope: PScope) =
   # check if all symbols have been used and defined:
-  var it: TTabIter
+  var it: symtabs.TTabIter
   var s = initTabIter(it, scope.symbols)
   var missingImpls = 0
   var unusedSyms: seq[tuple[sym: PSym, key: string]]
@@ -371,7 +371,7 @@ proc wrongRedefinition*(
       rsemRedefinitionOf, @[s, conflictsWith]))
 
 proc addDecl*(c: PContext, sym: PSym, info = sym.info, scope = c.currentScope) =
-  let conflict = scope.addUniqueSym(sym)
+  let conflict = scope.addUniqueSym(sym, c.graph.lookupTime)
   if conflict != nil:
     if sym.kind == skModule and
        conflict.kind == skModule and
@@ -386,8 +386,8 @@ proc addDecl*(c: PContext, sym: PSym, info = sym.info, scope = c.currentScope) =
     else:
       wrongRedefinition(c, info, sym, conflict)
 
-proc addPrelimDecl*(c: PContext, sym: PSym) =
-  discard c.currentScope.addUniqueSym(sym)
+proc addPrelimDecl*(c: PContext, sym: PSym, time: uint32) =
+  discard c.currentScope.addUniqueSym(sym, time)
 
 from compiler/ic/ic import addHidden
 
@@ -418,11 +418,11 @@ proc addOverloadableSymAt*(c: PContext; scope: PScope, fn: PSym) =
   ## adds an symbol to the given scope, will check for and raise errors if it's
   ## a redefinition as opposed to an overload.
   c.config.internalAssert(fn.kind in OverloadableSyms, fn.info, "addOverloadableSymAt")
-  let check = strTableGet(scope.symbols, fn.name)
+  let check = get(scope.symbols, fn.name)
   if check != nil and check.kind notin OverloadableSyms:
     wrongRedefinition(c, fn.info, fn, check)
   else:
-    scope.addSym(fn)
+    scope.addSym(fn, c.graph.lookupTime)
 
 proc addInterfaceOverloadableSymAt*(c: PContext, scope: PScope, sym: PSym) =
   ## adds an overloadable symbol on the scope and the interface if appropriate
@@ -435,7 +435,7 @@ proc openShadowScope*(c: PContext) =
   ## opens a shadow scope, just like any other scope except the depth is the
   ## same as the parent -- see `isShadowScope`.
   c.currentScope = PScope(parent: c.currentScope,
-                          symbols: newStrTable(),
+                          symbols: initSymbolTable(),
                           depthLevel: c.scopeDepth)
 
 proc closeShadowScope*(c: PContext) =
@@ -826,7 +826,8 @@ proc qualifiedLookUp*(c: PContext, n: PNode, flags: set[TLookupFlag]): PSym =
 
       if ident != nil and errNode.isNil:
         if m == c.module:
-          result = strTableGet(c.topLevelScope.symbols, ident).skipAlias(n, c.config)
+          result = get(c.topLevelScope.symbols, ident).skipAlias(n, c.config)
+
         else:
           result = someSym(c.graph, m, ident).skipAlias(n, c.config)
 

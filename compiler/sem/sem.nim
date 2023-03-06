@@ -32,7 +32,8 @@ import
     lineinfos,
     idents,
     enumtostr,
-    linter
+    linter,
+    symtabs
   ],
   compiler/modules/[
     magicsys,
@@ -742,7 +743,7 @@ proc semStmtAndGenerateGenerics(c: PContext, n: PNode): PNode =
   if c.isfirstTopLevelStmt and not isImportSystemStmt(c.graph, n):
     if sfSystemModule notin c.module.flags and not isEmptyTree(n):
       assert c.graph.systemModule != nil
-      c.moduleScope.addSym c.graph.systemModule # import the system module
+      c.moduleScope.addSym c.graph.systemModule, c.graph.lookupTime # import the system module
       importAllSymbols(c, c.graph.systemModule)
       inc c.topStmts
     else:
@@ -799,7 +800,7 @@ proc myOpen(graph: ModuleGraph; module: PSym;
   pushOwner(c, c.module)
 
   c.moduleScope = openScope(c)
-  c.moduleScope.addSym(module) # a module knows itself
+  c.moduleScope.addSym(module, c.graph.lookupTime) # a module knows itself
 
   if sfSystemModule in module.flags:
     graph.systemModule = module

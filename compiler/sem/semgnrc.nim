@@ -128,7 +128,7 @@ proc lookup(c: PContext, n: PNode, flags: TSemGenericFlags,
   var amb = false
   var s = searchInScopes(c, ident, amb).skipAlias(n, c.config)
   if s == nil:
-    s = strTableGet(c.pureEnumFields, ident)
+    s = get(c.pureEnumFields, ident)
     #if s != nil and contains(c.ambiguousSymbols, s.id):
     #  s = nil
   if s == nil:
@@ -194,7 +194,7 @@ proc addTempDecl(c: PContext; n: PNode; kind: TSymKind) =
   # newSymS doesn't use nkError/skError currently, so we
   # don't need to check and wrap here.
   let s = newSymS(skUnknown, getIdentNode(c, n), c)
-  addPrelimDecl(c, s)
+  addPrelimDecl(c, s, c.graph.lookupTime)
   styleCheckDef(c.config, n.info, s, kind)
 
 template captureError(conf: ConfigRef, n: PNode, body) =
@@ -547,7 +547,7 @@ proc semGenericStmt(c: PContext, n: PNode,
                                                       flags, ctx)
       if n[paramsPos].kind != nkEmpty:
         if n[paramsPos][0].kind != nkEmpty:
-          addPrelimDecl(c, newSym(skUnknown, getIdent(c.cache, "result"), nextSymId c.idgen, nil, n.info))
+          addPrelimDecl(c, newSym(skUnknown, getIdent(c.cache, "result"), nextSymId c.idgen, nil, n.info), c.graph.lookupTime)
         n[paramsPos] = checkError semGenericStmt(c, n[paramsPos], flags, ctx)
       n[pragmasPos] = checkError semGenericStmt(c, n[pragmasPos], flags, ctx)
       var body: PNode

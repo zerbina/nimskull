@@ -14,6 +14,7 @@ import
   compiler/ast/[
     ast,
     astalgo,
+    symtabs,
     types,
     trees,
   ],
@@ -47,7 +48,7 @@ proc equalGenericParams(procA, procB: PNode): bool =
 proc searchForProcAux(c: PContext, scope: PScope, fn: PSym): PSym =
   const flags = {ExactGenericParams, ExactTypeDescValues,
                  ExactConstraints, IgnoreCC}
-  var it: TIdentIter
+  var it: symtabs.TIdentIter
   result = initIdentIter(it, scope.symbols, fn.name)
   while result != nil:
     if result.kind == fn.kind: #and sameType(result.typ, fn.typ, flags):

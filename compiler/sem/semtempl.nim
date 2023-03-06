@@ -335,7 +335,7 @@ proc addLocalDecl(c: var TemplCtx, n: var PNode, k: TSymKind) =
         if n.kind != nkSym:
           let local = newGenSym(k, ident, c)
 
-          addPrelimDecl(c.c, local)
+          addPrelimDecl(c.c, local, c.c.graph.lookupTime)
           styleCheckDef(c.c.config, n.info, local)
           replaceIdentBySym(c.c, n):
             if local.isError:
@@ -438,7 +438,7 @@ proc semRoutineInTemplBody(c: var TemplCtx, n: PNode, k: TSymKind): PNode =
     elif not isTemplParam(c, ident):
       var s = newGenSym(k, ident, c)
       s.ast = n
-      addPrelimDecl(c.c, s)
+      addPrelimDecl(c.c, s, c.c.graph.lookupTime)
       styleCheckDef(c.c.config, n.info, s)
       n[namePos] = newSymNode(s, n[namePos].info)
     else:
@@ -1107,7 +1107,7 @@ proc semTemplateDef(c: PContext, n: PNode): PNode =
   if proto.isNil:
     addInterfaceOverloadableSymAt(c, c.currentScope, s)
   elif not comesFromShadowScope:
-    symTabReplace(c.currentScope.symbols, proto, s)
+    replace(c.currentScope.symbols, proto, s)
   
   case result[patternPos].kind
   of nkEmpty:

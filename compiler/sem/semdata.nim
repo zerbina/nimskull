@@ -29,6 +29,7 @@ import
     linter,
     trees,
     wordrecg,
+    symtabs
   ],
   compiler/modules/[
     magicsys,
@@ -536,7 +537,7 @@ type
       ##             converter is defined or imported
       ## read:
       ##  - sigmatch: to query converters
-    pureEnumFields*: TStrTable
+    pureEnumFields*: SymbolTable
       ## pure enum fields that can be used unambiguously
       ## 
       ## written:
@@ -843,7 +844,7 @@ proc newContext*(graph: ModuleGraph; module: PSym): PContext =
   result.converters = @[]
   result.patterns = @[]
   result.includedFiles = initIntSet()
-  initStrTable(result.pureEnumFields)
+  result.pureEnumFields = initSymbolTable()
   initStrTable(result.userPragmas)
   result.generics = @[]
   result.cache = graph.cache

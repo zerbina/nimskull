@@ -2349,7 +2349,7 @@ proc lookUpForDeclared(c: PContext, n: PNode, onlyCurrentScope: bool): PSym =
     if m != nil and m.kind == skModule:
       let ident = legacyConsiderQuotedIdent(c, n[1], n)
       if m == c.module:
-        result = strTableGet(c.topLevelScope.symbols, ident)
+        result = get(c.topLevelScope.symbols, ident)
       else:
         result = someSym(c.graph, m, ident)
   of nkSym:

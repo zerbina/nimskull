@@ -12,7 +12,7 @@
 import
   compiler/ast/[
     ast,
-    astalgo,
+    symtabs
   ],
   compiler/modules/[
     magicsys,
