@@ -325,12 +325,16 @@ proc searchInScopesFilterBy*(c: PContext, s: PIdent, filter: TSymKinds): seq[PSy
 type
   TOverloadIterMode* = enum
     oimDone, oimNoQualifier, oimSelfModule, oimOtherModule, oimSymChoice,
-    oimSymChoiceLocalLookup
+    oimSymChoiceLocalLookup,
+    oimMixin ## the iterator is traversing a ``skMixin`` symbol
   TOverloadIter* = object
-    it*: TIdentIter
+    it*: symtabs.TIdentIter
     mit*: ModuleIter
     m*: PSym
     mode*: TOverloadIterMode
+    prev: TOverloadIterMode ## the mode before entering a ``skMixin`` symbol
+    mixinIndex: int
+    mixinSym: PSym
     symChoiceIndex*: int
     currentScope: PScope
     importIdx: int
@@ -1037,6 +1041,27 @@ proc nextOverloadIter*(o: var TOverloadIter, c: PContext, n: PNode): PSym =
       if result == nil:
         inc o.importIdx
         result = symChoiceExtension(o, c, n)
+  of oimMixin:
+    result = o.mixinSym.ast[0].sym
+    inc o.mixinIndex
+    if o.mixinIndex == o.mixinSym.ast.len:
+      # resume where the iterator left off before entering the mixin
+      o.mode = o.prev
+      o.mixinSym = nil
+
+  if result != nil and result.kind == skMixin:
+    let s = result
+    # only switch to iterating the choice symbol if it has more than one item
+    if s.ast.len > 1:
+      o.prev = o.mode
+      o.mixinSym = result
+      # since we're already returning the first item here, start iterating the
+      # mixin at index 1
+      o.mixinIndex = 1
+
+    # an ``skMixin`` symbol is required to have at least one child, so the
+    # following is always safe
+    result = s.ast[0].sym.skipAlias(n, c.config)
 
   when false:
     if result != nil and result.kind == skStub: loadStub(result)

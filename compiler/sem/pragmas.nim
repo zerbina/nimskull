@@ -1629,7 +1629,10 @@ proc prepareSinglePragma(
         # We check for errors, but do nothing with these pragmas otherwise
         # as they are handled directly in 'evalTemplate'.
         result = noVal(c, it)
-        if sym == nil: result = invalidPragma(c, it)
+        if sym == nil:
+          result = invalidPragma(c, it)
+        elif c.inTemplateExpansion > 0 and k == wInject:
+          incl(sym.flags, sfInjected)
       of wLine:
         result = pragmaLine(c, it)
       of wRaises, wTags:

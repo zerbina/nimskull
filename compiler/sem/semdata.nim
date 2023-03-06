@@ -265,6 +265,11 @@ type
                               ##    seems to be the only thing that might need
                               ##    this and it's likely a leak -- growing over
                               ##    time.
+    inTemplateExpansion*: int
+      ## > 0 if we're analysing the expansion of a template
+    templateScope*: (PScope, uint32)
+      ## the scope where the template of which the expansion is currently
+      ## analysed was defined
 
     # static contexts
     inStaticContext*: int
@@ -1210,3 +1215,7 @@ proc markUsed*(c: PContext; info: TLineInfo; s: PSym) =
   if {optStyleHint, optStyleError} * conf.globalOptions != {}:
     styleCheckUse(conf, info, s)
   markOwnerModuleAsUsed(c, s)
+
+proc createScopeSnaphot*(c: PContext): (PScope, uint32) =
+  result = (c.currentScope, c.graph.lookupTime)
+  inc c.graph.lookupTime

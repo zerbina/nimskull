@@ -21,6 +21,7 @@ proc semTemplateExpr(c: PContext, n: PNode, s: PSym,
   pushInfoContext(c.config, n.info, s)
   result = evalTemplate(n, s, getCurrOwner(c), c.config, c.cache,
                         c.templInstCounter, c.idgen, efFromHlo in flags)
+  result = newTreeIT(nkExpansion, n.info, result.typ): [newSymNode(s), result]
   if efNoSemCheck notin flags: result = semAfterMacroCall(c, n, result, s, flags)
   popInfoContext(c.config)
 
@@ -3630,15 +3631,82 @@ proc semExpr(c: PContext, n: PNode, flags: TExprFlags = {}): PNode =
 
     for i in 0..<n.len:
       n[i] = semExpr(c, n[i])
-  of nkMixinStmt: discard
+  of nkMixinStmt:
+    if c.inTemplateExpansion > 0:
+      result = semMixinStmt2(c, n)
+      if not result.isError:
+        for i in 0..<result.len:
+          # lookup the identifier in all mixin scopes and create a
+          # symbol-choice out of the result
+          var syms = newNode(nkOpenSymChoice)
+          var sc = c.currentScope
+          while sc != nil:
+            if sc.secondary != nil:
+              let back = c.currentScope
+              c.currentScope = sc.secondary
+              let s = qualifiedLookUp(c, result[i], {})
+
+              if s.isNil:
+                discard "no symbol found. Ignore"
+              if s.isError:
+                # there was an error during lookup
+                result[i] = s.ast
+                # hasError = true
+              else:
+                let choice = symChoice(c, result[i], s, scForceOpen)
+                if choice.len > 0:
+                  for s in choice.items:
+                    syms.add s
+
+              c.currentScope = back
+
+            sc = sc.parent
+
+          if syms.len > 0:
+            let m = newSym(skMixin, syms[0].sym.name, c.idgen.nextSymId(), c.p.owner, result[i].info)
+            c.currentScope.addSym(m, c.graph.lookupTime)
+
+    else:
+      discard
   of nkBindStmt:
-    if c.p != nil:
+    if c.inTemplateExpansion > 0:
+      # make sure the statement is semantically valid:
+      var s: IntSet
+      result = semBindStmt(c, n, s)
+      if not result.isError:
+        # if the statement is valid, discard it
+        result = c.graph.emptyNode
+
+    elif c.p != nil:
       if n.len > 0 and n[0].kind == nkSym:
         c.p.localBindStmts.add n
     else:
       localReport(c.config, n, reportSem rsemInvalidBindContext)
   of nkError:
     discard "ignore errors for now"
+  of nkExpansion:
+    checkSonsLen(n, 2, c.config)
+    let isDirty = sfDirty in n[0].sym.flags
+    let orig = c.currentScope
+    openScope(c)
+    # for the bind-by-default semantics in template expansions
+    c.currentScope.parent = n[0].sym.scope[0]
+    c.currentScope.secondary = orig # use the scope the expansion is located in as the mixin scope
+
+    inc c.inTemplateExpansion
+    # discard the expansion node
+    result = semExpr(c, n[1])
+    dec c.inTemplateExpansion
+
+    c.currentScope.parent = orig # restore
+
+    # add all injected symbols from the expansion scope to the current scope
+    for it in c.currentScope.symbols.items:
+      if (isDirty and sfGenSym notin it.flags) or
+         (not isDirty and sfInjected in it.flags):
+        addInterfaceDeclAt(c, orig, it)
+
+    closeScope(c)
   else:
     result = c.config.newError(n, PAstDiag(kind: adSemInvalidExpression))
 

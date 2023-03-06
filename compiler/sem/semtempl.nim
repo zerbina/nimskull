@@ -150,6 +150,30 @@ proc semMixinStmt(c: PContext, n: PNode, toMixin: var IntSet): PNode =
     if count == 0:
       result = newNodeI(nkEmpty, n.info)
 
+proc semMixinStmt2(c: PContext, n: PNode): PNode =
+  ## Analyses a mixin statment in a template body and produces a checked node,
+  ## otherwise an `nkError` on failure.
+  result = copyNode(n)
+
+  var
+    count = 0
+    hasError = false
+
+  for it in n.items:
+    let (ident, err) = considerQuotedIdent(c, it)
+
+    if err.isNil:
+      inc count
+      result.add newIdentNode(ident, it.info)
+    else:
+      result.add err
+      hasError = true
+
+  if hasError:
+    result = c.config.wrapError(result)
+  elif n.len == 0:
+    result = newNodeI(nkEmpty, n.info)
+
 proc replaceIdentBySym(c: PContext; n: var PNode, s: PNode) =
   ## Replaces the symbol node in `n` (postfix, pragmaExpr, ident, accQuoted, or
   ## sym) with node `s` via in-place mutation, otherwise mutates `n` into an
@@ -557,6 +581,41 @@ proc semTemplBodySons(c: var TemplCtx, n: PNode): PNode =
   
   if hasError:
     result = c.c.config.wrapError(result)
+
+proc resolveSymbols(c: var TemplCtx, n: PNode): PNode =
+  ## Processes the template body `n` and expands ``nkBindStmt`` and
+  ## ``nkMixinStmt`` statements to symbols or symbol choices
+  var hasError = false
+  case n.kind
+  of nkIdent:
+    let s = qualifiedLookUp(c.c, n, {})
+    if s != nil and s.owner == c.owner and s.kind == skParam and
+       sfTemplateParam in s.flags:
+      # a template parameter reference. Resolve it to a symbol already, so
+      # that we know where to insert the argument AST during template
+      # expansion
+      incl(s.flags, sfUsed)
+      echo "used: ", n.ident.s
+      echo c.c.config.toFileLineCol(n.info)
+      result = newSymNode(s, n.info)
+      onUse(n.info, s)
+    else:
+      # keep the identifier
+      result = n
+  of nkBindStmt:
+    result = semBindStmt(c.c, n, c.toBind)
+  of nkMixinStmt:
+    result = semMixinStmt(c.c, n, c.toMixin)
+  of nkNimNodeLit:
+    # don't process the body of a ``NimNode`` literal
+    result = n
+  of nkWithSons - {nkBindStmt, nkMixinStmt, nkNimNodeLit}:
+    result = shallowCopy(n)
+    for i, it in n.pairs:
+      result[i] = resolveSymbols(c, it)
+      hasError = hasError or result[i].isError
+  of nkWithoutSons - {nkIdent}:
+    result = n#discard "not relevant"
 
 proc semTemplBody(c: var TemplCtx, n: PNode): PNode =
   ## Analyses a template body `n` for a template producing a semantically
@@ -997,6 +1056,9 @@ proc semTemplateDef(c: PContext, n: PNode): PNode =
 
   assert s.kind == skTemplate
 
+  # create a snapshot before doing anything that might modify the symbol table
+  s.scope = createScopeSnaphot(c)
+
   if s.owner != nil:
     const names = ["!=", ">=", ">", "incl", "excl", "in", "notin", "isnot"]
     if sfSystemModule in s.owner.flags and s.name.s in names or
@@ -1069,11 +1131,7 @@ proc semTemplateDef(c: PContext, n: PNode): PNode =
 
   var ctx = TemplCtx(c: c, toBind: initIntSet(), toMixin: initIntSet(),
                      toInject: initIntSet(), owner: s)
-  result[bodyPos] =
-    if sfDirty in s.flags:
-      semTemplBodyDirty(ctx, n[bodyPos])
-    else:
-      semTemplBody(ctx, n[bodyPos])
+  result[bodyPos] = resolveSymbols(ctx, n[bodyPos])
   
   # only parameters are resolve, no type checking is performed
   semIdeForTemplateOrGeneric(c, result[bodyPos], ctx.cursorInBody)

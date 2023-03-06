@@ -24,7 +24,8 @@ import
     msgs
   ],
   compiler/utils/[
-    debugutils
+    debugutils,
+    idioms
   ]
 
 # xxx: reports are a code smell meaning data types are misplaced
@@ -61,28 +62,15 @@ proc evalTemplateAux(templ, actual: PNode, c: var TemplCtx, result: PNode) =
   case templ.kind
   of nkSym:
     var s = templ.sym
-    if (s.owner == nil and s.kind == skParam) or s.owner == c.owner:
-      if s.kind == skParam and {sfGenSym, sfTemplateParam} * s.flags == {sfTemplateParam}:
-        handleParam actual[s.position]
-      elif (s.owner != nil) and (s.kind == skGenericParam or
-           s.kind == skType and s.typ != nil and s.typ.kind == tyGenericParam):
-        handleParam actual[s.owner.typ.len + s.position - 1]
-      else:
-        c.config.internalAssert(sfGenSym in s.flags or s.kind == skType)
-        var x = PSym(idTableGet(c.mapping, s))
-        if x == nil:
-          x = copySym(s, nextSymId(c.idgen))
-          # sem'check needs to set the owner properly later, see bug #9476
-          x.owner = nil # c.genSymOwner
-          #if x.kind == skParam and x.owner.kind == skModule:
-          #  internalAssert c.config, false
-          idTablePut(c.mapping, s, x)
-        if sfGenSym in s.flags:
-          result.add newIdentNode(getIdent(c.ic, x.name.s & "`gensym" & $c.instID),
-            if c.instLines: actual.info else: templ.info)
-        else:
-          result.add newSymNode(x, if c.instLines: actual.info else: templ.info)
+    #assert s.owner == c.owner and sfTemplateParam in s.flags
+    if s.kind == skParam and sfTemplateParam in s.flags:
+      handleParam actual[s.position]
+    elif s.kind == skGenericParam or
+          s.kind == skType and s.typ != nil and s.typ.kind == tyGenericParam:
+      handleParam actual[s.owner.typ.len + s.position - 1]
     else:
+      # this case happens for identifiers that were turned into symbols when
+      # processing the body of a template inside a generic body
       result.add copyNode(c, templ, actual)
   of nkNone..nkIdent, nkType..nkNilLit: # atom
     result.add copyNode(c, templ, actual)

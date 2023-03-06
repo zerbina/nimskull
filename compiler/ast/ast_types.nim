@@ -240,6 +240,12 @@ type
     nkError               ## erroneous AST node see `errorhandling`
     nkNimNodeLit          ## a ``NimNode`` literal. Stores a single sub node
                           ## that represents the ``NimNode`` AST
+    # the following are nodes that don't have a syntax representation. They're
+    # used for communicating data during the semantic analysis phase, but are
+    # not present past it (i.e. they don't reach sempass2)
+    nkExpansion           ## the body of this node is the result of a template expansion (TODO: include macros too?)
+    nkScopeRef            ## reference to a scope snapshot
+    # nodes for rodfile/IC support:
     nkModuleRef           ## for .rod file support: A (moduleId, itemId) pair
     nkReplayAction        ## for .rod file support: A replay action
     nkNilRodNode          ## for .rod file support: a 'nil' PNode
@@ -386,6 +392,7 @@ type
                       ## the calling side of the macro, not from the
                       ## implementation.
     sfGenSym          ## symbol is 'gensym'ed; do not add to symbol table
+    sfInjected        ## symbol is injected; add it to the parent scope
     sfGeneratedOp     ## proc is a generated '='; do not inject destructors
                       ## in it variable is generated closure environment;
                       ## requires early destruction for --newruntime.
@@ -701,6 +708,7 @@ type
                           ## mean: never)
     skPackage             ## symbol is a package (used for canonicalization)
     skAlias               ## an alias (needs to be resolved immediately)
+    skMixin               ## a resolved ``mixin`` statement
 
   TSymKinds* = set[TSymKind]
 
@@ -1556,6 +1564,7 @@ type
     depthLevel*: int
     symbols*: SymbolTable
     parent*: PScope
+    secondary*: PScope
     allowPrivateAccess*: seq[PSym] #  # enable access to private fields
 
   PScope* = ref TScope
@@ -1564,7 +1573,7 @@ type
   TSym* {.acyclic.} = object of TIdObj # Keep in sync with PackedSym
     ## proc and type instantiations are cached in the generic symbol
     case kind*: TSymKind
-    of routineKinds:
+    of routineKinds - {skTemplate}:
       #procInstCache*: seq[PInstantiation]
       gcUnsafetyReason*: PSym  ## for better error messages regarding gcsafe
       transformedBody*: PNode  ## cached body after transf pass
@@ -1572,6 +1581,8 @@ type
       guard*: PSym
       bitsize*: int
       alignment*: int # for alignment
+    of skTemplate:
+      scope*: (PScope, uint32)
     else: nil
     magic*: TMagic
     typ*: PType
