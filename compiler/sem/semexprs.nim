@@ -1853,10 +1853,88 @@ proc semFieldAccess(c: PContext, n: PNode, flags: TExprFlags): PNode =
   if result == nil:
     result = dotTransformation(c, n)
 
-proc buildOverloadedSubscripts(n: PNode, ident: PIdent): PNode =
-  result = newNodeI(nkCall, n.info)
-  result.add(newIdentNode(ident, n.info))
-  for s in n: result.add s
+proc buildOverloadedSubscripts(c: PContext, n: PNode, ident: PIdent): PNode =
+  ## Creates an ``nkCall`` node using the operands of `n` as the arguments.
+  ## `ident` is the identifier to use for the callee.
+  ##
+  ## In order to make lookup subscript-like operator usages that come from
+  ## templates or generic routines work according to the closed/open symbol
+  ## rules, the recorded ``nkBindStmt`` and ``nkMixinStmt`` nodes are used to
+  ## figure out how lookup should work.
+  result = newNodeI(nkCall, n.info, n.len + 1)
+
+  if c.p != nil:
+    const UnsetKind = nkStmtList
+    var
+      choice = newNode(UnsetKind)
+      seen: IntSet
+
+    # we do two things here:
+    # 1) search for most recent binding statement that contains the requested
+    #    operator
+    # 2) if one is found, gather all symbols (order doesn't matter) from
+    #    binding statements with the same kind as the found ones. For example,
+    #    if the most recently recorded binding that contains the requested
+    #    operator is a ``mixin`` statement, we only collect symbols from other
+    #    recorded ``mixin`` statement. The `seen` set prevents duplicates.
+    #
+    # Together, this emulates how ``mixin`` and ``bind`` statement work in
+    # templates and generics.
+    for i in countdown(c.p.localBindingStmts.high, 0):
+      let stmt = c.p.localBindingStmts[i]
+      if choice.kind != UnsetKind and choice.kind != stmt.kind:
+        # not the binding kind we're searching for. `UnsetKind` is used to
+        # indicate that both ``nkBindStmt`` and ``nkMixinStmt`` are okay
+        continue
+
+      case stmt.kind
+      of nkBindStmt:
+        # gather all matching symbols into the `choice` node:
+        for it in stmt.items:
+          if it.sym.name.id == ident.id and
+             not containsOrIncl(seen, it.sym.id):
+            choice.add it
+
+      of nkMixinStmt:
+        # an ``nkMixinStmt`` node already stores choice nodes
+        for sc in stmt.items:
+          if sc.len > 0 and sc[0].sym.name.id == ident.id:
+            # gather all the symbols from the symbol choice:
+            for it in sc.items:
+              if not containsOrIncl(seen, it.sym.id):
+                choice.add it
+
+            break # no need to continue searching the mixin statment
+
+      else:
+        unreachable()
+
+      if choice.len > 0 and choice.kind == UnsetKind:
+        # we now know whether the symbol should have open or closed behaviour,
+        # but because ``mixin`` and ``bind`` are neither hygienic nor use
+        # the normal scoping rules, we have to also consider all other local
+        # statements of the same kind
+        choice.transitionSonsKind(stmt.kind)
+
+    case choice.kind
+    of UnsetKind:
+      discard "no choice found"
+    of nkMixinStmt:
+      choice.transitionSonsKind(nkOpenSymChoice)
+      result[0] = choice
+    of nkBindStmt:
+      choice.transitionSonsKind(nkClosedSymChoice)
+      result[0] = choice
+    else:
+      unreachable()
+
+  if result[0].isNil:
+    # the symbol is neither mixin'ed nor bound early; use local lookup
+    result[0] = newIdentNode(ident, n.info)
+
+  # add the operands to the original operation as call arguments
+  for i, it in n.pairs:
+    result[i + 1] = it
 
 proc semDeref(c: PContext, n: PNode): PNode =
   ## analyse deref such as `foo[]`, when given an nkBracketExpr converts it to
@@ -2076,7 +2154,7 @@ proc semArrayAccess(c: PContext, n: PNode, flags: TExprFlags): PNode =
     if result == nil:
       # overloaded [] operator:
       result = semExpr(c,
-                       buildOverloadedSubscripts(n, getIdent(c.cache, "[]")),
+                       buildOverloadedSubscripts(c, n, getIdent(c.cache, "[]")),
                        flags)
   of nkError:
     result = n
@@ -2209,12 +2287,12 @@ proc semAsgn(c: PContext, n: PNode; mode=asgnNormal): PNode =
       of noOverloadedSubscript:
         result = bracketNotFoundError(c, n)
       else:
-        result = buildOverloadedSubscripts(n[0], getIdent(c.cache, "[]="))
+        result = buildOverloadedSubscripts(c, n[0], getIdent(c.cache, "[]="))
         result.add(n[1])
         result = semExprNoType(c, result)
   of nkCurlyExpr:
     # a{i} = x -->  `{}=`(a, i, x)
-    result = buildOverloadedSubscripts(n[0], getIdent(c.cache, "{}="))
+    result = buildOverloadedSubscripts(c, n[0], getIdent(c.cache, "{}="))
     result.add(n[1])
     result = semExprNoType(c, result)
   of nkPar, nkTupleConstr:
@@ -3723,7 +3801,7 @@ proc semExpr(c: PContext, n: PNode, flags: TExprFlags = {}): PNode =
     checkMinSonsLen(n, 1, c.config)
     result = semArrayAccess(c, n, flags)
   of nkCurlyExpr:
-    result = semExpr(c, buildOverloadedSubscripts(n, getIdent(c.cache, "{}")), flags)
+    result = semExpr(c, buildOverloadedSubscripts(c, n, getIdent(c.cache, "{}")), flags)
   of nkPragmaExpr:
     let
       pragma = n[1]
@@ -3855,11 +3933,18 @@ proc semExpr(c: PContext, n: PNode, flags: TExprFlags = {}): PNode =
     n[0] = semExpr(c, n[0])
     if not n[0].typ.isEmptyType and not implicitlyDiscardable(n[0]):
       localReport(c.config, n, reportSem rsemExpectedTypelessDeferBody)
-  of nkMixinStmt: discard
+  of nkMixinStmt:
+    if c.p != nil:
+      # only register checked mixin statements (i.e. those coming from
+      # templates or generics) and ignore the others
+      if n.len > 0 and n[0].kind == nkOpenSymChoice:
+        c.p.localBindingStmts.add n
+    else:
+      localReport(c.config, n, reportSem rsemInvalidBindContext)
   of nkBindStmt:
     if c.p != nil:
       if n.len > 0 and n[0].kind == nkSym:
-        c.p.localBindStmts.add n
+        c.p.localBindingStmts.add n
     else:
       localReport(c.config, n, reportSem rsemInvalidBindContext)
   of nkError:

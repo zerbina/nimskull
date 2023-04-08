@@ -38,7 +38,10 @@ type
   GenericCtx = object
     toMixin, toBind: IntSet
     cursorInBody: bool # only for nimsuggest
-    bracketExpr: PNode
+
+    unbound: HashSet[PIdent] ## all identifiers that weren't explicitly
+      ## requested to be either open or closed symbols. Currently only
+      ## used for subscript-like operators
 
   TSemGenericFlag = enum
     withinBind,
@@ -70,6 +73,44 @@ template isMixedIn(sym): bool =
   s.name.id in ctx.toMixin or (withinConcept in flags and
                                s.magic == mNone and
                                s.kind in OverloadableSyms)
+
+proc useIdentifier(c: PContext, n: PNode, ident: PIdent, ctx: var GenericCtx,
+                   flags: TSemGenericFlags): PNode =
+  ## If the identifier is was neither marked as open or closed, registers
+  ## `ident` as as unbound, but only if lookup with `ident` succeeds - an error
+  ## is produced otherwise. Returns either `n` or, in case of an error, an
+  ## ``nkError`` node.
+  ##
+  ## This procedure attempts to emulate the handling of identifiers in
+  ## ``semGenericStmt``, but the `unbound` mechanism isn't yet flexible enough
+  ## to achieve full parity.
+  # TODO: move the logic for deciding how to handle identifiers/symbols into a
+  #       single routine. Right now, it's partially duplicated across
+  #       ``lookup``, ``semGenericStmt``, and here
+  var amb = false
+  let s = searchInScopes(c, ident, amb)
+  if s.isNil:
+    if ident.id in ctx.toMixin:
+      # the identifier was explicitly mixed in -> no unbound usage
+      result = n
+    elif withinMixin in flags:
+      # no explicit mixin exists, but we're in a mixin context -> usage of
+      # unbound
+      ctx.unbound.incl(ident)
+      result = n
+    else:
+      result = c.createUndeclaredIdentifierError(n, ident.s)
+  else:
+    # we can't easily respect ``withBind`` here
+    if s.id notin ctx.toBind and ident.id notin ctx.toMixin:
+      # not explicitly marked as closed or open -> usage of unbound
+      # XXX: not checking for ``isMixedIn`` is incorrect, as it diverges from
+      #      ``semGenericStmt``
+      ctx.unbound.incl(ident)
+    else:
+      discard "nothing to do"
+
+    result = n
 
 proc semGenericStmtSymbol(c: PContext, n: PNode, s: PSym,
                           ctx: var GenericCtx; flags: TSemGenericFlags,
@@ -340,46 +381,37 @@ proc semGenericStmt(c: PContext, n: PNode,
         for i in first..<result.safeLen:
           result[i] = checkError semGenericStmt(c, result[i], flags, ctx)
   of nkCurlyExpr:
-    result = newNodeI(nkCall, n.info)
-    result.add newIdentNode(getIdent(c.cache, "{}"), n.info)
-    for i in 0..<n.len: result.add(n[i])
-    result = semGenericStmt(c, result, flags, ctx)
-    if result.isError: return
+    result = useIdentifier(c, n, c.cache.getIdent("{}"), ctx, flags)
+    if result.kind == nkError:
+      return
+
+    captureError c.config, result:
+      for i in 0..<n.len:
+        result[i] = checkError semGenericStmt(c, n[i], flags, ctx)
   of nkBracketExpr:
-    # xxx: screwing up `nkBracketExpr` nodes like this does no one any favours.
-    #      instead, just pass them on and figure out what to do _later_ when
-    #      there is more context to make a decision. Instead, `semExpr` now has
-    #      to crudely recreate this information.
-    result = newNodeI(nkCall, n.info)
-    result.add newIdentNode(getIdent(c.cache, "[]"), n.info)
-    for i in 0..<n.len: result.add(n[i])
-    result = semGenericStmt(c, result, flags, ctx)
-    if result.isError: return
+    result = useIdentifier(c, n, c.cache.getIdent("[]"), ctx, flags)
+    if result.kind == nkError:
+      return
+
+    captureError c.config, result:
+      for i in 0..<n.len:
+        result[i] = checkError semGenericStmt(c, n[i], flags, ctx)
   of nkAsgn, nkFastAsgn:
     checkSonsLen(n, 2, c.config)
-    let a = n[0]
-    let b = n[1]
-
-    let k = a.kind
-    case k
+    # in order to support using the ``[]=`` and ``{}=`` overloads present
+    # in the current (definition) context, they're registered as potentially
+    # unbound identifiers
+    case n[0].kind
     of nkCurlyExpr:
-      result = newNodeI(nkCall, n.info)
-      result.add newIdentNode(getIdent(c.cache, "{}="), n.info)
-      for i in 0..<a.len: result.add a[i]
-      result.add b
-      result = semGenericStmt(c, result, flags, ctx)
-      if result.isError: return
+      n[0] = useIdentifier(c, n[0], c.cache.getIdent("{}="), ctx, flags)
     of nkBracketExpr:
-      result = newNodeI(nkCall, n.info)
-      result.add newIdentNode(getIdent(c.cache, "[]="), n.info)
-      for i in 0..<a.len: result.add a[i]
-      result.add b
-      result = semGenericStmt(c, result, flags, ctx)
-      if result.isError: return
+      n[0] = useIdentifier(c, n[0], c.cache.getIdent("[]="), ctx, flags)
     else:
-      captureError c.config, result:
-        for i in 0..<n.len:
-          result[i] = checkError semGenericStmt(c, n[i], flags, ctx)
+      discard
+
+    captureError c.config, result:
+      for i in 0..<n.len:
+        result[i] = checkError semGenericStmt(c, n[i], flags, ctx)
   of nkIfStmt:
     captureError c.config, result:
       for i in 0..<n.len:
@@ -570,6 +602,8 @@ proc semGenericStmt(c: PContext, n: PNode,
     result[1] = semGenericStmt(c, n[1], flags, ctx)
     if result[1].isError:
       result = c.config.wrapError(result)
+  of nkError:
+    discard "pass the error through"
   else:
     captureError c.config, result:
       for i in 0..<n.len:
@@ -584,9 +618,13 @@ proc semGenericStmt(c: PContext, n: PNode): PNode =
   result = semGenericStmt(c, n, {}, ctx)
   semIdeForTemplateOrGeneric(c, result, ctx.cursorInBody)
 
+  result = injectMixinsForUnbound(c, ctx.unbound, result)
+
 proc semConceptBody(c: PContext, n: PNode): PNode =
   var ctx: GenericCtx
   ctx.toMixin = initIntSet()
   ctx.toBind = initIntSet()
   result = semGenericStmt(c, n, {withinConcept}, ctx)
   semIdeForTemplateOrGeneric(c, result, ctx.cursorInBody)
+
+  result = injectMixinsForUnbound(c, ctx.unbound, result)

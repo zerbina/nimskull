@@ -76,7 +76,18 @@ type
     mappingExists*: bool
     mapping*: TIdTable
     caseContext*: seq[tuple[n: PNode, idx: int]]
-    localBindStmts*: seq[PNode]
+    localBindingStmts*: seq[PNode]
+      ## the nodes of all ``nkBindStmt`` and ``nkMixinStmt`` nodes encountered
+      ## so far. Used for implementing both deferred binding in the context of
+      ## generics, and the binding/mixing in subscript-like operators.
+      ##
+      ## written:
+      ##  - semexprs: filled as part of ``semExpr``
+      ##
+      ## read:
+      ##  - fillMixinStmt: add all bound symbols into the scope of an
+      ##                   instantiated generic
+      ##  - buildOverloadedSubscripts
 
     inStaticContext*: int
       ## > 0 if we are inside a ``static`` block/expression or initializer
@@ -1210,3 +1221,9 @@ proc markUsed*(c: PContext; info: TLineInfo; s: PSym) =
   if {optStyleHint, optStyleError} * conf.globalOptions != {}:
     styleCheckUse(conf, info, s)
   markOwnerModuleAsUsed(c, s)
+
+iterator localBindStmts*(c: PProcCon): PNode =
+  ## Returns all ``bind`` statements in the order they were registered.
+  for it in c.localBindingStmts.items:
+    if it.kind == nkBindStmt:
+      yield it

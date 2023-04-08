@@ -218,6 +218,10 @@ type
     noGenSym: int
     inTemplateHeader: int
 
+    unbound: HashSet[PIdent] ## all identifiers that weren't explicitly
+      ## requested to be either open or closed symbols. Currently only
+      ## used for subscript-like operators
+
 proc getIdentNode(c: var TemplCtx, n: PNode): PNode =
   ## gets the ident node, will mutate `n` if it's an `nkPostfix` or
   ## `nkPragmaExpr` and there is an error (return an nkError).
@@ -250,6 +254,23 @@ proc getIdentNode(c: var TemplCtx, n: PNode): PNode =
                   kind: adSemIllformedAstExpectedOneOf,
                   expectedKinds: {nkPostfix, nkPragmaExpr, nkIdent,
                                   nkAccQuoted}))
+
+proc useIdentifier(ctx: var TemplCtx, ident: PIdent) =
+  ## If whether `ident` is open or closed was not explicitly specified so far,
+  ## registers `ident` as unbound.
+  if ident.id notin ctx.toMixin:
+    # not mixin'ed. Check if the identifier refers to an overloadable
+    # symbol and whether it is bound early already
+    var amb = false
+    let s = searchInScopes(ctx.c, ident, amb)
+    if s != nil and s.kind in OverloadableSyms and s.id notin ctx.toBind:
+      ctx.unbound.incl(ident)
+    else:
+      # no symbol exists, the symbol is already bound early, or it's a non-
+      # overloadable symbol overloadable -> nothing to mixin
+      discard "nothing to do"
+  else:
+    discard "nothing to do"
 
 func isTemplParam(c: TemplCtx, n: PNode): bool {.inline.} =
   ## True if `n` is a parameter symbol of the current template.
@@ -862,41 +883,21 @@ proc semTemplBody(c: var TemplCtx, n: PNode): PNode =
       else:
         discard
   of nkBracketExpr:
-    # xxx: screwing up `nkBracketExpr` nodes like this does no one any favours.
-    #      instead, just pass them on and figure out what to do _later_ when
-    #      there is more context to make a decision. Instead, `semExpr` now has
-    #      to crudely recreate this information.
-    result = newNodeI(nkCall, n.info)
-    result.add newIdentNode(getIdent(c.c.cache, "[]"), n.info)
-    for i in 0..<n.len: result.add(n[i])
+    c.useIdentifier(c.c.cache.getIdent("[]"))
     result = semTemplBodySons(c, result)
   of nkCurlyExpr:
-    result = newNodeI(nkCall, n.info)
-    result.add newIdentNode(getIdent(c.c.cache, "{}"), n.info)
-    for i in 0..<n.len: result.add(n[i])
+    c.useIdentifier(c.c.cache.getIdent("{}"))
     result = semTemplBodySons(c, result)
   of nkAsgn, nkFastAsgn:
     checkSonsLen(n, 2, c.c.config)
-    let a = n[0]
-    let b = n[1]
-
-    let k = a.kind
-    case k
+    case n[0].kind
     of nkBracketExpr:
-      result = newNodeI(nkCall, n.info)
-      result.add newIdentNode(getIdent(c.c.cache, "[]="), n.info)
-      for i in 0..<a.len: result.add(a[i])
-      result.add(b)
-      let a0 = semTemplBody(c, a[0])
-      result = semTemplBodySons(c, result)
+      c.useIdentifier(c.c.cache.getIdent("[]="))
     of nkCurlyExpr:
-      result = newNodeI(nkCall, n.info)
-      result.add newIdentNode(getIdent(c.c.cache, "{}="), n.info)
-      for i in 0..<a.len: result.add(a[i])
-      result.add(b)
-      result = semTemplBodySons(c, result)
+      c.useIdentifier(c.c.cache.getIdent("{}="))
     else:
-      result = semTemplBodySons(c, n)
+      discard
+    result = semTemplBodySons(c, n)
   of nkCallKinds-{nkPostfix}:
     # do not transform runnableExamples (bug #9143)
     if not isRunnableExamples(n[0]):
@@ -1028,6 +1029,41 @@ proc semTemplBodyDirty(c: var TemplCtx, n: PNode): PNode =
 proc semRoutineParams(c: PContext, routine, formal, generic: PNode, kind: TSymKind): PType
 # from semstmts
 
+proc injectMixinsForUnbound(c: PContext, unbound: HashSet[PIdent], n: PNode): PNode =
+    ## If `unbound` is not empty and contains at least one identifier that
+    ## names a visible routine in the current context, wraps `n` in a statement
+    ## list that starts with a ``nkMixinStmt`` node containing all lookup
+    ## symbols corresponding to the unbound identifier.
+    ##
+    ## This is currently used to achieve the "implicit open" behaviour of the
+    ## subscript-like operators (because they're overloadable entities).
+    if n.kind == nkError or unbound.len == 0:
+      return n
+
+    var mixinStmt = newNodeI(nkMixinStmt, n.info)
+    for it in unbound.items:
+      var amb: bool
+      let s = searchInScopes(c, it, amb)
+
+      if s != nil:
+        let head = newIdentNode(it, n.info)
+        mixinStmt.add symChoice(c, head, s, scForceOpen)
+
+    if mixinStmt.len > 0:
+      if n.kind notin {nkStmtListExpr, nkStmtListExpr}:
+        # create a statement list so that the ``mixin`` statment can be
+        # prepended
+        result = newTreeI(nkStmtList, n.info, n)
+      else:
+        result = n
+
+      # insert the statement at the start so that apply to the contents of `n`
+      result.sons.insert(mixinStmt, 0)
+    else:
+      # there turned out to be no symbols to mixin. Emitting no mixin statement
+      # is correct
+      result = n
+
 proc semTemplateDef(c: PContext, n: PNode): PNode =
   ## Analyse `n` a template definition producing a callable template.
   addInNimDebugUtils(c.config, "semTemplateDef", n, result)
@@ -1101,6 +1137,8 @@ proc semTemplateDef(c: PContext, n: PNode): PNode =
       semTemplBodyDirty(ctx, n[bodyPos])
     else:
       semTemplBody(ctx, n[bodyPos])
+
+  result[bodyPos] = injectMixinsForUnbound(c, ctx.unbound, result[bodyPos])
   
   # only parameters are resolve, no type checking is performed
   semIdeForTemplateOrGeneric(c, result[bodyPos], ctx.cursorInBody)
