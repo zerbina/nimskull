@@ -459,10 +459,12 @@ proc shallowCopy*[T](x: var T, y: T) {.noSideEffect, magic: "ShallowCopy".}
   ## There is a reason why the default assignment does a deep copy of sequences
   ## and strings.
 
-# :array|openArray|string|seq|cstring|tuple
-proc `[]`*[I: Ordinal;T](a: T; i: I): T {.
+type
+  ArrayLike = (array | openArray | string | seq | cstring)
+
+proc `[]`*[I: Ordinal;T:ArrayLike](a: T; i: I): auto {.
   noSideEffect, magic: "ArrGet".}
-proc `[]=`*[I: Ordinal;T,S](a: T; i: I;
+proc `[]=`*[I: Ordinal;T:ArrayLike,S](a: T; i: I;
   x: sink S) {.noSideEffect, magic: "ArrPut".}
 proc `=`*[T](dest: var T; src: T) {.noSideEffect, magic: "Asgn".}
 proc `=copy`*[T](dest: var T; src: T) {.noSideEffect, magic: "Asgn".}
