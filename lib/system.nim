@@ -2586,20 +2586,20 @@ proc `[]=`*[T; U, V: Ordinal](s: var seq[T], x: HSlice[U, V], b: openArray[T]) =
     spliceImpl(s, a, L, b)
 
 proc `[]`*[T](s: openArray[T]; i: BackwardsIndex): T {.inline.} =
-  system.`[]`(s, s.len - int(i))
+  s[s.len - int(i)]
 
 proc `[]`*[Idx, T](a: array[Idx, T]; i: BackwardsIndex): T {.inline.} =
   a[Idx(a.len - int(i) + int low(a))]
 proc `[]`*(s: string; i: BackwardsIndex): char {.inline.} = s[s.len - int(i)]
 
 proc `[]`*[T](s: var openArray[T]; i: BackwardsIndex): var T {.inline.} =
-  system.`[]`(s, s.len - int(i))
+  s[s.len - int(i)]
 proc `[]`*[Idx, T](a: var array[Idx, T]; i: BackwardsIndex): var T {.inline.} =
   a[Idx(a.len - int(i) + int low(a))]
 proc `[]`*(s: var string; i: BackwardsIndex): var char {.inline.} = s[s.len - int(i)]
 
 proc `[]=`*[T](s: var openArray[T]; i: BackwardsIndex; x: T) {.inline.} =
-  system.`[]=`(s, s.len - int(i), x)
+  s[s.len - int(i)] = x
 proc `[]=`*[Idx, T](a: var array[Idx, T]; i: BackwardsIndex; x: T) {.inline.} =
   a[Idx(a.len - int(i) + int low(a))] = x
 proc `[]=`*(s: var string; i: BackwardsIndex; x: char) {.inline.} =
