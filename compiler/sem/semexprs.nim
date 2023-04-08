@@ -3466,20 +3466,6 @@ proc semExport(c: PContext, n: PNode): PNode =
 
         s = nextOverloadIter(o, c, a)
 
-
-proc shouldBeBracketExpr(n: PNode): bool =
-  assert n.kind in nkCallKinds
-  let a = n[0]
-  if a.kind in nkCallKinds:
-    let b = a[0]
-    if b.kind in nkSymChoices:
-      for i in 0..<b.len:
-        if b[i].kind == nkSym and b[i].sym.magic == mArrGet:
-          let be = newNodeI(nkBracketExpr, n.info)
-          for i in 1..<a.len: be.add(a[i])
-          n[0] = be
-          return true
-
 proc hoistParamsUsedInDefault(c: PContext, call, letSection, defExpr: var PNode) =
   # This takes care of complicated signatures such as:
   # proc foo(a: int, b = a)
@@ -3727,18 +3713,8 @@ proc semExpr(c: PContext, n: PNode, flags: TExprFlags = {}): PNode =
         else: result = semMagic(c, n, s, flags)
       else:
         result = semIndirectOp(c, n, flags)
-    elif (n[0].kind == nkBracketExpr or shouldBeBracketExpr(n)) and
-        isSymChoice(n[0][0]):
-      # xxx: the ludicrous predicate/ast transform done in
-      #      `shouldBeBracketExpr` indicates how broken this code is, all
-      #      thanks to the daft approach taken in generic and template
-      #      instancing. For `nkBracketExpr` both emit `nkCall` with `[]`
-      #      as the callee symbol. This all sounds very nice, but when the rest
-      #      of the language and compiler aren't sufficiently general it only
-      #      leads to unnecessary complexity. Get rid of that silliness will
-      #      allow simplifying a great many things.
-
-      # indirectOp can deal with explicit instantiations; this fixes
+    elif n[0].kind == nkBracketExpr and isSymChoice(n[0][0]):
+      # ``semDirectOp`` can deal with explicit instantiations; this fixes
       # the 'newSeq[T](x)' bug
       setGenericParams(c, n[0])
       result = semDirectOp(c, n, flags)

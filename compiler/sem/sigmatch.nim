@@ -2924,19 +2924,6 @@ proc matches*(c: PContext, n: PNode, m: var TCandidate) =
     m.call = n
     return
 
-  if m.magic in {mArrGet, mArrPut}:
-    m.state = csMatch
-    m.call = n
-
-    # Note the following doesn't work as it would produce ambiguities.
-    # We hack system.nim instead: https://github.com/nim-lang/nim/issues/8049.
-    # xxx: shouldn't this be a generic match and not an exact one, then?
-    when false:
-      inc m.genericMatches
-      inc m.exactMatches
-
-    return
-  
   var marker = initIntSet()
   matchesAux(c, n, m, marker)
 

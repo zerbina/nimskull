@@ -60,19 +60,13 @@ proc semArrGet(c: PContext; n: PNode; flags: TExprFlags): PNode =
 
   c.config.internalAssert(n.kind == nkCall, n.info,
                           "must be a call, got: " & $n.kind)
-  checkMinSonsLen(n, 2, c.config)
+  c.config.internalAssert(n.len == 3, n.info)
 
-  case n.len
-  of 2:
-    # this is a deref, `someArray[]` matches the generic `[]` ArrGet magic
-    result = newNodeI(nkDerefExpr, n.info, 1)
-    result[0] = n[1]
-    result = semDeref(c, result)
-  else:
-    result = newNodeI(nkBracketExpr, n.info)
-    for i in 1..<n.len:
-      result.add(n[i])
-    result = semSubscript(c, result, flags)
+  # rewrite `[]`(a, i) back to ``a[i]``.
+  result = newNodeI(nkBracketExpr, n.info)
+  for i in 1..<n.len:
+    result.add(n[i])
+  result = semSubscript(c, result, flags)
 
   if result.isNil:
     let x = copyTree(n)
