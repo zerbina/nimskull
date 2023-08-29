@@ -842,3 +842,30 @@ proc toPNode*(parsed: ParsedNode): PNode =
   else:
     for sub in parsed.sons.items:
       result.add toPNode(sub)
+
+proc modify*(n: PNode): PNode =
+  ## Returns an owned version of `n` that can be modified without impacting
+  ## the AST it was originally part of.
+  if nfCopied in n.flags:
+    result = n
+  else:
+    result = copyNode(n)
+    result.flags.incl nfCopied
+    if n.kind in nkWithSons:
+      result.sons = n.sons
+
+proc seal*(n: sink PNode): PNode =
+  ## Marks the tree `n` as not being freely modifiable and returns it. This
+  ## signals to the copy-on-write logic that a copy is required prior to
+  ## modifications of the tree.
+  proc sealAux(n: PNode) =
+    # a node can only contain copied sub-nodes if it is itself marked as
+    # copied
+    if nfCopied in n.flags:
+      n.flags.excl nfCopied
+      if n.kind in nkWithSons:
+        for it in n.items:
+          sealAux(it)
+
+  sealAux(n)
+  result = n

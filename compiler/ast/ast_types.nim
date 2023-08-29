@@ -610,6 +610,8 @@ type
     nfDefaultRefsParam ## a default param value references another parameter
                        ## the flag is applied to proc default values and to calls
     nfHasComment ## node has a comment
+    nfCopied    ## the node (but not necessarily its sub-nodes) was copied and
+                ## can be freely modified
 
   TNodeFlags* = set[TNodeFlag]
   TTypeFlag* = enum   ## keep below 32 for efficiency reasons (now: 43)

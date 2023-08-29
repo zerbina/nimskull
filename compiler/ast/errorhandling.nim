@@ -104,7 +104,7 @@ proc newError*(
 
   if diag.diagId == invalidNodeId:
     diag.diagId = result.id
-  diag.wrongNode = wrongNode
+  diag.wrongNode = seal(wrongNode) # take ownership of the tree
 
   # TODO: this guard is kinda lame, why can't we always have info?
   diag.location =
