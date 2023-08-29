@@ -142,7 +142,7 @@ proc genContainerOf(c: var TLiftCtx; objType: PType, field, x: PSym): PNode =
 
   let minusExpr = genBuiltin(c, mSubI, "-", castExpr1)
   minusExpr.typ = intType
-  minusExpr.add offsetOf
+  minusExpr.add foldOffsetOf(c.g.config, offsetOf, nil)
 
   let objPtr = makePtrType(objType.owner, objType, c.idgen)
   result = newTreeIT(nkCast, c.info, objPtr):
