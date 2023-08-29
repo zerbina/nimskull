@@ -459,7 +459,7 @@ proc semObjConstr(c: PContext, n: PNode, flags: TExprFlags): PNode =
     var val = it[1]
     if sfDiscriminant in it[0].sym.flags:
       # we prefer a compile-time-known value
-      val = getConstExpr(c.module, val, c.idgen, c.graph)
+      val = foldConstExpr(c.module, val, c.idgen, c.graph)
       if val == nil:
         val = evalAtCompileTime(c, it[1])
 

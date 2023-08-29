@@ -1042,7 +1042,8 @@ proc commonOptimizations*(g: ModuleGraph; idgen: IdGenerator; c: PSym, n: PNode)
       result.add(a)
     if result.len == 2: result = result[1]
   else:
-    var cnst = getConstExpr(c, n, idgen, g)
+    # XXX: consider using ``foldInAst`` at the callsite
+    var cnst = foldConstExpr(c, n, idgen, g)
     # we inline constants if they are not complex constants:
     if cnst != nil and not dontInlineConstant(n, cnst):
       result = cnst

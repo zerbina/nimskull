@@ -1100,20 +1100,12 @@ proc evalAtCompileTime(c: PContext, n: PNode): PNode =
 
   # constant folding that is necessary for correctness of semantic pass:
   if callee.magic != mNone and callee.magic in ctfeWhitelist and n.typ != nil:
-    var call = newNodeIT(nkCall, n.info, n.typ)
-    call.add(n[0])
-    var allConst = true
-    for i in 1..<n.len:
-      var a = getConstExpr(c.module, n[i], c.idgen, c.graph)
-      if a == nil:
-        allConst = false
-        a = n[i]
-        if a.kind == nkHiddenStdConv: a = a[1]
-      call.add(a)
-    if allConst:
-      result = semfold.getConstExpr(c.module, call, c.idgen, c.graph)
-      if result.isNil: result = n
-      else: return result
+    result = foldConstExpr(c.module, n, c.idgen, c.graph)
+    if result.isNil:
+      result = n
+    else:
+      # the call could be folded
+      return
 
   block maybeLabelAsStatic:
     # XXX: temporary work-around needed for tlateboundstatic.
@@ -1146,9 +1138,8 @@ proc evalAtCompileTime(c: PContext, n: PNode): PNode =
     if n.typ != nil and typeAllowed(n.typ, skConst, c) != nil: return
 
     var call = newNodeIT(nkCall, n.info, n.typ)
-    call.add(n[0])
-    for i in 1..<n.len:
-      let a = getConstExpr(c.module, n[i], c.idgen, c.graph)
+    for i in 0..<n.len:
+      let a = foldConstExpr(c.module, n[i], c.idgen, c.graph)
       if a == nil or a.kind == nkError:
         return n
       call.add(a)
@@ -1179,9 +1170,10 @@ proc semStaticExpr(c: PContext, n: PNode): PNode =
   ## value or an error.
   inc c.p.inStaticContext
   openScope(c)
-  let a = semExprWithType(c, n)
+  var a = semExprWithType(c, n)
   closeScope(c)
   dec c.p.inStaticContext
+  a = foldInAst(c.module, a, c.idgen, c.graph)
   if a.kind == nkError or a.findUnresolvedStatic != nil:
     return a
 
@@ -1931,7 +1923,7 @@ proc semDeref(c: PContext, n: PNode): PNode =
 
     let
       derefTarget = semExprWithType(c, n[0])
-      targetAsConstExpr = getConstExpr(c.module, derefTarget, c.idgen, c.graph)
+      targetAsConstExpr = foldConstExpr(c.module, derefTarget, c.idgen, c.graph)
       isTargetConstExpr = targetAsConstExpr != nil
       isTargetConstNil = isTargetConstExpr and
                          targetAsConstExpr.kind == nkNilLit
@@ -2766,6 +2758,7 @@ proc tryExpr(c: PContext, n: PNode, flags: TExprFlags = {}): PNode =
   try:
     result = semExpr(c, n, flags)
     if result != nil and efNoSem2Check notin flags:
+      result = foldInAst(c.module, result, c.idgen, c.graph)
       trackStmt(c, c.module, result, isTopLevel = false)
     if c.config.errorCounter != oldErrorCount and
        result != nil and result.kind != nkError:
