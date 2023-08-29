@@ -794,3 +794,11 @@ proc getConstExpr(m: PSym, n: PNode; idgen: IdGenerator; g: ModuleGraph): PNode 
       result = getConstExpr(m, n[i], idgen, g)
   else:
     discard # xxx: should we return nil for nkError?
+
+proc foldInAst*(m: PSym, n: PNode, idgen: IdGenerator, g: ModuleGraph): PNode =
+  ## Performs constant folding on all expressions appearing in the statement or
+  ## expression `n`.
+
+proc foldConstExpr*(m: PSym, n: PNode, idgen: IdGenerator, g: ModuleGraph): PNode =
+  ## Attempts to fold the given expression. If unsuccessful, returns 'nil',
+  ## the folded expression otherwise.
