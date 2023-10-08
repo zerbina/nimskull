@@ -2556,12 +2556,13 @@ proc rawExecute(c: var TCtx, pc: var int): YieldReason =
         ensureKind(rkInt)
         assert regs[rb].kind == rkNimNode
         let b = regs[rb].nimNode
-        if b.typ != nil:
-          regs[ra].intVal = ord(b.typ.kind)
-        elif b.kind == nkSym and b.sym.typ != nil:
-          regs[ra].intVal = ord(b.sym.typ.kind)
-        #else:
-        #  stackTrace(c, tos, pc, "node has no type")
+        regs[ra].intVal =
+          if b.typ != nil:
+            ord(b.typ.kind)
+          elif b.kind == nkSym and b.sym.typ != nil:
+            ord(b.sym.typ.kind)
+          else:
+            ord(tyNone)
       of 2:
         # getTypeInst opcode:
         ensureKind(rkNimNode)

@@ -274,6 +274,9 @@ proc getType*(n: typedesc): NimNode {.magic: "NGetType", noSideEffect.}
 proc typeKind*(n: NimNode): NimTypeKind {.magic: "NGetType", noSideEffect.}
   ## Returns the type kind of the node 'n' that should represent a type, that
   ## means the node should have been obtained via `getType`.
+  ##
+  ## If the node doesn't have an associated type (e.g., because is was not
+  ## obtained via `getType`), `ntyNone` is returned.
 
 proc getTypeInst*(n: NimNode): NimNode {.magic: "NGetType", noSideEffect.} =
   ## Returns the `type`:idx: of a node in a form matching the way the
