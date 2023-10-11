@@ -494,8 +494,7 @@ proc genAndOr(c: var TCtx, n: PNode, dest: Destination) =
     forward(c): v => notOp(c)
 
   c.stmts.subTree MirNode(kind: mnkIf):
-    stmtList(c.stmts):
-      genAsgn(c, dest, n[2]) # the right-hand side
+    genAsgn(c, dest, n[2]) # the right-hand side
 
 proc genBracketExpr(c: var TCtx, n: PNode): EValue =
   let typ = n[0].typ.skipTypes(abstractInstTypeClass - {tyTypeDesc})
@@ -1329,7 +1328,6 @@ proc genIf(c: var TCtx, n: PNode, dest: Destination) =
     # a multi-clause ``if`` statement/expression
     let label = nextLabel(c)
     c.stmts.subTree MirNode(kind: mnkBlock, label: label):
-      stmtList(c.stmts):
         for it in n.items:
           case it.kind
           of nkElifBranch, nkElifExpr:

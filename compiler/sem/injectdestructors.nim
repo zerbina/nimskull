@@ -1074,11 +1074,9 @@ proc injectDestructors(tree: MirTree, graph: ModuleGraph,
       if useFinally:
         buf.add endNode(mnkStmtList) # close the body of the 'try' clause
         buf.subTree MirNode(kind: mnkFinally):
-          # there's no need for opening a new scope -- we use a statement-list
-          # instead
-          buf.subTree MirNode(kind: mnkStmtList):
-            injectDestructorsInner(buf, tree, graph,
-                                   toOpenArray(entries, s.a, s.b))
+          # no need to open a new scope
+          injectDestructorsInner(buf, tree, graph,
+                                 toOpenArray(entries, s.a, s.b))
 
         buf.add endNode(mnkTry)
       else:
@@ -1174,7 +1172,6 @@ proc lowerBranchSwitch(buf: var MirNodeSeq, body: MirTree, graph: ModuleGraph,
     forward(buf): magicCall(getMagicEqForType(typ), boolTyp) =>
                   unaryMagicCall(mNot, boolTyp)
     buf.subTree MirNode(kind: mnkIf):
-      stmtList(buf):
         # ``=destroy`` call:
         voidCallWithArgs(buf):
           chain(buf): procLit(buf, branchDestructor) => arg()

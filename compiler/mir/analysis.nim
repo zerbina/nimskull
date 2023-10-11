@@ -612,7 +612,7 @@ func isConsumed*(tree: MirTree, val: OpValue): bool =
     case tree[dest].kind
     of mnkPathConv:
       discard "skip conversions"
-    of ConsumeCtx:
+    of ConsumeCtx, mnkDef:
       return true
     else:
       return false

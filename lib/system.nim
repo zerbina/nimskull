@@ -1112,6 +1112,10 @@ type TaintedString* {.deprecated: "Deprecated since 1.5".} = string
 
 when defined(profiler) and not isNimVmTarget:
   proc nimProfile() {.compilerproc, noinline.}
+
+proc traceEnter(x: uint32) {.compilerproc, noinline.}
+proc traceStep(x: uint32) {.compilerproc, noinline.}
+
 when hasThreadSupport:
   {.pragma: rtlThreadVar, threadvar.}
 else:
@@ -3027,3 +3031,36 @@ when defined(nimDebugUtils):
     {.define(nimCompilerDebug).}
     n
     {.undef(nimCompilerDebug).}
+
+import system/ansi_c
+
+var nimTraceTbl*: seq[uint]
+var nimTraceLock*: int
+
+proc traceStep(x: uint32) {.compilerproc, noinline, nodestroy.} =
+  ## Invoked when a basic block starts.
+  when nimvm:
+    discard
+  else:
+    if nimTraceLock > 0:
+      return
+
+    inc nimTraceLock
+    if x >= nimTraceTbl.len.uint32:
+      nimTraceTbl.setLen(x+1)
+
+    inc nimTraceTbl[x]
+    dec nimTraceLock
+
+proc traceEnter(x: uint32) {.compilerproc, noinline, nodestroy.} =
+  ## Invoked when a procedure is entered.
+  traceStep(x)
+
+proc dumpTracesTo*(path: string) =
+  inc nimTraceLock
+  if nimTraceTbl.len > 0:
+    var f = open(path, fmWrite)
+    for x in nimTraceTbl.items:
+      f.writeLine($x)
+    f.close()
+  dec nimTraceLock

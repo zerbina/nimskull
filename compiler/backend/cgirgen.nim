@@ -906,13 +906,13 @@ proc tbSingleStmt(tree: TreeWithSource, cl: var TranslateCl, n: MirNode,
     result = tbScope(tree, cl, n, cr)
     leave(tree, cr)
   of mnkRepeat:
-    result = newStmt(cnkRepeatStmt, info, body())
+    result = newStmt(cnkRepeatStmt, info, tbList(tree, cl, cr))
     leave(tree, cr)
   of mnkBlock:
     cl.blocks.add n.label # push the label to the stack
     result = newStmt(cnkBlockStmt, info,
                      newLabelNode(cl.blocks.high.BlockId, info),
-                     body())
+                     tbList(tree, cl, cr))
     cl.blocks.setLen(cl.blocks.len - 1) # pop block from the stack
     leave(tree, cr)
   of mnkTry:
@@ -938,7 +938,7 @@ proc tbSingleStmt(tree: TreeWithSource, cl: var TranslateCl, n: MirNode,
           leave(tree, cr)
 
       of mnkFinally:
-        result.add newTree(cnkFinally, cr.info, body())
+        result.add newTree(cnkFinally, cr.info, tbList(tree, cl, cr))
       else:
         unreachable(it.kind)
 
@@ -987,7 +987,7 @@ proc tbCaseStmt(tree: TreeWithSource, cl: var TranslateCl, n: MirNode,
       for x in 0..<br.len:
         result[^1].add translateLit(get(tree, cr).lit)
 
-    result[^1].add tbStmt(tree, cl, cr)
+    result[^1].add tbList(tree, cl, cr)
     leave(tree, cr)
 
   leave(tree, cr)
@@ -1013,7 +1013,7 @@ proc tbOut(tree: TreeWithSource, cl: var TranslateCl, prev: sink Values,
     newStmt(cnkFastAsgn, cr.info, [prev[0], prev[1]])
   of mnkIf:
     assert prev.kind == vkSingle
-    let n = newStmt(cnkIfStmt, cr.info, [prev.single, tbStmt(tree, cl, cr)])
+    let n = newStmt(cnkIfStmt, cr.info, [prev.single, tbList(tree, cl, cr)])
     leave(tree, cr)
 
     n
@@ -1279,6 +1279,10 @@ proc tbList(tree: TreeWithSource, cl: var TranslateCl, stmts: var seq[CgNode],
       stmts.add tbOut(tree, cl, v, cr)
     of StmtNodes:
       stmts.addIfNotEmpty tbSingleStmt(tree, cl, cr)
+    of mnkStmtList:
+      discard enter(tree, cr)
+      tbList(tree, cl, stmts, cr)
+      leave(tree, cr)
     of mnkEnd:
       # don't consume the end node
       break

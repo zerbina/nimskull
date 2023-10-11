@@ -141,6 +141,9 @@ func merge*[I; T](dst: var Store[I, T], src: sink Store[I, T]): Option[I] =
     if src.data.len > 0: some I(start)
     else:                none(I)
 
+func len*(x: Store): int =
+  x.data.len
+
 # ---------- OrdinalSeq API ------------
 
 template base*[I; T](x: OrdinalSeq[I, T]): seq[T] =

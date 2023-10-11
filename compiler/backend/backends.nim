@@ -9,7 +9,8 @@ import
   compiler/ast/[
     ast,
     idents,
-    lineinfos
+    lineinfos,
+    astalgo
   ],
   compiler/backend/[
     cgmeth,
@@ -39,7 +40,8 @@ import
   ],
   compiler/utils/[
     containers,
-    idioms
+    idioms,
+    pathutils
   ]
 
 type
@@ -346,9 +348,38 @@ proc preprocess*(conf: BackendConfig, prc: PSym, graph: ModuleGraph,
 
   echoMir(graph.config, prc, result.body.tree)
 
+import std/exitprocs
+import compiler/ic/rodfiles
+import compiler/mir/exectraces
+
+var db: TraceDb
+var conf: ConfigRef
+
+addExitProc(proc () =
+  if conf == nil:
+    return
+
+  var file = rodfiles.create(string completeGeneratedFilePath(conf, AbsoluteFile "exectrace.db"))
+  file.storeHeader()
+  file.storeSection(topLevelSection)
+
+  file.storePrim(conf.m.fileInfos.len)
+  for it in conf.m.fileInfos.items:
+    file.storePrim(it.fullPath.string)
+
+  file.storePrim(db)
+  file.close()
+)
+
 proc process*(prc: var Procedure, graph: ModuleGraph, idgen: IdGenerator) =
   ## Applies all applicable MIR passes to the procedure `prc`.
   rewriteGlobalDefs(prc.body.tree, prc.body.source, outermost = true)
+
+  if graph.config.isDefined("traceExec") and
+     sfSystemModule notin getModule(prc.sym).flags and
+     sfGeneratedOp notin prc.sym.flags:
+    conf = graph.config
+    applyPass(graph, prc.body.tree, prc.body.source, db)
 
   if shouldInjectDestructorCalls(prc.sym):
     injectDestructorCalls(graph, idgen, prc.sym,
@@ -513,7 +544,6 @@ proc genLibSetup(graph: ModuleGraph, conf: BackendConfig,
     # generate an 'or' chain that tries every candidate until one is found
     # for which loading succeeds
     buf.subTree MirNode(kind: mnkBlock, label: outer):
-      buf.add MirNode(kind: mnkStmtList) # manual, for less visual nesting
       for candidate in candidates.items:
         genLoadLib(graph, buf, nameNode):
           MirNode(kind: mnkLiteral, lit: newStrNode(nkStrLit, candidate))
@@ -526,7 +556,6 @@ proc genLibSetup(graph: ModuleGraph, conf: BackendConfig,
         chain(buf): procLit(errorProc) => arg()
         chain(buf): literal(path) => arg()
       chain(buf): callOp(voidTyp) => voidOut()
-      buf.add endNode(mnkStmtList)
   else:
     # the name of the dynamic library to load the procedure from is only known
     # at run-time
