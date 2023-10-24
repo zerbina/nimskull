@@ -549,9 +549,10 @@ proc getArrayConstr(m: PSym, n: PNode; idgen: IdGenerator; g: ModuleGraph): PNod
 
 proc foldArrayAccess(m: PSym, n: PNode; idgen: IdGenerator; g: ModuleGraph): PNode =
   let x = getConstExpr(m, n[0], idgen, g)
-  if x.isNil or
-      x.typ.skipTypes({tyGenericInst, tyAlias, tySink}).kind == tyTypeDesc:
+  if x.isNil:
     return
+  elif x.typ.kind == tyTypeDesc:
+    return newNodeIT(nkType, n.info, n.typ)
 
   let y = getConstExpr(m, n[1], idgen, g)
   if y.isNil: return
@@ -795,6 +796,10 @@ proc getConstExpr(m: PSym, n: PNode; idgen: IdGenerator; g: ModuleGraph): PNode 
   #  incl(result.flags, nfAllConst)
   of nkTupleConstr:
     # tuple constructor
+    if n.typ.kind == tyTypeDesc:
+      # it's a tuple-type constructor
+      return newNodeIT(nkType, n.info, n.typ)
+
     result = copyNode(n)
     if (n.len > 0) and (n[0].kind == nkExprColonExpr):
       for i, expr in n.pairs:
@@ -966,8 +971,6 @@ proc foldInAstAux(m: PSym, n: PNode, idgen: IdGenerator, g: ModuleGraph): Folded
     # must not exist in statement AST
     unreachable(n.kind)
   else:
-    # XXX: type AST reaches here, but ideally this catch-all branch
-    #      wouldn't be needed
     result = Folded(node: n)
 
 proc foldInAst*(m: PSym, n: PNode, idgen: IdGenerator, g: ModuleGraph): PNode =

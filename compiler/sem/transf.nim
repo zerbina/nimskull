@@ -923,13 +923,9 @@ proc transformCase(c: PTransf, n: PNode): PNode =
     result.add(elseBranch)
 
 proc transformArrayAccess(c: PTransf, n: PNode): PNode =
-  # XXX this is really bad; transf should use a proper AST visitor
-  if n[0].kind == nkSym and n[0].sym.kind == skType:
-    result = n
-  else:
-    result = shallowCopy(n)
-    for i in 0..<n.len:
-      result[i] = transform(c, skipConv(n[i]))
+  result = shallowCopy(n)
+  for i in 0..<n.len:
+    result[i] = transform(c, skipConv(n[i]))
 
 proc transformExpandToAst(c: PTransf, n: PNode): PNode =
   ## Transforms a ``getAst`` call expression to a representation that's easier

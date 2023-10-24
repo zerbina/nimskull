@@ -579,13 +579,7 @@ proc genTypeExpr(c: var TCtx, n: PNode): EValue =
       genLocation(c, n)
     else:
       unreachable()
-  of nkBracketExpr:
-    # the type description of a generic type, e.g. ``seq[int]``
-    genTypeLit(c, n.typ)
-  of nkTupleTy, nkStaticTy, nkRefTy, nkPtrTy, nkVarTy, nkDistinctTy, nkProcTy,
-     nkIteratorTy, nkSharedTy, nkTupleConstr:
-    genTypeLit(c, n.typ)
-  of nkTypeOfExpr, nkType:
+  of nkType:
     genTypeLit(c, n.typ)
   else:
     unreachable("not a type expression")

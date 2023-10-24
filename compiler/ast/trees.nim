@@ -224,7 +224,8 @@ proc dontInlineConstant*(orig, cnst: PNode): bool {.inline.} =
   # inlined, unless it's the empty array:
   result = orig.kind != cnst.kind and
            cnst.kind in {nkCurly, nkPar, nkTupleConstr, nkBracket, nkObjConstr} and
-           cnst.len > ord(cnst.kind == nkObjConstr)
+           cnst.len > ord(cnst.kind == nkObjConstr) and
+           cnst.kind != nkType
 
 proc flattenExpr*(expr: PNode, stmts: var seq[PNode]): PNode =
   ## Applies the following transformations to the expression `expr`:
