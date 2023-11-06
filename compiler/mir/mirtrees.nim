@@ -193,42 +193,25 @@ type
               ## in the future. Within a region, the argument nodes to the
               ## region can be referenced as operands
 
-    mnkStmtList ## groups statements together
-    mnkScope  ## encloses statements in a scope, delimiting the livetimes
-              ## of all locals defined therein. Can be nested.
+    mnkLabel  ## represents a join point. Must be targeted by at least one
+              ## control-flow instruction
 
-    mnkIf     ## ``if(x)``; depending on the runtime value of `x`, transfers
-              ## control-flow to either the start or the end of the code, the
-              ## ``if`` spans
-    mnkCase   ## ``case(x)``; depending on the runtime value of `x`, transfers
-              ## control-flow to the start of one of its branches
-    mnkRepeat ## once control-flow reaches this statement, control-flow is
-              ## transfered to start of its body. Once control-flow reaches
-              ## the end of the body, it is transfered back to the start. In
-              ## other words, repeats its body an infinite number of times
-              # XXX: rename to ``mnkRepeat``?
-    mnkTry    ## associates one one or more statements (the first sub-node)
-              ## with: an exception handler, a finalizer, or both
-    mnkExcept ## defines and attaches an exception handler to a ``try`` block.
-              ## Only one handler can be attached to a ``try`` block
-    mnkFinally## defines a finalizer in the context of a ``try`` construct. All
-              ## control-flow that either leaves the body of the ``try`` and
-              ## does not target the exception handler (if one is present) or
-              ## that leaves the exception handler is redirected to inside the
-              ## finalizer first. Once control-flow reaches the end of a
-              ## finalizer, it is transferred to the original destination. Only
-              ## one finalizer can be attached to a ``try`` block
-    mnkBlock  ## attaches a label to a span of code. If control-flow reaches
-              ## this statement, it is transferred to the start of the body.
-              ## Once control-flow reaches the end of a ``block``, it is
-              ## transferred to the next statement/operation following the
-              ## block
-    mnkBreak  ## transfers control-flow to the statement/operation following
-              ## after the ``block`` with the given label
-    mnkReturn ## if the code-fragment represents the body of a procedure,
-              ## transfers control-flow back to the caller
+    mnkIf     ## jump if condition is false
+    mnkIfErr  ## jump if in error mode
+    mnkLoop   ## the only way to perform backwards control-flow
 
-    mnkBranch ## defines a branch of an ``mnkExcept`` or ``mnkCase``
+    mnkGoto          ## unconditional jump to a label
+    mnkGotoCleanup   ## must be followed by either a 'gotoFinalizer',
+                     ## 'gotoCleanup', or 'goto'
+    mnkGotoFinalizer ## same as 'gotoCleanup'
+    mnkResume        ## dynamic control-flow. Resumes at the label that is
+                     ## currently associated with it
+
+    mnkCase   ## followed by one or more 'branch' instructions
+    mnkBranch ## defines a branch of an ``mnkCase``. Immediately follows
+              ## either a 'branch' or 'case' instruction
+
+    mnkReturn ## exits the current procedure
 
     mnkAsm    ## corresponds to the high-level ``asm`` statement. Takes one or
               ## more arguments, but has no meaning itself at the MIR level
