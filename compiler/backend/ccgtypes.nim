@@ -332,6 +332,15 @@ proc seqV2ContentType(m: BModule; t: PType; check: var IntSet) =
   let result = cacheGetType(m.typeCache, sig)
   if result == "":
     discard getTypeDescAux(m, t, check, skVar)
+  elif isDefined(m.config, "nimTypeNames"):
+    discard cgsym(m, "TNimTypeV2")
+    appcg(m, m.s[cfsTypes], """$N
+$3ifndef $2_Content_PP
+$3define $2_Content_PP
+struct $2_Content { TNimTypeV2* typ; NI cap; $1 data[SEQ_DECL_SIZE];};
+$3endif$N
+      """, [getTypeDescAux(m, t.skipTypes(abstractInst)[0], check, skVar), result, rope"#"])
+
   else:
     # little hack for now to prevent multiple definitions of the same
     # Seq_Content:
@@ -1115,8 +1124,8 @@ proc genTypeInfoV2Impl(m: BModule, t, origType: PType, name: Rope; info: TLineIn
     name, destroyImpl, getTypeDesc(m, t), typeName,
     traceImpl, rope(flags)])
 
-  if t.kind == tyObject and t.len > 0 and t[0] != nil and optEnableDeepCopy in m.config.globalOptions:
-    discard genTypeInfoV1(m, t, info)
+  if optEnableDeepCopy in m.config.globalOptions:
+    addf(m.s[cfsTypeInit3], "$1.typeInfoV1 = $2;$n", [name, genTypeInfoV1(m, t, info)])
 
 proc genTypeInfoV2(m: BModule, t: PType; info: TLineInfo): Rope =
   let origType = t

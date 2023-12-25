@@ -9,6 +9,8 @@
 
 type
   NimSeqPayloadReimpl = object
+    when defined(nimTypeNames):
+      typ: PNimTypeV2
     cap: int
     data: pointer
 

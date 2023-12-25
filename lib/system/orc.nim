@@ -108,6 +108,7 @@ proc free(s: Cell; desc: PNimTypeV2) {.inline.} =
     else:
       cstderr.rawWrite "has dispose!\n"
 
+  decTypeSize(desc.typeInfoV1)
   nimRawDispose(p, desc.align)
 
 template orcAssert(cond, msg) =

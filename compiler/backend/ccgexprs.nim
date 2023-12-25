@@ -946,6 +946,7 @@ proc genNew(p: BProc, e: CgNode, a: var TLoc) =
     rawGenNew(p, a, se.rdLoc, needsInit = true)
   else:
     rawGenNew(p, a, "", needsInit = true)
+    linefmt(p, cpsStmts, "#nimRegisterObj($1);$n", [genTypeInfoV2(p.module, a.t, e.info)])
 
 proc genNewSeqOfCap(p: BProc; e: CgNode; d: var TLoc) =
   let seqtype = skipTypes(e.typ, abstractVarRange)
@@ -1123,6 +1124,7 @@ proc genObjConstr(p: BProc, e: CgNode, d: var TLoc) =
       rawGenNew(p, tmp, "",
                 needsInit = true,
                 doInitObj = not hasCase)
+      linefmt(p, cpsStmts, "#nimRegisterObj($1);$n", [genTypeInfoV2(p.module, t, e.info)])
       t = t.lastSon.skipTypes(abstractInst)
       r = "(*$1)" % [r]
     else:
@@ -1174,9 +1176,9 @@ proc genSeqConstr(p: BProc, n: CgNode, d: var TLoc) =
   let l = intLiteral(n.len)
   block:
     let seqtype = n.typ
-    linefmt(p, cpsStmts, "$1.len = $2; $1.p = ($4*) #newSeqPayload($2, sizeof($3), NIM_ALIGNOF($3));$n",
+    linefmt(p, cpsStmts, "$1.len = $2; $1.p = ($4*) #newSeqPayloadV2($2, sizeof($3), NIM_ALIGNOF($3), $5);$n",
       [rdLoc tmp, l, getTypeDesc(p.module, seqtype.lastSon),
-      getSeqPayloadType(p.module, seqtype)])
+      getSeqPayloadType(p.module, seqtype), genTypeInfoV2(p.module, seqtype, n.info)])
 
   for i in 0..<n.len:
     initLoc(arr, locExpr, n[i], OnHeap)
@@ -1287,7 +1289,7 @@ proc genGetTypeInfoV2(p: BProc, e: CgNode, d: var TLoc) =
   let t = e[1].typ
   if isFinal(t) or e[0].sym.name.s != "getDynamicTypeInfo":
     # ordinary static type information
-    putIntoDest(p, d, e, genTypeInfoV2(p.module, t, e.info))
+    putIntoDest(p, d, e, genTypeInfoV2(p.module, t.skipTypes({tyTypeDesc}), e.info))
   else:
     var a: TLoc
     initLocExpr(p, e[1], a)
@@ -1698,16 +1700,19 @@ proc genDestroy(p: BProc; n: CgNode) =
       initLocExpr(p, arg, a)
       if optThreads in p.config.globalOptions:
         linefmt(p, cpsStmts, "if ($1.p && !($1.p->cap & NIM_STRLIT_FLAG)) {$n" &
+          " #nimDestroyStr($1.p);$n" &
           " #deallocShared($1.p);$n" &
           "}$n", [rdLoc(a)])
       else:
         linefmt(p, cpsStmts, "if ($1.p && !($1.p->cap & NIM_STRLIT_FLAG)) {$n" &
+          " #nimDestroyStr($1.p);$n" &
           " #dealloc($1.p);$n" &
           "}$n", [rdLoc(a)])
     of tySequence:
       var a: TLoc
       initLocExpr(p, arg, a)
       linefmt(p, cpsStmts, "if ($1.p && !($1.p->cap & NIM_STRLIT_FLAG)) {$n" &
+        " #nimDestroySeq($1.p, sizeof($2));$n" &
         " #alignedDealloc($1.p, NIM_ALIGNOF($2));$n" &
         "}$n",
         [rdLoc(a), getTypeDesc(p.module, t.lastSon)])
@@ -1793,7 +1798,9 @@ proc genMagicExpr(p: BProc, e: CgNode, d: var TLoc, op: TMagic) =
   of mEnumToStr: genCall(p, e, d)
   of mOf: genOf(p, e, d)
   of mNew: genNew(p, e, d)
-  of mNewSeqOfCap: genNewSeqOfCap(p, e, d)
+  of mNewSeqOfCap:
+    #genNewSeqOfCap(p, e, d)
+    genCall(p, e, d)
   of mSizeOf:
     let t = e[1].typ.skipTypes({tyTypeDesc})
     putIntoDest(p, d, e, "((NI)sizeof($1))" % [getTypeDesc(p.module, t, skVar)])
@@ -2154,7 +2161,7 @@ proc expr(p: BProc, n: CgNode, d: var TLoc) =
       genSetConstr(p, n, d)
   of cnkArrayConstr:
     # XXX: constructions of empty seqs should be lifted into C constants too,
-    #      but that currently causes collisions and thus C compiler errors  
+    #      but that currently causes collisions and thus C compiler errors
     if isDeepConstExpr(n) and n.len != 0:
       exprComplexConst(p, n, d)
     elif skipTypes(n.typ, abstractVarRange).kind == tySequence:
@@ -2382,12 +2389,21 @@ proc genConstSeqV2(p: BProc, n: CgNode, t: PType; isConst: bool): Rope =
 
   let payload = getTempName(p.module)
 
-  appcg(p.module, cfsData,
-    "static $5 struct {$n" &
-    "  NI cap; $1 data[$2];$n" &
-    "} $3 = {$2 | NIM_STRLIT_FLAG, $4};$n", [
-    getTypeDesc(p.module, base), n.len, payload, data,
-    if isConst: "const" else: ""])
+  if isDefined(p.module.config, "nimTypeNames"):
+    discard cgsym(p.module, "TNimTypeV2")
+    appcg(p.module, cfsData,
+      "static $5 struct {$n" &
+      "  TNimTypeV2* typ; NI cap; $1 data[$2];$n" &
+      "} $3 = {0, $2 | NIM_STRLIT_FLAG, $4};$n", [
+      getTypeDesc(p.module, base), n.len, payload, data,
+      if isConst: "const" else: ""])
+  else:
+    appcg(p.module, cfsData,
+      "static $5 struct {$n" &
+      "  NI cap; $1 data[$2];$n" &
+      "} $3 = {$2 | NIM_STRLIT_FLAG, $4};$n", [
+      getTypeDesc(p.module, base), n.len, payload, data,
+      if isConst: "const" else: ""])
   result = "{$1, ($2*)&$3}" % [rope(n.len), getSeqPayloadType(p.module, t), payload]
 
 proc genBracedInit(p: BProc, n: CgNode; isConst: bool; optionalType: PType): Rope =

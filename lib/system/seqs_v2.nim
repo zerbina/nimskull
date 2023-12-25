@@ -16,9 +16,13 @@ proc supportsCopyMem(t: typedesc): bool {.magic: "TypeTrait".}
 ## Default seq implementation used by Nim's core.
 type
   NimSeqPayloadBase = object
+    when defined(nimTypeNames):
+      typ: PNimTypeV2
     cap: int
 
   NimSeqPayload[T] = object
+    when defined(nimTypeNames):
+      typ: PNimTypeV2
     cap: int
     data: UncheckedArray[T]
 
@@ -29,6 +33,8 @@ type
 
 const nimSeqVersion {.core.} = 2
 
+template contentSize(cap, size): int = sizeof(NimSeqPayloadBase) + (cap * size)
+
 # XXX make code memory safe for overflows in '*'
 
 proc newSeqPayload(cap, elemSize, elemAlign: int): pointer {.compilerRtl, raises: [].} =
@@ -36,6 +42,17 @@ proc newSeqPayload(cap, elemSize, elemAlign: int): pointer {.compilerRtl, raises
   # compilerProcs. Oh well, this will all be inlined anyway.
   if cap > 0:
     var p = cast[ptr NimSeqPayloadBase](alignedAlloc0(align(sizeof(NimSeqPayloadBase), elemAlign) + cap * elemSize, elemAlign))
+    p.cap = cap
+    result = p
+  else:
+    result = nil
+
+proc newSeqPayloadV2(cap, elemSize, elemAlign: int, typ: PNimTypeV2): pointer {.compilerRtl, raises: [].} =
+  if cap > 0:
+    var p = cast[ptr NimSeqPayloadBase](alignedAlloc0(align(sizeof(NimSeqPayloadBase), elemAlign) + cap * elemSize, elemAlign))
+    when defined(nimTypeNames):
+      p.typ = typ
+      incPayloadSize(typ.typeInfoV1, contentSize(cap, elemSize))
     p.cap = cap
     result = p
   else:
@@ -69,6 +86,9 @@ proc prepareSeqAdd(len: int; p: pointer; addlen, elemSize, elemAlign: int): poin
       else:
         let oldSize = headerSize + elemSize * oldCap
         let newSize = headerSize + elemSize * newCap
+        when defined(nimTypeNames):
+          if p.typ != nil:
+            decPayloadSize(p.typ.typeInfoV1, contentSize(oldCap, elemSize))
         var q = cast[ptr NimSeqPayloadBase](alignedRealloc0(p, oldSize, newSize, elemAlign))
         q.cap = newCap
         result = q
@@ -91,6 +111,9 @@ proc grow*[T](x: var seq[T]; newLen: Natural; value: T) =
   var xu = cast[ptr NimSeqV2[T]](addr x)
   if xu.p == nil or xu.p.cap < newLen:
     xu.p = cast[typeof(xu.p)](prepareSeqAdd(oldLen, xu.p, newLen - oldLen, sizeof(T), alignof(T)))
+    when defined(nimTypeNames):
+      xu.p.typ = getTypeInfo2(NimSeqPayload[T])
+      incPayloadSize(xu.p.typ.typeInfoV1, contentSize(xu.p.cap, sizeof(T)))
   xu.len = newLen
   for i in oldLen .. newLen-1:
     xu.p.data[i] = value
@@ -106,6 +129,9 @@ proc add*[T](x: var seq[T]; value: sink T) {.magic: "AppendSeqElem", noSideEffec
   var xu = cast[ptr NimSeqV2[T]](addr x)
   if xu.p == nil or xu.p.cap < oldLen+1:
     xu.p = cast[typeof(xu.p)](prepareSeqAdd(oldLen, xu.p, 1, sizeof(T), alignof(T)))
+    when defined(nimTypeNames):
+      xu.p.typ = getTypeInfoV2(NimSeqPayload[T])
+      incPayloadSize(xu.p.typ.typeInfoV1, contentSize(xu.p.cap, sizeof(T)))
   xu.len = oldLen+1
   # .nodestroy means `xu.p.data[oldLen] = value` is compiled into a
   # copyMem(). This is fine as know by construction that
@@ -123,8 +149,26 @@ proc setLen[T](s: var seq[T], newlen: Natural) =
       var xu = cast[ptr NimSeqV2[T]](addr s)
       if xu.p == nil or xu.p.cap < newlen:
         xu.p = cast[typeof(xu.p)](prepareSeqAdd(oldLen, xu.p, newlen - oldLen, sizeof(T), alignof(T)))
+        when defined(nimTypeNames):
+          xu.p.typ = getTypeInfoV2(NimSeqPayload[T])
+          incPayloadSize(xu.p.typ.typeInfoV1, contentSize(xu.p.cap, sizeof(T)))
       xu.len = newlen
 
 proc newSeq[T](s: var seq[T], len: Natural) =
   shrink(s, 0)
   setLen(s, len)
+
+proc newSeqOfCap[T](s: var seq[T], cap: Natural) {.noSideEffect.} =
+  {.cast(noSideEffect).}:
+    var xu = cast[ptr NimSeqV2[T]](addr s)
+    xu.len = 0
+    xu.p = cast[ptr NimSeqPayload[T]](newSeqPayload(cap, sizeof(T), alignof(T)))
+    when defined(nimTypeNames):
+      xu.p.typ = getTypeInfoV2(NimSeqPayload[T])
+      incPayloadSize(xu.p.typ.typeInfoV1, contentSize(xu.p.cap, sizeof(T)))
+
+proc nimDestroySeq(p: pointer, elemSize: int) {.compilerRtl.} =
+  let p = cast[ptr NimSeqPayloadBase](p)
+  when defined(nimTypeNames):
+    if p.typ != nil:
+      decPayloadSize(p.typ.typeInfoV1, contentSize(p.cap, elemSize))

@@ -657,17 +657,31 @@ proc newSeq*[T](len = 0.Natural): seq[T] =
   ##   #inputStrings[3] = "out of bounds"
   newSeq(result, len)
 
-proc newSeqOfCap*[T](cap: Natural): seq[T] {.
-  magic: "NewSeqOfCap", noSideEffect.} =
-  ## Creates a new sequence of type `seq[T]` with length zero and capacity
-  ## `cap`.
-  ##
-  ## .. code-block:: Nim
-  ##   var x = newSeqOfCap[int](5)
-  ##   assert len(x) == 0
-  ##   x.add(10)
-  ##   assert len(x) == 1
-  discard
+when defined(nimskullWorkingTypeNames):
+  proc newSeqOfCap[T](s: var seq[T], cap: Natural) {.magic: "NewSeqOfCap", noSideEffect.}
+
+  proc newSeqOfCap*[T](cap: Natural): seq[T] {.magic: "NewSeqOfCap", noSideEffect.} =
+    ## Creates a new sequence of type `seq[T]` with length zero and capacity
+    ## `cap`.
+    ##
+    ## .. code-block:: Nim
+    ##   var x = newSeqOfCap[int](5)
+    ##   assert len(x) == 0
+    ##   x.add(10)
+    ##   assert len(x) == 1
+    result.newSeqOfCap(cap)
+else:
+  proc newSeqOfCap*[T](cap: Natural): seq[T] {.
+    magic: "NewSeqOfCap", noSideEffect.} =
+    ## Creates a new sequence of type `seq[T]` with length zero and capacity
+    ## `cap`.
+    ##
+    ## .. code-block:: Nim
+    ##   var x = newSeqOfCap[int](5)
+    ##   assert len(x) == 0
+    ##   x.add(10)
+    ##   assert len(x) == 1
+    discard
 
 when not defined(js):
   proc newSeqUninitialized*[T: SomeNumber](len: Natural): seq[T] =
@@ -1717,11 +1731,21 @@ when not defined(js) and not isNimVmTarget:
       align: int
       name: cstring
       traceImpl: pointer
-      typeInfoV1: pointer # for backwards compat, usually nil
+      typeInfoV1: PNimType # for backwards compat, usually nil
       flags: int
     PNimTypeV2 = ptr TNimTypeV2
 
+proc getTypeInfoV2*[T](x: typedesc[T]): PNimTypeV2 {.magic: "GetTypeInfoV2", benign.}
+
+when not isNimVmTarget:
+  {.push stackTrace: off, profiler: off.}
+
+  include "system/atomics"
+
+  {.pop.}
+
 when notJSnotNims and defined(nimSeqsV2):
+  include "system/gc_common"
   include "system/strs_v2"
   include "system/seqs_v2"
 
@@ -1735,13 +1759,6 @@ when not isNimVmTarget:
 
 when not declared(sysFatal):
   include "system/fatal"
-
-when not isNimVmTarget:
-  {.push stackTrace: off, profiler: off.}
-
-  include "system/atomics"
-
-  {.pop.}
 
 
 when defined(nimV2):
@@ -2043,7 +2060,7 @@ const
   CompilerVersionMajor* {.intdefine.}: int = 1
     ## major version number for the current compiler.
     ## TODO: change to `0` in next csources
-    ## 
+    ##
     ## .. code-block:: Nim
     ##   when CompilerVersionMajor > 0: echo "stability cargo culting"
   CompilerVersionMinor* {.intdefine.}: int = 6
@@ -2056,9 +2073,9 @@ const
   StdlibMajor*: int = 1
     ## standard library major version
     ## TODO: change to `0` in next csources
-    ## 
+    ##
     ## Example:
-    ## 
+    ##
     ## .. code-block:: Nim
     ##   when (StdlibMajor, StdlibMinor, StdlibPatch) >= (1, 3, 1): discard
   StdlibMinor*: int = 6
@@ -2615,7 +2632,7 @@ when defined(nimskullReworkStaticExec):
     ##
     ## .. code-block:: Nim
     ##     const stateMachine = staticExec("dfaoptimizer", "input", "0.8.0")
-    ## 
+    ##
     ## Deprecate/Replace with variant that returns the exit code and output
 else:
   proc slurp*(filename: string): string {.magic: "Slurp".} = discard

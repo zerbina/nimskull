@@ -11,6 +11,8 @@ when defined(nimTypeNames):
   # TODO: make the heap dump feature compatible with the new V2 type
   #       information
 
+  proc getMemCounters*(): (int, int)
+
   type InstancesInfo = array[400, (cstring, int, int)]
   proc sortInstances(a: var InstancesInfo; n: int) =
     # we use shellsort here; fast and simple
@@ -34,10 +36,6 @@ when defined(nimTypeNames):
     ## Iterate over summaries of types on heaps.
     ## This data may be inaccurate if allocations
     ## are made by the iterator body.
-    if strDesc.nextType == nil:
-      strDesc.nextType = nimTypeRoot
-      strDesc.name = "string"
-      nimTypeRoot = addr strDesc
     var it = nimTypeRoot
     while it != nil:
       if (it.instances > 0 or it.sizes != 0):
@@ -60,21 +58,22 @@ when defined(nimTypeNames):
       let (allocs, deallocs) = getMemCounters()
       c_fprintf(cstdout, "[Heap] allocs/deallocs: %ld/%ld\n", allocs, deallocs)
 
-template decTypeSize(cell, t) =
+template decTypeSize(t) =
   when defined(nimTypeNames):
-    if t.kind in {tyString, tySequence}:
-      let data = cast[ptr NimSeqV2Reimpl](cellToUsr(cell)).data
-      let size =
-        if t.kind == tyString:
-          cap + 1 + GenericSeqSize
-        else:
-          align(GenericSeqSize, t.base.align) + cap * t.base.size
-      atomicDec t.sizes, size+sizeof(Cell)
-    else:
-      atomicDec t.sizes, t.base.size+sizeof(Cell)
-    atomicDec t.instances
+    discard atomicDec t.instances
+    discard atomicDec(t.sizes, t.size+sizeof(RefHeader))
 
-template incTypeSize(typ, size) =
+template incTypeSize(typ) =
   when defined(nimTypeNames):
     discard atomicInc typ.instances
-    atomicInc typ.sizes, size+sizeof(Cell)
+    discard atomicInc(typ.sizes, typ.size+sizeof(RefHeader))
+
+template incPayloadSize(typ, size) =
+  when defined(nimTypeNames):
+    discard atomicInc typ.instances
+    discard atomicInc(typ.sizes, size)
+
+template decPayloadSize(typ, size) =
+  when defined(nimTypeNames):
+    discard atomicDec typ.instances
+    discard atomicDec(typ.sizes, size)

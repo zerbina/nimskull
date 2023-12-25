@@ -619,6 +619,10 @@ proc atomicRefOp(c: var TLiftCtx; t: PType; body, x, y: PNode) =
     addDestructorCall(c, elemType, actions, genDeref(tmp, nkDerefExpr))
     var alignOf = genBuiltin(c, mAlignOf, "alignof", newNodeIT(nkType, c.info, elemType))
     alignOf.typ = getSysType(c.g, c.info, tyInt)
+    if isDefined(c.g.config, "nimTypeNames"):
+      let typInfo = genBuiltin(c, mGetTypeInfoV2, "getTypeInfoV2", newNodeIT(nkType, x.info, t))
+      typInfo.typ = getSysMagic(c.g, unknownLineInfo, "getTypeInfoV2", mGetTypeInfoV2).typ[0]
+      actions.add callCodegenProc(c.g, "nimUnregisterObj", c.info, typInfo)
     actions.add callCodegenProc(c.g, "nimRawDispose", c.info, tmp,
                                 foldAlignOf(c.g.config, alignOf, alignOf))
   else:

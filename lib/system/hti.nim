@@ -107,7 +107,7 @@ type
 when defined(nimTypeNames):
   # Declare this variable only once in system.nim
   when declared(ThisIsSystem):
-    var nimTypeRoot {.compilerproc.}: PNimType
+    var nimTypeRoot {.compilerproc, noinit.}: PNimType
   else:
     var nimTypeRoot {.importc.}: PNimType
 
