@@ -2,18 +2,9 @@ name: Build and test
 on:
   push:
     # Empty configuration means use default (ie. test all branches)
-    branches-ignore:
-      # Everything would have passed bors before going into devel
-      - devel
-      # Bors temporary branches
-      - staging.tmp
-      - trying.tmp
-      - staging-squash-merge.tmp
-      # Github Merge Queue temporary branches
-      - gh-readonly-queue/**
 
   pull_request:
-    # Only take PRs to devel
+    # Only run the tests for PRs to devel
     branches:
       - devel
 

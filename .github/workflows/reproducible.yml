@@ -1,14 +1,7 @@
 name: Test compiler build reproducibility
 
 on:
-  push:
-    # Only run on bors branches
-    branches:
-      - staging
-      - trying
-
-  # This is for passing required checks
-  pull_request:
+  # Only run reproducibility checks for additions to the merge queue
   merge_group:
 
 jobs:
@@ -28,9 +21,6 @@ jobs:
     #               human-readable fashion. This would allow developers to
     #               figure out what of their changes caused the build to
     #               varies based on outside environment.
-
-    # Skip this for PRs
-    if: github.event_name != 'pull_request'
 
     strategy:
       fail-fast: false
