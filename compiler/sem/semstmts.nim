@@ -2201,7 +2201,7 @@ proc typeSectionFinalPass(c: PContext, n: PNode) =
           x = x.lastSon
         # we need the 'safeSkipTypes' here because illegally recursive types
         # can enter at this point, see bug #13763
-        if x.kind notin {nkObjectTy, nkDistinctTy, nkEnumTy, nkEmpty} and
+        if x.kind notin {nkObjectTy, nkDistinctTy, nkEnumTy, nkEmpty, nkRecCase} and
             s.typ.safeSkipTypes(abstractPtrs).kind notin {tyObject, tyEnum}:
           # type aliases are hard:
           var t = semTypeNode(c, x, nil)
