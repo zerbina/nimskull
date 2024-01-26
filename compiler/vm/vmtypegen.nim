@@ -297,7 +297,7 @@ func genType(c: var TypeInfoCache, t: PType, cl: var GenClosure;
     else:
       res.typ = VmType(kind: akCallable, routineSig: c.makeSignatureId(t))
 
-  of tyObject:
+  of tyObject, tyCase:
     if true:
       # if the `t` is not in the cache, we've got a new object type
 
@@ -356,7 +356,7 @@ func genType(c: var TypeInfoCache, t: PType, cl: var GenClosure;
   if res.existing != nil:
     result.typ = res.existing
     result.existed = true
-  elif t.kind == tyObject:
+  elif t.kind in {tyObject, tyCase}:
     assert result.typ != nil
     result.existed = false
 

@@ -137,7 +137,7 @@ proc hashType(c: var MD5Context, t: PType; flags: set[ConsiderFlag]) =
     c &= char(t.kind)
     if t.sym != nil and {sfImportc, sfExportc} * t.sym.flags != {}:
       c.hashSym(t.sym)
-  of tyObject, tyEnum:
+  of tyObject, tyEnum, tyCase:
     if t.typeInst != nil:
       # prevent against infinite recursions here, see bug #8883:
       let inst = t.typeInst

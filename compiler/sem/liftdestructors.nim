@@ -224,7 +224,7 @@ proc fillBodyObj(c: var TLiftCtx; n, body, x, y: PNode; enforceDefaultOp: bool) 
         "wanted Sym, NilLit, RecList or RecCase, but found " & $n.kind))
 
 proc fillBodyObjTImpl(c: var TLiftCtx; t: PType, body, x, y: PNode) =
-  if t.len > 0 and t[0] != nil:
+  if t.kind != tyCase and t.len > 0 and t[0] != nil:
     fillBody(c, skipTypes(t[0], abstractPtrs), body, x, y)
   fillBodyObj(c, t.n, body, x, y, enforceDefaultOp = false)
 
@@ -798,6 +798,9 @@ proc fillBody(c: var TLiftCtx; t: PType; body, x, y: PNode) =
         body.add newAsgnStmt(x, y)
       else:
         fillBodyObjT(c, t, body, x, y)
+  of tyCase:
+    if tfHasAsgn in t.flags:
+      fillBodyObjT(c, t, body, x, y)
   of tyDistinct:
     if not considerUserDefinedOp(c, t, body, x, y):
       fillBody(c, t[0], body, x, y)
@@ -905,7 +908,7 @@ proc produceSym(g: ModuleGraph; c: PContext; typ: PType; kind: TTypeAttachedOp;
   if result == nil:
     result = symPrototype(g, typ, typ.owner, kind, info, idgen)
 
-  if typ.kind in {tyObject, tyEnum} and tfFromGeneric in typ.flags:
+  if typ.kind in {tyObject, tyCase, tyEnum} and tfFromGeneric in typ.flags:
     # for nominal types (``tyDistinct`` is handled separately), block
     # the operator slot of the generic type
     bindPseudoOp(g, c, idgen, kind, typ, info)
@@ -1023,7 +1026,7 @@ proc createTypeBoundOps(g: ModuleGraph; c: PContext; orig: PType; info: TLineInf
   if isEmptyContainer(skipped) or skipped.kind == tyStatic: return
 
   var canon: PType
-  if skipped.kind == tyObject:
+  if skipped.kind in {tyObject, tyCase}:
     # for nominal types, the type itself is already the canonical one (each one
     # is unique)
     # XXX: ^^ at present, this is only true for object types. Phantom

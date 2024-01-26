@@ -422,6 +422,9 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
   proc render(t: PType): string = typeToString(t)
 
   case SemReportKind(r.kind):
+    of rsemNotACasePart:
+      result = "type is not part of the matched-over type"
+
     of rsemTypelessParam:
       result = "typeless param"
 
@@ -3271,6 +3274,13 @@ func astDiagToLegacyReport(conf: ConfigRef, diag: PAstDiag): Report {.inline.} =
         reportInst: diag.instLoc.toReportLineInfo,
         kind: kind,
         ast: diag.wrongNode)
+  of adSemNotACasePart:
+    semRep = SemReport(
+        location: some diag.location,
+        reportInst: diag.instLoc.toReportLineInfo,
+        kind: rsemNotACasePart,
+        ast: diag.wrongNode,
+        typ: diag.typ)
   of adSemInvalidTupleSubscript:
     semRep = SemReport(
         location: some diag.location,

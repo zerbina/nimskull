@@ -1295,6 +1295,21 @@ typeRel can be used to establish various relationships between types:
           result = isNone
     else:
       discard
+  of tyCase:
+    # a type part of the case object is convertible to the case object. It's
+    # similar to a ``tyOr``, really.
+    # the part types are always a ``tyDistinct``, so unwrap them first
+    if a.kind == tyCase:
+      if sameObjectTypes(f, a):
+        result = isEqual
+      return
+
+    let a = if a.kind == tyDistinct: a.base else: a
+    for i, t in f.sons.pairs:
+      if typeRel(c, t, a, {trDontBind}) == isEqual:
+        result = isConvertible
+        break
+
   of tyUncheckedArray:
     if a.kind == tyUncheckedArray:
       result = typeRel(c, base(f), base(a), flags)
@@ -1450,6 +1465,9 @@ typeRel can be used to establish various relationships between types:
         result = isNilConversion
     elif a.kind == tyNil:
       result = f.allowsNil
+    elif f.base.kind == tyCase and a.kind != tyCase:
+      # for convenience, a ``Part`` matches ``ref Case`` too.
+      result = typeRel(c, f.base, a)
     else:
       discard
   of tyProc:

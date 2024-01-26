@@ -855,7 +855,7 @@ proc replaceTypeParamsInType*(c: PContext, pt: TIdTable, t: PType): PType =
 
   of tyTypeDesc, tyArray, tySet, tySink, tyTuple, tyVar, tyLent,
      tyPtr, tyRef, tySequence, tyOpenArray, tyVarargs, tyUncheckedArray,
-     tyOrdinal, tyDistinct, AndOrNot:
+     tyOrdinal, tyDistinct, AndOrNot, tyCase:
     # types that can contain type variables and don't require special handling
     result = t
     # update type parameters:
@@ -1041,7 +1041,7 @@ proc containsUnboundTypeVar(pt: TIdTable, t: PType): bool =
 
   of tyDistinct, tyArray, tySet, tySink, tyTuple, tyVar, tyLent, tyPtr, tyRef,
      tySequence, tyOpenArray, tyVarargs, tyUncheckedArray,
-     tyProc, tyOrdinal, tyAlias, tyObject:
+     tyProc, tyOrdinal, tyAlias, tyObject, tyCase:
     # can contain type variables
     for it in t.sons.items:
       # the element can be nil for proc types

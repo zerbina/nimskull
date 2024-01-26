@@ -172,7 +172,7 @@ const
     "BuiltInTypeClass", "UserTypeClass",
     "UserTypeClassInst", "CompositeTypeClass", "inferred",
     "and", "or", "not", "any", "static", "TypeFromExpr",
-    "void"]
+    "void", "case"]
 
 proc addTypeFlags(name: var string, typ: PType) {.inline.} =
   ## Adds " not nil" if tfNotNil is present
@@ -280,6 +280,7 @@ proc typeToString*(typ: PType, prefer: TPreferedDesc = preferName): string =
         of tyOpenArray: "openArray"
         of tyVarargs: "varargs"
         of tyUncheckedArray: "UncheckedArray"
+        of tyCase: "case"
         of {low(TTypeKind)..high(TTypeKind)} - tyBuiltInTypeClasses:
           "<illegal type: " & $t.base.kind & ">"
     of tyInferred:

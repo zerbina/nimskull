@@ -1233,6 +1233,7 @@ proc parseExpr(p: var Parser): ParsedNode =
 
 proc parseEnum(p: var Parser): ParsedNode
 proc parseObject(p: var Parser): ParsedNode
+proc parseCaseObject(p: var Parser): ParsedNode
 proc parseTypeClass(p: var Parser): ParsedNode
 
 proc primary(p: var Parser, mode: PrimaryMode): ParsedNode =
@@ -1275,6 +1276,11 @@ proc primary(p: var Parser, mode: PrimaryMode): ParsedNode =
       result = parseObject(p)
     else:
       result = p.newNodeConsumingTok(pnkObjectTy)
+  of tkCase:
+    if mode == pmTypeDef:
+      result = parseCaseObject(p)
+    else:
+      result = p.newNodeConsumingTok(pnkRecCase)
   of tkConcept:
     if mode == pmTypeDef:
       result = parseTypeClass(p)
@@ -1993,6 +1999,33 @@ proc parseObject(p: var Parser): ParsedNode =
                parseObjectPart(p)
              else:
                p.emptyNode
+
+proc parseCaseObject(p: var Parser): ParsedNode =
+  #| caseObjectDecl = 'case' COMMENT? objectPart
+  result = p.newNodeConsumingTok(pnkRecCase)
+  if p.tok.tokType == tkComment:
+    p.skipComment(result)
+  # an initial IND{>} HAS to follow:
+  if p.realInd:
+    p.flexComment(result)
+    p.currInd = p.tok.indent
+    # progress guaranteed
+    while p.sameInd:
+      var b: ParsedNode
+      case p.tok.tokType
+      of tkOf:
+        b = p.newNode(pnkOfBranch, p.tok)
+        p.exprList(tkColon, b)
+      else: break
+      p.colcom(b)
+      var fields = parseObjectPart(p)
+      if fields.kind == pnkEmpty:
+        p.invalidExpectedIdent()
+        fields = p.newNilLitNode(p.tok) # don't break further semantic checking
+      b.add fields
+      result.add b
+  else:
+    result.add p.emptyNode
 
 proc parseTypeClassParam(p: var Parser): ParsedNode =
   let modifier =

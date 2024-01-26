@@ -280,7 +280,7 @@ proc mapType(typ: PType; indirect = false): TJSTypeKind =
   of tyFloat..tyFloat64: result = etyFloat
   of tySet: result = etyObject # map a set to a table
   of tyString, tySequence: result = etySeq
-  of tyObject, tyArray, tyTuple, tyOpenArray, tyVarargs, tyUncheckedArray:
+  of tyObject, tyArray, tyTuple, tyOpenArray, tyVarargs, tyUncheckedArray, tyCase:
     result = etyObject
   of tyNil: result = etyNull
   of tyGenericParam, tyGenericBody, tyGenericInvocation,

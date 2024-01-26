@@ -424,7 +424,7 @@ proc genObjectInit(p: BProc, section: TCProcSection, t: PType, a: TLoc,
     ## default value for `t`.
     let kind =
       case t.skipTypes(abstractInst).kind
-      of tyObject: cnkObjConstr
+      of tyObject, tyCase: cnkObjConstr
       of tyTuple:  cnkTupleConstr
       of tyArray:  cnkArrayConstr
       else:

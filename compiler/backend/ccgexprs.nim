@@ -561,7 +561,7 @@ proc lookupFieldAgain(p: BProc, ty: PType; field: PSym; r: var Rope;
   assert r != ""
   while ty != nil:
     ty = ty.skipTypes(skipPtrs)
-    assert ty.kind == tyObject
+    assert ty.kind in {tyObject, tyCase}
     result = lookupInRecord(ty.n, field.name)
     if result != nil:
       if resTyp != nil: resTyp[] = ty
@@ -576,7 +576,7 @@ proc genRecordField(p: BProc, e: CgNode, d: var TLoc) =
   var r = rdLoc(a)
   var f = e[1].field
   let ty = skipTypes(a.t, abstractInst + tyUserTypeClasses)
-  p.config.internalAssert(ty.kind == tyObject, e[0].info)
+  p.config.internalAssert(ty.kind in {tyObject, tyCase}, e[0].info)
   if true:
     var rtyp: PType
     let field = lookupFieldAgain(p, ty, f, r, addr rtyp)
@@ -1015,7 +1015,7 @@ proc specializeInitObject(p: BProc, accessor: Rope, typ: PType,
     specializeInitObject(p, ropecg(p.module, "$1[$2]", [accessor, i.r]),
                          typ[1], info)
     lineF(p, cpsStmts, "}$n", [])
-  of tyObject:
+  of tyObject, tyCase:
     proc pred(t: PType): bool =
       t.kind == tyObject and not isObjLackingTypeField(t)
 
@@ -2155,6 +2155,10 @@ proc expr(p: BProc, n: CgNode, d: var TLoc) =
      cnkFinally, cnkBranch, cnkLabel, cnkStmtListExpr, cnkField:
     internalError(p.config, n.info, "expr(" & $n.kind & "); unknown node kind")
 
+proc getNullValueAux(p: BProc; t: PType; obj: PNode, constOrNil: CgNode,
+                     result: var Rope; count: var int;
+                     info: TLineInfo)
+
 proc getDefaultValue(p: BProc; typ: PType; info: TLineInfo): Rope =
   var t = skipTypes(typ, abstractRange-{tyTypeDesc})
   case t.kind
@@ -2175,6 +2179,11 @@ proc getDefaultValue(p: BProc; typ: PType; info: TLineInfo): Rope =
     var count = 0
     result.add "{"
     getNullValueAuxT(p, t, t, t.n, nil, result, count, info)
+    result.add "}"
+  of tyCase:
+    var count = 0
+    result.add "{"
+    getNullValueAux(p, t, t.n, nil, result, count, info)
     result.add "}"
   of tyTuple:
     result = rope"{"
@@ -2283,8 +2292,11 @@ proc genConstObjConstr(p: BProc; n: CgNode): Rope =
   result = ""
   let t = n.typ.skipTypes(abstractInst)
   var count = 0
-  if t.kind == tyObject:
+  case t.kind
+  of tyObject:
     getNullValueAuxT(p, t, t, t.n, n, result, count, n.info)
+  else: # tyCase
+    getNullValueAux(p, t, t.n, n, result, count, n.info)
   result = "{$1}$n" % [result]
 
 proc genConstSimpleList(p: BProc, n: CgNode): Rope =
@@ -2397,7 +2409,7 @@ proc genBracedInit(p: BProc, n: CgNode; optionalType: PType): Rope =
         ctype, arrLen, payload, data])
       result = "{($1*)&$2, $3}" % [ctype, payload, rope arrLen]
 
-    of tyObject:
+    of tyObject, tyCase:
       result = genConstObjConstr(p, n)
     of tyString, tyCstring:
       if n.kind != cnkNilLit and ty == tyString:

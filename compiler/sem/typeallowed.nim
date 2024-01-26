@@ -188,6 +188,11 @@ proc typeAllowedAux(marker: var IntSet, typ: PType, kind: TSymKind,
         if result != nil: break
       if result.isNil and t.n != nil:
         result = typeAllowedNode(marker, t.n, kind, c, flags)
+  of tyCase:
+    for i in 0..<t.len:
+      result = typeAllowedAux(marker, t[i], kind, c, flags)
+      if result != nil:
+        break
   of tyEmpty:
     if kind in {skVar, skLet}: result = t
   of tyProxy:

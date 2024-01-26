@@ -398,6 +398,9 @@ proc semObjConstr(c: PContext, n: PNode, flags: TExprFlags): PNode =
   if t.kind == tyRef:
     t = skipTypes(t[0], {tyGenericInst, tyAlias, tySink})
 
+  if t.kind == tyDistinct and tfBorrowDot in t.flags:
+    t = t.base
+
   if t.kind != tyObject:
     return newError(c.config, result,
                     PAstDiag(kind: adSemExpectedObjectOfType,

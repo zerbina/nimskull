@@ -1726,11 +1726,64 @@ proc genIf(c: var TCtx, n: PNode, dest: Destination) =
           else:
             unreachable(it.kind)
 
+proc lowerMatchCase(c: var TCtx, n: PNode, dest: Destination) =
+  let typ = n[0].typ
+  let kindType = typ.n[0].typ
+  let val = capture(c, n[0])
+  let v = c.wrapTemp kindType:
+    c.subTree MirNode(kind: mnkPathNamed, typ: kindType, field: typ.n[0].sym):
+      c.use val
+
+  c.add MirNode(kind: mnkCase, len: n.len - 1)
+  c.use v
+
+  for _, branch in branches(n):
+    var binding: PSym
+    case branch.kind
+    of nkOfBranch:
+      let hasBinding = branch[^2].sym.kind != skType
+      c.add MirNode(kind: mnkBranch, len: branch.len - 1 - ord(hasBinding))
+      for i, it in branchLabels(branch):
+        if it.sym.kind == skType:
+          c.add MirNode(kind: mnkLiteral, lit: newIntTypeNode(it.sym.position, kindType))
+        else:
+          binding = it.sym
+    of nkElse:
+      c.add MirNode(kind: mnkBranch, len: 0)
+    else:
+      unreachable()
+
+    c.scope:
+      if binding != nil:
+        # find the field for the branch:
+        var field: PSym
+        for i in 0..<typ.sons.len:
+          if typ[i].id == skipTypes(binding.typ.base, {tyDistinct}).id:
+            field = typ.n[i+1][^1].sym
+            break
+        assert field != nil
+        # emit the actual definition for the binding:
+        c.subTree mnkDef:
+          c.add c.nameNode(binding)
+          c.buildTree mnkView, binding.typ:
+            c.subTree MirNode(kind: mnkPathNamed, typ: field.typ, field: field):
+              c.use val
+
+      genBranch(c, branch.lastSon, dest)
+
+    c.add endNode(mnkBranch)
+
+  c.add endNode(mnkCase)
+
 proc genCase(c: var TCtx, n: PNode, dest: Destination) =
   ## Generates the MIR code for an ``nkCaseStmt`` node. Since the ``mnkCase``
   ## MIR construct works in a very similar way, the translation logic is
   ## straightforward
   assert isEmptyType(n.typ) == not dest.isSome
+
+  if n[0].typ.kind == tyCase:
+    lowerMatchCase(c, n, dest)
+    return
 
   # the number of processed branches is not necessarily equal to the amount
   # we're going to emit (in case we skip some), so we have to count them
@@ -1894,7 +1947,7 @@ proc genx(c: var TCtx, n: PNode, consume: bool) =
     assert sym.kind == skField
 
     case typ.kind
-    of tyObject:
+    of tyObject, tyCase:
       c.subTree MirNode(kind: mnkPathNamed, typ: n.typ, field: sym):
         genOperand(c, n[0])
     of tyTuple:

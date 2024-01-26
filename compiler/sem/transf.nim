@@ -566,6 +566,24 @@ proc generateThunk(c: PTransf; prc: PNode, dest: PType): PNode =
   result = newTreeIT(nkClosure, prc.info, dest):
     [conv, newNodeIT(nkNilLit, prc.info, getSysType(c.graph, prc.info, tyNil))]
 
+proc transformCaseConv(c: PTransf, typ, orig: PType, n: PNode): PNode =
+  # lower a `Case(Branch(...))` conversion into
+  # `Case(kind: ..., branch: Branch(...))`
+  let source = n[1].typ
+  let kind = typ.n[0].sym
+  var field: PSym
+  for i in 0..<typ.sons.len:
+    if typ[i].id == skipTypes(source, {tyDistinct}).id:
+      field = typ.n[i+1][^1].sym
+      break
+
+  assert field != nil
+
+  result = newTreeIT(nkObjConstr, n.info, n.typ):
+    [n[0],
+     newTree(nkExprColonExpr, newSymNode(kind), newIntTypeNode(source.sym.position, kind.typ)),
+     newTree(nkExprColonExpr, newSymNode(field), transform(c, n[1]))]
+
 proc transformConv(c: PTransf, n: PNode): PNode =
   # numeric types need range checks:
   var dest = skipTypes(n.typ, abstractVarRange)
@@ -619,6 +637,8 @@ proc transformConv(c: PTransf, n: PNode): PNode =
   of tyRef, tyPtr:
     dest = skipTypes(dest, abstractPtrs)
     source = skipTypes(source, abstractPtrs)
+    if dest.kind == tyCase:
+      return transformCaseConv(c, dest, n.typ, n)
     case source.kind
     of tyObject:
       let diff = inheritanceDiff(dest, source)
@@ -646,6 +666,8 @@ proc transformConv(c: PTransf, n: PNode): PNode =
       result = newTreeIT(
         if diff < 0: nkObjUpConv else: nkObjDownConv,
         n.info, n.typ): transform(c, n[1])
+  of tyCase:
+    result = transformCaseConv(c, dest, n.typ, n)
   of tyPointer:
     case source.kind
     of tyNil:

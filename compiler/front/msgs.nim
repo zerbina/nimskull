@@ -420,6 +420,7 @@ func astDiagToLegacyReportKind*(
   ## function is no longer all that sensible. `AstDiagKind` will move towards
   ## very broad categories and they'll no longer map to "reports".
   case diag
+  of adSemNotACasePart: rsemNotACasePart
   of adWrappedError: rsemWrappedError
   of adSemTypeMismatch: rsemTypeMismatch
   of adSemTypeNotAllowed: rsemTypeNotAllowed

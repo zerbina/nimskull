@@ -778,7 +778,7 @@ proc exprToIr(tree: MirBody, cl: var TranslateCl,
   of mnkDerefView:
     op cnkDerefView, atomToIr(tree, cl, cr)
   of mnkObjConstr:
-    assert n.typ.skipTypes(abstractVarRange).kind in {tyObject, tyRef}
+    assert n.typ.skipTypes(abstractVarRange).kind in {tyObject, tyRef, tyCase}
     treeOp cnkObjConstr:
       let f = newFieldNode(get(tree, cr).field)
       res.add newTree(cnkBinding, cr.info, [f, argToIr(tree, cl, cr)[1]])

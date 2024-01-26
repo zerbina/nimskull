@@ -545,6 +545,8 @@ type
 
     tyVoid ## void type, lack of a value or unit
 
+    tyCase ## case object
+
 static:
   # remind us when TTypeKind stops to fit in a single 64-bit word
   # assert TTypeKind.high.ord <= 63
@@ -566,6 +568,7 @@ const
   tyUserTypeClasses* = {tyUserTypeClass, tyUserTypeClassInst}
 
   tyBuiltInTypeClasses* = {tyDistinct, tyEnum, tyOrdinal, tyArray, tyObject,
+                           tyCase,
                            tyTuple, tySet, tyRange, tyPtr, tyRef, tyVar,
                            tySequence, tyProc, tyOpenArray, tyLent, tyVarargs,
                            tyUncheckedArray}
@@ -1185,6 +1188,7 @@ type
     adSemDotOperatorsNotEnabled
     adSemCallOperatorsNotEnabled
     adSemUnexpectedPattern
+    adSemNotACasePart
     # types
     adSemTypeKindMismatch
     # semexprs
@@ -1462,6 +1466,8 @@ type
     of adSemDifferentTypeForReintroducedSymbol:
       reintrod*: PSym
       foundTyp*: PType
+    of adSemNotACasePart:
+      typ*: PType
     of adSemTypeKindMismatch:
       expectedTypKinds*: set[TTypeKind]
       givenTyp*: PType

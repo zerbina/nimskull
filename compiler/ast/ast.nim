@@ -426,7 +426,7 @@ proc propagateToOwner*(owner, elem: PType; propagateHasAsgn = true) =
   let mask = elem.flags * {tfHasAsgn}
   if mask != {} and propagateHasAsgn:
     let o2 = owner.skipTypes({tyGenericInst, tyAlias, tySink})
-    if o2.kind in {tyTuple, tyObject, tyArray,
+    if o2.kind in {tyTuple, tyObject, tyArray, tyCase,
                    tySequence, tySet, tyDistinct}:
       o2.flags.incl mask
       owner.flags.incl mask

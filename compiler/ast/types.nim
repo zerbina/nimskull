@@ -231,7 +231,7 @@ proc searchTypeForAux(t: PType, predicate: TTypePredicate,
   result = predicate(t)
   if result: return
   case t.kind
-  of tyObject:
+  of tyObject, tyCase:
     if t[0] != nil:
       result = searchTypeForAux(t[0].skipTypes(skipPtrs), predicate, marker)
     if not result: result = searchTypeNodeForAux(t.n, predicate, marker)
@@ -275,7 +275,7 @@ proc analyseObjectWithTypeFieldAux(t: PType,
   result = frNone
   if t == nil: return
   case t.kind
-  of tyObject:
+  of tyObject, tyCase:
     if t.n != nil:
       if searchTypeNodeForAux(t.n, isObjectWithTypeFieldPredicate, marker):
         return frEmbedded
@@ -358,7 +358,7 @@ proc canFormAcycleAux(marker: var IntSet, typ: PType, startId: int): bool =
   var t = skipTypes(typ, abstractInst-{tyTypeDesc})
   if tfAcyclic in t.flags: return
   case t.kind
-  of tyTuple, tyObject, tyRef, tySequence, tyArray, tyOpenArray, tyVarargs:
+  of tyTuple, tyObject, tyCase, tyRef, tySequence, tyArray, tyOpenArray, tyVarargs:
     if t.id == startId:
       # XXX: this check leads to all types not being explicitly marked as
       #      acyclic to be treated as cyclic!
@@ -822,7 +822,7 @@ proc sameTypeAux(x, y: PType, c: var TSameTypeClosure): bool =
     if result and a.len == b.len and a.len == 1:
       cycleCheck()
       result = sameTypeAux(a[0], b[0], c)
-  of tyObject:
+  of tyObject, tyCase:
     result = sameObjectTypes(a, b)
   of tyDistinct:
     cycleCheck()
@@ -1334,7 +1334,7 @@ proc lookupFieldAgain*(ty: PType; field: PSym): PSym =
   var ty = ty
   while ty != nil:
     ty = ty.skipTypes(skipPtrs)
-    assert(ty.kind in {tyTuple, tyObject})
+    assert(ty.kind in {tyTuple, tyObject, tyCase})
     result = lookupInRecord(ty.n, field.name)
     if result != nil: break
     ty = ty[0]
@@ -1452,7 +1452,7 @@ proc productReachable(marker: var IntSet, g: ModuleGraph, t: PType, search: PTyp
           isInd: bool): bool =
   ## Computes and returns whether `search` is *potentially* reachable from `t`
   case t.kind
-  of tyTuple, tySequence, tyArray:
+  of tyTuple, tySequence, tyArray, tyCase:
     # value types that can keep something alive
     for i in 0..<t.len:
       result = check(marker, g, t[i], search, isInd)

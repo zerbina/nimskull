@@ -1151,6 +1151,109 @@ proc semObjectNode(c: PContext, n: PNode, prev: PType; flags: TTypeFlags): PType
   if c.inGenericContext == 0 and computeRequiresInit(c, result):
     result.flags.incl tfRequiresInit
 
+proc semCaseObject(c: PContext, n: PNode, prev: PType): PType =
+  if n.len < 1:
+    return newConstraint(c, tyCase)
+
+  openShadowScope(c)
+
+  result = newOrPrevType(tyCase, prev, c)
+  # internally, a case object is normal record case object
+  result.n = newNode(nkRecCase)
+
+  # create and add the hidden kind symbol:
+  let kindSym = newSym(skField, getIdent(c.cache, "kind"), nextSymId c.idgen,
+                       getCurrOwner(c), n.info)
+  let kindType = newTypeS(tyRange, c)
+  kindType.rawAddSon(getSysType(c.graph, n.info, tyInt))
+  kindSym.typ = kindType
+  result.n.add newSymNode(kindSym)
+
+
+  var numLabels: int
+  for it in n.items:
+    case it.kind
+    of nkOfBranch:
+      checkMinSonsLen(n, 2, c.config)
+      # prepare the branch in the record description:
+      result.n.add newNode(nkOfBranch)
+
+      result.n[^1].add:
+        newTreeIT(nkRange, it.info, kindType,
+                  newIntTypeNode(numLabels, kindType),
+                  newIntTypeNode(numLabels + it.len - 2, kindType))
+
+      var syms: seq[PSym]
+      # analyse the labels. Each is treated as a type symbol
+      for i in 0..<it.len-1:
+        case it[i].kind
+        of nkIdent, nkAccQuoted:
+          let (ident, error) = considerQuotedIdent(c, it[i])
+          if error != nil:
+            localReport(c.config, error)
+            continue
+
+          let s = newSym(skType, ident, nextSymId c.idgen, getCurrOwner(c), n.info)
+          addDecl(c, s)
+          syms.add s
+
+          # remember the label number:
+          s.position = numLabels
+          inc numLabels
+        else:
+          discard "TODO: error: expected raw identifier"
+
+      # each branch represents an object type:
+      let typ = newTypeS(tyObject, c)
+      typ.sons.add nil # the base type
+      typ.n = newNode(nkRecList)
+
+      # temporarily restore the parent scope so that the branch labels are not
+      # available within
+      let orig = c.currentScope
+      c.currentScope = orig.parent
+      # now analyse the branch (i.e., the anonymous object):
+      var check: IntSet # names don't have to be unique across branches
+      var pos: int
+      semRecordNodeAux(c, it[^1], check, pos, typ.n, typ)
+      c.currentScope = orig
+
+      if syms.len == 1:
+        # only a single label; use it as the object type's symbol
+        syms[0].linkTo(typ)
+      else:
+        # the object type is anonymous
+        newSym(skType, c.cache.idAnon, nextSymId c.idgen, getCurrOwner(c), it.info).linkTo(typ)
+
+        # set the type for all label symbols:
+        for s in syms.items:
+          let t = newTypeS(tyDistinct, c)
+          # the distinct type allows field access nonetheless:
+          t.flags.incl tfBorrowDot
+          t.rawAddSon(typ)
+          s.linkTo(t)
+
+      # add to the type:
+      result.rawAddSon(typ)
+      # add the hidden field to the record description:
+      let f = newSym(skField, c.cache.getIdent("branch" & $(result.n.len - 1)),
+                     nextSymId c.idgen, getCurrOwner(c), it.info, typ)
+      f.position = result.n.len - 1
+      result.n[^1].add newSymNode(f)
+    else:
+      semReportIllformedAst(c.config, it, "expected 'of' branch")
+
+  # finish the kind field type:
+  kindType.n =
+    newTree(nkRange,
+            newIntTypeNode(0, kindType[0]),
+            newIntTypeNode(numLabels-1, kindType[0]))
+
+  # bring the record description into the same shape an object would have:
+  # result.n = newTreeI(nkRecList, n.info, result.n)
+
+  mergeShadowScope(c)
+
 proc semAnyRef(c: PContext; n: PNode; kind: TTypeKind; prev: PType): PType =
   if n.len < 1:
     result = newConstraint(c, kind)
@@ -1239,7 +1342,7 @@ proc getTypeIdent(cache: IdentCache, typ: PType): PIdent =
   of tyPtr:       cache.getIdent($wPtr)
   of tyRef:       cache.getIdent($wRef)
   of tySequence, tyOrdinal, tyRange, tySet, tyLent, tyArray, tyOpenArray,
-      tyVarargs, tyUncheckedArray:
+      tyVarargs, tyUncheckedArray, tyCase:
     # these use a symbol, take the identifier from there
     typ.sym.name
   of {low(TTypeKind)..high(TTypeKind)} - tyBuiltInTypeClasses:
@@ -2282,6 +2385,7 @@ proc semTypeNode(c: PContext, n: PNode, prev: PType): PType =
 
       result = newOrPrevType(tyError, prev, c)
   of nkObjectTy: result = semObjectNode(c, n, prev, {})
+  of nkRecCase: result = semCaseObject(c, n, prev)
   of nkTupleTy: result = semTuple(c, n, prev)
   of nkTupleClassTy: result = newConstraint(c, tyTuple)
   of nkTypeClassTy: result = semTypeClass(c, n, prev)

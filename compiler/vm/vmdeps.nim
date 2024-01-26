@@ -218,6 +218,9 @@ proc mapTypeToAstX(cache: IdentCache; t: PType; info: TLineInfo;
         result.add copyTree(t.n)
       else:
         result = atomicType(t.sym)
+  of tyCase:
+    # TODO: missing
+    unreachable()
   of tyEnum:
     result = newNodeIT(nkEnumTy, if t.n.isNil: info else: t.n.info, t)
     result.add newNodeI(nkEmpty, info)  # pragma node, currently always empty for enum
@@ -322,6 +325,7 @@ proc mapTypeToAstX(cache: IdentCache; t: PType; info: TLineInfo;
       of tyProc:     elem(nkProcTy)
       of tyPtr:      elem(nkPtrTy)
       of tyRef:      elem(nkRefTy)
+      of tyCase:     elem(nkRecCase)
       of tyOrdinal, tyArray, tySet, tyRange, tySequence, tyOpenArray, tyLent,
          tyVarargs, tyUncheckedArray:
         # use the symbol of the type stored in the type class

@@ -83,7 +83,7 @@ const
 proc typeName(typ: PType): Rope =
   let typ = typ.skipTypes(irrelevantForBackend)
   result =
-    if typ.sym != nil and typ.kind in {tyObject, tyEnum}:
+    if typ.sym != nil and typ.kind in {tyObject, tyEnum, tyCase}:
       rope($typ.kind & '_' & typ.sym.name.s.mangle)
     else:
       rope($typ.kind)
@@ -121,7 +121,7 @@ proc mapType(conf: ConfigRef; typ: PType; kind: TSymKind): TCTypeKind =
     if kind == skParam: result = ctArray
     else: result = ctNimOpenArray
   of tyArray, tyUncheckedArray: result = ctArray
-  of tyObject, tyTuple: result = ctStruct
+  of tyObject, tyCase, tyTuple: result = ctStruct
   of tyUserTypeClasses:
     doAssert typ.isResolvedUserTypeClass
     return mapType(conf, typ.lastSon, kind)
@@ -277,7 +277,7 @@ proc getTypeForward(m: BModule, typ: PType; sig: SigHash): Rope =
   if result != "": return
   let concrete = typ.skipTypes(abstractInst)
   case concrete.kind
-  of tySequence, tyTuple, tyObject:
+  of tySequence, tyTuple, tyObject, tyCase:
     result = getTypeName(m, typ, sig)
     m.forwTypeCache[sig] = result
     if not isImportedType(concrete):
@@ -293,7 +293,7 @@ proc getTypeDescWeak(m: BModule; t: PType; check: var IntSet; kind: TSymKind): R
   ## declaration:
   let etB = t.skipTypes(abstractInst)
   case etB.kind
-  of tyObject, tyTuple:
+  of tyObject, tyTuple, tyCase:
     result = getTypeForward(m, t, hashType(t))
     pushType(m, t)
   of tySequence:
@@ -619,7 +619,7 @@ proc getTypeDescAux(m: BModule, origTyp: PType, check: var IntSet; kind: TSymKin
         et = elemType(etB)
       etB = et.skipTypes(abstractInst)
     case etB.kind
-    of tyObject, tyTuple:
+    of tyObject, tyTuple, tyCase:
       # no restriction! We have a forward declaration for structs
       let name = getTypeForward(m, et, hashType et)
       result = name & star
@@ -692,7 +692,7 @@ proc getTypeDescAux(m: BModule, origTyp: PType, check: var IntSet; kind: TSymKin
       let foo = getTypeDescAux(m, t[1], check, kind)
       m.s[cfsTypes].addf("typedef $1 $2[$3];$n",
            [foo, result, rope(n)])
-  of tyObject, tyTuple:
+  of tyObject, tyTuple, tyCase:
     result = cacheGetType(m.forwTypeCache, sig)
     if result == "":
       result = getTypeName(m, origTyp, sig)
@@ -1101,7 +1101,7 @@ proc genHook(m: BModule; t: PType; info: TLineInfo; op: TTypeAttachedOp): Rope =
 
 proc genTypeInfoV2Impl(m: BModule, t, origType: PType, name: Rope; info: TLineInfo) =
   var typeName: Rope
-  if t.kind in {tyObject, tyDistinct}:
+  if t.kind in {tyObject, tyDistinct, tyCase}:
     if incompleteType(t):
       localReport(m.config, info, reportTyp(
         rsemRttiRequestForIncompleteObject, t))
@@ -1122,7 +1122,7 @@ proc genTypeInfoV2Impl(m: BModule, t, origType: PType, name: Rope; info: TLineIn
     name, destroyImpl, getTypeDesc(m, t), typeName,
     traceImpl, rope(flags)])
 
-  if t.kind == tyObject and t.len > 0 and t[0] != nil and optEnableDeepCopy in m.config.globalOptions:
+  if t.kind in {tyObject, tyCase} and t.len > 0 and t[0] != nil and optEnableDeepCopy in m.config.globalOptions:
     discard genTypeInfoV1(m, t, info)
 
 proc genTypeInfoV2(m: BModule, t: PType; info: TLineInfo): Rope =
@@ -1264,7 +1264,7 @@ proc genTypeInfoV1(m: BModule, t: PType; info: TLineInfo): Rope =
   of tyArray: genArrayInfo(m, t, result, info)
   of tySet: genSetInfo(m, t, result, info)
   of tyEnum: genEnumInfo(m, t, result, info)
-  of tyObject:
+  of tyObject, tyCase:
     genObjectInfo(m, t, origType, result, info)
   of tyTuple:
     # if t.n != nil: genObjectInfo(m, t, result)
@@ -1283,7 +1283,7 @@ proc genTypeInfoV1(m: BModule, t: PType; info: TLineInfo): Rope =
   if op != nil:
     genDeepCopyProc(m, op, result)
 
-  if t.kind == tyObject and sfImportc notin t.sym.flags:
+  if t.kind in {tyObject, tyCase} and sfImportc notin t.sym.flags:
     let v2info = genTypeInfoV2(m, origType, info)
     addf(m.s[cfsTypeInit3], "$1->typeInfoV1 = (void*)&$2; $2.typeInfoV2 = (void*)$1;$n", [
       v2info, result])

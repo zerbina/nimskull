@@ -497,6 +497,7 @@ type
     rsemExpectedObjectForMethod
     rsemUnexpectedPragmaInDefinitionOf
     rsemMisplacedRunnableExample
+    rsemNotACasePart
 
     # Expressions
     rsemConstantOfTypeHasNoValue

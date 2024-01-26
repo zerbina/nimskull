@@ -139,7 +139,7 @@ proc ccgIntroducedPtr*(conf: ConfigRef; s: PSym, retType: PType): bool =
   if tfByRef in pt.flags: return true
   elif tfByCopy in pt.flags: return false
   case pt.kind
-  of tyObject:
+  of tyObject, tyCase:
     if s.typ.sym != nil and sfForward in s.typ.sym.flags:
       # forwarded objects are *always* passed by pointers for consistency!
       result = true

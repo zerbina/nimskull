@@ -45,7 +45,7 @@ const
 
   ConcreteTypes*: TTypeKinds = { # types of the expr that may occur in::
                                  # var x = expr
-    tyBool, tyChar, tyEnum, tyArray, tyObject,
+    tyBool, tyChar, tyEnum, tyArray, tyObject, tyCase,
     tySet, tyTuple, tyRange, tyPtr, tyRef, tyVar, tyLent, tySequence, tyProc,
     tyPointer,
     tyOpenArray, tyString, tyCstring, tyInt..tyInt64, tyFloat..tyFloat64,

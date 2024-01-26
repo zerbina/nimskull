@@ -1639,12 +1639,148 @@ proc semFor(c: PContext, n: PNode; flags: TExprFlags): PNode =
 
   closeScope(c)
 
+import compiler/ast/typesrenderer
+
+proc semCaseMatcher(c: PContext, n: PNode, flags: TExprFlags): PNode =
+  result = n
+  let matchTyp = n[0].typ
+  var
+    covered: IntSet
+    typ = commonTypeBegin
+
+  for i, b in branches(n):
+    var binding: PNode
+    var branchType: PType
+    case b.kind
+    of nkOfBranch:
+      checkMinSonsLen(b, 2, c.config)
+      proc semLabel(c: PContext, n: PNode, typ: PType): PNode =
+        let s = semTypeIdent(c, n)
+        # does the type belong to the matched-over case object?
+        block check:
+          for x in typ.sons.items:
+            assert x.kind == tyObject
+            if sameObjectTypes(x, s.typ.skipTypes({tyDistinct})):
+              break check # it does
+
+          # it doesn't
+          result = c.config.newError(n, PAstDiag(kind: adSemNotACasePart, typ: s.typ))
+          localReport(c.config, result)
+          return
+
+        result = newSymNode(s, n.info)
+
+      proc assignBranchType(c: PContext, covered: var IntSet, branchType: var PType, n: PNode) =
+        let ltyp = n.typ
+        let base = n.typ.skipTypes({tyDistinct})
+        if containsOrIncl(covered, n.sym.position):
+          localReport(c.config, n, reportStr(rsemUserError, "duplicate label"))
+
+        if branchType == nil:
+          branchType = ltyp
+        elif branchType == c.voidType:
+          discard "keep as is"
+        elif branchType.kind == tyDistinct:
+          if branchType.base != base:
+            # the types cannot be used in the same matcher branch
+            branchType = c.voidType
+          else:
+            # fall back to the non-distinct type
+            branchType = branchType.base
+        elif branchType != base:
+          # the types cannot be used in the same matcher branch
+          branchType = c.voidType
+
+      # analyse the labels:
+      for j in 0..<b.len-2:
+        b[j] = semLabel(c, b[j], matchTyp)
+        if result.kind != nkError:
+          assignBranchType(c, covered, branchType, b[j])
+
+      # the last label might be a `T as x`:
+      if b[^2].kind == nkInfix:
+        binding = b[^2][2]
+        b[^2] = semLabel(c, b[^2][1], matchTyp)
+      else:
+        b[^2] = semLabel(c, b[^2], matchTyp)
+
+      if b[^2].kind != nkError:
+        assignBranchType(c, covered, branchType, b[^2])
+    of nkElse:
+      checkSonsLen(b, 1, c.config)
+      branchType = c.voidType
+    else:
+      semReportIllformedAst(c.config, b, {nkOfBranch, nkElse})
+
+    if binding != nil:
+      if branchType == c.voidType:
+        # cannot use a binding for a matcher that matches different types:
+        localReport(c.config, binding, reportStr(rsemUserError, "cannot use binding"))
+        binding = nil
+      else:
+        binding = newSymGNode(skLet, binding, c)
+        if binding.kind == nkError:
+          localReport(c.config, binding)
+    elif branchType != c.voidType and n[0].kind == nkSym:
+      # for a ``case s`` matcher, a binding with `s` as the name is added
+      # to each branch without a user-defined binding
+      binding = newSymNode(newSym(skLet, n[0].sym.name, nextSymId c.idgen,
+                                  getCurrOwner(c), n[0].info))
+
+    openScope(c)
+    if binding != nil:
+      if binding.kind != nkError:
+        # the type of the binding on whether the source expression is mutable or
+        # not
+        case isAssignable(getCurrOwner(c), n[0], false)
+        of arLValue, arLocalLValue:
+          binding.typ = makeVarType(c, branchType, tyVar)
+        else:
+          binding.typ = makeVarType(c, branchType, tyLent)
+        binding.sym.typ = binding.typ
+        addDecl(c, binding.sym) # add to scope
+
+      # insert the binding before the body
+      b.sons.insert(binding, b.len - 1)
+    b[^1] = semExprBranch(c, b[^1], flags)
+    typ = commonType(c, typ, b[^1])
+    closeScope(c)
+
+  if n[^1].kind != nkElse and covered.len != lengthOrd(c.config, matchTyp.n[0].typ):
+    # not all labels were covered, add a default branch
+    # TODO: do this at a later stage (e.g., transf)
+    # TODO: emit a proper raise statement
+    result.add newTreeI(nkElse, n.info, newTreeI(nkRaiseStmt, n.info, c.graph.emptyNode))
+
+  if isEmptyType(typ) or typ.kind in {tyNil, tyUntyped}:
+    for i in 1..<n.len:
+      n[i][^1] = discardCheck(c, n[i][^1], flags)
+      if n[i][^1].isError:
+        return wrapError(c.config, n)
+    # propagate any enforced VoidContext:
+    if typ == c.enforceVoidContext:
+      result.typ = c.enforceVoidContext
+  else:
+    for i in 1..<n.len:
+      var it = n[i]
+      let j = it.len-1
+      if not endsInNoReturn(it[j]):
+        it[j] = fitNode(c, typ, it[j], it[j].info)
+    result.typ = typ
+
 proc semCase(c: PContext, n: PNode; flags: TExprFlags): PNode =
   result = n
   checkMinSonsLen(n, 2, c.config)
   openScope(c)
   pushCaseContext(c, n)
   n[0] = semExprWithType(c, n[0])
+
+  if n[0].typ.kind == tyCase:
+    result = semCaseMatcher(c, n, flags)
+    closeScope(c)
+    popCaseContext(c)
+    return
+
   var chckCovered = false
   var covered: Int128 = toInt128(0)
   var typ = commonTypeBegin
