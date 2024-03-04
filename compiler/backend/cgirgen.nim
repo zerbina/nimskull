@@ -1193,7 +1193,7 @@ proc generateIR*(graph: ModuleGraph, idgen: IdGenerator, env: MirEnv,
     for i in 1..<sig.len:
       add(sig.n[i].sym)
 
-    if sig.callConv == ccClosure:
+    if sig.callConv == ccClosure or sfCoroutine in owner.flags:
       # environment parameter
       add(owner.ast[paramsPos][^1].sym)
 

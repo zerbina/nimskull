@@ -2151,6 +2151,62 @@ type
     fspCur            ## Seek relative to current position
     fspEnd            ## Seek relative to end
 
+when defined(nimskullHasCoroutines):
+  type
+    Coroutine* {.compilerproc.} = ref object of RootObj
+      ## Base type for a coroutine. All synthesized and user-defined coroutine
+      ## objects need to inherit from this type.
+      state: int32
+      fn: proc (c: Coroutine): Coroutine {.nimcall.}
+      error: ref Exception
+      next*: Coroutine
+        ## the coroutine to continue with next. May be nil
+
+  proc cps*(x: untyped): Coroutine {.magic: "Cps".}
+    ## Invokes a procedure that's marked with the ``.cps`` pragma: the argument
+    ## expression must be a call expression, where the callee is a cps
+    ## procedure.
+
+  proc whelp*(x: untyped): Coroutine {.magic: "Whelp".}
+    ## Given an invocation of a coroutine, sets up the coroutine with the
+    ## provided parameters and returns it, but without executing the coroutine.
+
+  proc nimReturn(c: Coroutine): Coroutine {.compilerproc.} =
+    if c.next.isNil:
+      c
+    else:
+      # destructive move in order to remove the reference
+      move c.next
+
+  proc nimTrampoline(c: sink Coroutine): Coroutine {.compilerproc, gcsafe.} =
+    var c = c
+    while c != nil:
+      {.cast(gcsafe).}:
+        c = c.fn(c)
+    result = c
+
+  proc nimCheckCoro(c: Coroutine) {.compilerproc.} =
+    if c.error != nil:
+      raise move(c.error)
+    if c.state != -1:
+      # FIXME: this doesn't work, compilerprocs aren't able to properly raise
+      #        exceptions
+      raise CatchableError.newException("coroutine not finished yet")
+
+  proc running*(c: Coroutine): bool =
+    c != nil and c.state >= 0
+
+  proc dismissed*(c: Coroutine): bool =
+    c == nil
+
+  proc finished*(c: Coroutine): bool =
+    c != nil and c.state == -1
+
+  proc trampoline*(c: sink Coroutine): Coroutine {.gcsafe.} =
+    result = nimTrampoline(c)
+
+  proc resume*(c: Coroutine): Coroutine =
+    result = c.fn(c)
 
 when not defined(js):
   # ugly hack, see the accompanying .pop for

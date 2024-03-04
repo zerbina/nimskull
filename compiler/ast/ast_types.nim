@@ -412,6 +412,7 @@ type
     sfUsedInFinallyOrExcept  ## symbol is used inside an 'except' or 'finally'
     sfNoalias         ## 'noalias' annotation, means C's 'restrict'
     sfEffectsDelayed  ## an 'effectsDelayed' parameter
+    sfCoroutine
 
   TSymFlags* = set[TSymFlag]
 
@@ -814,6 +815,8 @@ type
     mNimvm, mIntDefine, mStrDefine, mBoolDefine, mRunnableExamples,
     mException, mBuiltinType, mSymOwner, mUncheckedArray, mGetImplTransf,
     mSymIsInstantiationOf, mNodeId, mPrivateAccess
+
+    mCps, mWhelp
 
     # magics only used internally:
     mStrToCStr

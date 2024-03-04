@@ -2709,6 +2709,12 @@ proc semProcAux(c: PContext, n: PNode, validPragmas: TSpecialWords,
         if s.magic == mNone:
           paramsTypeCheck(c, s.typ)
 
+        if sfCoroutine in s.flags:
+          let selfSym = newSym(skParam, getIdent(c.cache, "self"), nextSymId c.idgen, s, n.info)
+          selfSym.typ = s.ast[dispatcherPos].typ.skipTypes({tyTypeDesc})
+          s.ast[dispatcherPos] = newSymNode selfSym
+          addDecl(c, selfSym)
+
         maybeAddResult(c, s, result)
         # semantic checking also needed with importc in case used in VM
         s.ast[bodyPos] = hloBody(c, semProcBody(c, n[bodyPos]))
@@ -2720,6 +2726,7 @@ proc semProcAux(c: PContext, n: PNode, validPragmas: TSpecialWords,
         if (s.typ[0] != nil and s.kind != skIterator):
           addDecl(c, newSym(skUnknown, getIdent(c.cache, "result"), nextSymId c.idgen, nil, n.info))
 
+        # TODO: add a declaration for the self symbol
         openScope(c)
         result[bodyPos] = semGenericStmt(c, n[bodyPos])
         closeScope(c)

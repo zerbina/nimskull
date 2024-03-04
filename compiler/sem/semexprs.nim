@@ -2913,6 +2913,47 @@ proc semMagic(c: PContext, n: PNode, s: PSym, flags: TExprFlags): PNode =
   of mSizeOf:
     markUsed(c, n.info, s)
     result = semSizeof(c, setMs(n, s))
+  of mCps:
+    let o = getCurrOwner(c)
+    if sfCoroutine notin o.flags:
+      # TODO: use a proper user error
+      c.config.internalError(n.info, "caller must be a coroutine")
+    if n[1].kind in nkCallKinds:
+      let call = newTreeI(n.kind, n.info, n[1][0], o.ast[dispatcherPos])
+      for i in 1..<n[1].len:
+        call.add n[1][i]
+      result = semDirectOp(c, call, flags)
+      debug(call)
+      echo "got: ", result.kind
+      if result.kind != nkError:
+        if result.kind in nkCallKinds:
+          # the return type of the call must either be a ``Coroutine`` type or
+          # descendant thereof
+          if inheritanceDiff(c.graph.getCompilerProc("Coroutine").typ.base, result.typ) <= 0:
+            # all good, a valid cps magic call. Restore the original shape:
+            result.delSon(1)
+            result = newTreeIT(n.kind, n.info, c.voidType, newSymNode(s), result)
+          else:
+            c.config.internalError(n[1].info, "procedure must return a 'Coroutine'")
+        else:
+          c.config.internalError(n[1].info, "macro/template calls not allowed")
+    else:
+      # TODO: proper user error
+      c.config.internalError(n[1].info, "argument must be a call expression")
+  of mWhelp:
+    let call = n[1]
+    if call.kind in nkCallKinds:
+      result = semDirectOp(c, call, flags)
+      if result.kind != nkError:
+        if result.kind in nkCallKinds and result[0].kind == nkSym and sfCoroutine in result[0].sym.flags:
+          # all good, a valid coroutine invocation. Restore the original
+          # shape, it'll be expanded into a coroutine setup later
+          result = newTreeIT(n.kind, n.info, result[0].sym.ast[dispatcherPos].typ, newSymNode(s), result)
+        else:
+          c.config.internalError(n[1].info, "argument must be coroutine invocation")
+    else:
+      # TODO: proper user error
+      c.config.internalError(n[1].info, "argument must be a call expression")
   else:
     result = semDirectOp(c, n, flags)
 

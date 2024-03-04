@@ -77,9 +77,9 @@ const
     wBorrow, wImportCompilerProc, wThread,
     wAsmNoStackFrame, wDiscardable, wNoInit, wCodegenDecl,
     wGensym, wInject, wRaises, wEffectsOf, wTags, wLocks, wGcSafe,
-    wStackTrace, wLineTrace, wNoDestroy}
-  converterPragmas* = procPragmas
-  methodPragmas* = procPragmas+{wBase}-{wOverride}
+    wStackTrace, wLineTrace, wNoDestroy, wCoroutine}
+  converterPragmas* = procPragmas-{wCoroutine}
+  methodPragmas* = procPragmas+{wBase}-{wOverride, wCoroutine}
   templatePragmas* = {wDeprecated, wError, wGensym, wInject, wDirty,
     wExportNims, wUsed, wPragma}
   macroPragmas* = declPragmas + {FirstCallConv..LastCallConv,
@@ -1466,6 +1466,26 @@ proc applySymbolPragma(c: PContext, sym: PSym, it: PNode): PNode =
         sym.flags.incl sfUsed
       of wCast:
         result = c.config.newError(it, PAstDiag(kind: adSemCastRequiresStatement))
+      of wCoroutine:
+        if sfCoroutine in sym.flags:
+          # TODO: this is a user error
+          internalError(c.config, it.info, "already a coroutine")
+        else:
+          # make space for the dispatcher slot
+          sym.ast.sons.setLen(dispatcherPos + 1)
+          if sym.ast.sons[resultPos] == nil:
+            sym.ast.sons[resultPos] = c.graph.emptyNode
+
+          if it.kind in nkPragmaCallKinds:
+            it[1] = c.semExpr(c, it[1])
+            result = it
+            # TODO: verify that the type is a sub-type of ``Coroutine``
+            sym.ast[dispatcherPos] = it[1]
+          else:
+            result = noVal(c, it)
+            sym.ast[dispatcherPos] = newNodeIT(nkType, it.info, c.graph.getCompilerProc("Coroutine").typ)
+
+          sym.flags.incl sfCoroutine
       of wInvalid:
         # a non-builtin pragma reaching here must be a custom pragma
         result = it

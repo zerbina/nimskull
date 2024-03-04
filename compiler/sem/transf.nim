@@ -42,7 +42,8 @@ import
     closureiters,
     semfold,
     lambdalifting,
-    lowerings
+    lowerings,
+    coroutines
   ],
   compiler/backend/[
     cgmeth
@@ -1056,6 +1057,11 @@ proc transformCall(c: PTransf, n: PNode): PNode =
     result = transform(c, n[1])
   elif magic == mExpandToAst:
     result = transformExpandToAst(c, n)
+  elif magic == mWhelp:
+    # turn the coroutine invocation into a coroutine setup
+    let call = transformSons(c, n[1])
+    discard transformBody(c.graph, c.idgen, call[0].sym, true)
+    result = callToCoroSetup(c.graph, call)
   else:
     let s = transformSons(c, n)
     # bugfix: check after 'transformSons' if it's still a method call:
@@ -1066,6 +1072,20 @@ proc transformCall(c: PTransf, n: PNode): PNode =
         if t.kind != nkSym or sfDispatcher notin t.sym.flags:
           methodDef(s[0].sym, false)
       result = methodCall(s, c.graph.config)
+    elif s[0].kind == nkSym and sfCoroutine in s[0].sym.flags:
+      discard transformBody(c.graph, c.idgen, s[0].sym, true)
+      if c.inlining == 0 and sfCoroutine notin getCurrOwner(c).flags:
+        # this is an invocation of coroutine outside of another coroutine;
+        # trampoline it to completion
+        let setup = callToCoroSetup(c.graph, s)
+        let tmp = newTemp(c, setup.typ, n.info)
+        result = newTree(nkStmtList,
+          nkVarSection.newTree(nkIdentDefs.newTree(tmp, c.graph.emptyNode, setup)),
+          nkAsgn.newTree(tmp, newTreeIT(nkObjUpConv, n.info, tmp.typ, nkCall.newTree(newSymNode(c.graph.getCompilerProc("nimTrampoline")), tmp)))
+        )
+        genPostCoro(c.graph, s[0].sym, result, tmp)
+      else:
+        result = s
     else:
       result = s
 
@@ -1359,6 +1379,9 @@ proc transformBody*(g: ModuleGraph, idgen: IdGenerator, prc: PSym, body: PNode):
     # the environment type is closed for modification, meaning that we can
     # safely create the type-bound operators now
     finishClosureIterator(c.graph, c.idgen, prc)
+  elif sfCoroutine in prc.flags:
+    result = g.transformCoroBody(c.idgen, prc, result)
+    finishClosureIterator(c.graph, c.idgen, prc.ast[dispatcherPos].sym)
 
   incl(result.flags, nfTransf)
 
