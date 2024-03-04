@@ -2,7 +2,6 @@
 import compiler/ast/[ast_types, idents, lineinfos, ast_idgen, ast, types, trees]
 import compiler/sem/[lowerings, closureiters]
 import compiler/modules/[modulegraphs, magicsys]
-import compiler/utils/astrepr
 
 type RewriteCtx = object
   owner: PSym
