@@ -125,10 +125,10 @@ proc transformCoroBody*(graph: ModuleGraph, idgen: IdGenerator, sym: PSym, n: PN
   param.flags.incl sfFromGeneric
 
   coro.typ[0] = graph.getCompilerProc("Coroutine").typ
-  coro.typ.rawAddSon(re)
+  coro.typ.rawAddSon(param.typ)
   coro.typ.n.add newSymNode(param)
 
-  coro.ast = newProcNode(nkProcDef, n.info, n, nkFormalParams.newTree(graph.emptyNode, newSymNode param), newSymNode coro, graph.emptyNode, graph.emptyNode, graph.emptyNode, graph.emptyNode)
+  coro.ast = newProcNode(nkProcDef, n.info, n, nkFormalParams.newTree(newNodeIT(nkType, n.info, coro.typ[0]), newSymNode param), newSymNode coro, graph.emptyNode, graph.emptyNode, graph.emptyNode, graph.emptyNode)
   coro.ast.sons.setLen(dispatcherPos + 1)
   coro.ast[resultPos] = newSymNode(newSym(skResult, graph.cache.getIdent("result"), nextSymId idgen, sym, n.info))
   coro.ast[resultPos].sym.typ = coro.typ[0]
