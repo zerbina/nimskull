@@ -83,7 +83,7 @@ proc rewrite(c: RewriteCtx, n: PNode): PNode =
     if getMagic(n) == mCps:
       # continuation passing: pass the current coroutine to the
       # procedure. The procedure then returns what to continue with
-      n[1].sons.insert(newSymNode(c.param), 1)
+      n[1].sons.insert(newTreeIT(nkObjDownConv, n.info, n[1][0].sym.typ[1], newSymNode(c.param)), 1)
       result = newTreeI(nkYieldStmt, n.info, newTreeIT(nkObjUpConv, n.info, c.param.typ, n[1]))
     elif n[0].kind == nkSym and sfCoroutine in n[0].sym.flags:
       # calling a coroutine within a coroutine automatically turns it into a tail call
