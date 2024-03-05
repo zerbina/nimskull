@@ -36,7 +36,7 @@ proc genPostCoro*(graph: ModuleGraph, callee: PSym, n: PNode, coro: PNode) =
     # TODO: this needs to move instead of copy
     n.add indirectAccess(copyTree(coro), callee.ast[resultPos].sym.itemId, n.info)
 
-proc callToCoroSetup*(graph: ModuleGraph, call: PNode; parent: PNode = nil): PNode =
+proc callToCoroSetup*(graph: ModuleGraph, call: PNode; expect: PType, parent: PNode = nil): PNode =
   let cont = getCoroType(call[0].sym)
   result = newTreeIT(nkObjConstr, call.info, cont, newNodeIT(nkType, call.info, cont))
   result.add newTree(nkExprColonExpr, newSymNode graph.getCompilerProc("Coroutine").typ.base.n[1].sym, newSymNode call[0].sym.ast[dispatcherPos].sym)
@@ -45,6 +45,8 @@ proc callToCoroSetup*(graph: ModuleGraph, call: PNode; parent: PNode = nil): PNo
   # setup the parameter values in the coroutine object with the arguments
   for i in 1..<call.len:
     result.add newTree(nkExprColonExpr, newSymNode getFieldFromObj(cont.base, call[0].typ.n[i].sym), call[i])
+  # up-convert to the expected type:
+  result = newTreeIT(nkObjUpConv, call.info, expect, result)
 
 proc genResultAsgn(c: RewriteCtx, info: TLineInfo): PNode =
   # return the parent when exiting the coroutine
@@ -87,7 +89,7 @@ proc rewrite(c: RewriteCtx, n: PNode): PNode =
       # calling a coroutine within a coroutine automatically turns it into a tail call
       let callee = n[0].sym
       let cont = getCoroType(n[0].sym)
-      let constr = callToCoroSetup(c.graph, n, newSymNode(c.param))
+      let constr = callToCoroSetup(c.graph, n, cont, newSymNode(c.param))
 
       let tmp = newTemp(c, cont, n.info)
       addField(c.realType.base, tmp, c.cache, c.idgen)

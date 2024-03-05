@@ -1061,7 +1061,7 @@ proc transformCall(c: PTransf, n: PNode): PNode =
     # turn the coroutine invocation into a coroutine setup
     let call = transformSons(c, n[1])
     discard transformBody(c.graph, c.idgen, call[0].sym, true)
-    result = callToCoroSetup(c.graph, call)
+    result = callToCoroSetup(c.graph, call, n.typ)
   else:
     let s = transformSons(c, n)
     # bugfix: check after 'transformSons' if it's still a method call:
@@ -1077,7 +1077,7 @@ proc transformCall(c: PTransf, n: PNode): PNode =
       if c.inlining == 0 and sfCoroutine notin getCurrOwner(c).flags:
         # this is an invocation of coroutine outside of another coroutine;
         # trampoline it to completion
-        let setup = callToCoroSetup(c.graph, s)
+        let setup = callToCoroSetup(c.graph, s, c.graph.getCompilerProc("Coroutine").typ)
         let tmp = newTemp(c, setup.typ, n.info)
         result = newTree(nkStmtList,
           nkVarSection.newTree(nkIdentDefs.newTree(tmp, c.graph.emptyNode, setup)),
