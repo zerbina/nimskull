@@ -2,6 +2,7 @@
 import compiler/ast/[ast_types, idents, lineinfos, ast_idgen, ast, types, trees]
 import compiler/sem/[lowerings, closureiters]
 import compiler/modules/[modulegraphs, magicsys]
+import compiler/utils/[idioms]
 
 type RewriteCtx = object
   owner: PSym
@@ -105,6 +106,28 @@ proc rewrite(c: RewriteCtx, n: PNode): PNode =
       n[i] = rewrite(c, n[i])
     result = n
 
+proc computeFieldStart(t: PType, pos: var int) =
+  proc aux(n: PNode, p: var int) =
+    case n.kind
+    of nkRecCase:
+      inc p # discriminator
+      for i in 1..<n.len:
+        aux(n[i], p)
+    of nkRecList:
+      for it in n.items:
+        aux(it, p)
+    of nkSym:
+      inc p
+    else:
+      unreachable()
+
+  let t = t.skipTypes(skipPtrs)
+  assert t.kind == tyObject
+  if t.len > 0 and t.base != nil:
+    computeFieldStart(t.base, pos)
+
+  aux(t.n, pos)
+
 proc transformCoroBody*(graph: ModuleGraph, idgen: IdGenerator, sym: PSym, n: PNode): PNode =
 
   let
@@ -159,3 +182,9 @@ proc transformCoroBody*(graph: ModuleGraph, idgen: IdGenerator, sym: PSym, n: PN
   )
   result = newTreeI(nkTryStmt, body.info, body, newTree(nkExceptBranch, exc))
   coro.ast[bodyPos] = result
+
+  # patch the field positions, they're wrong
+  var pos: int
+  computeFieldStart(obj.base, pos)
+  for i in 0..<obj.n.len:
+    obj.n[i].sym.position += pos
