@@ -839,6 +839,9 @@ proc symPrototype(g: ModuleGraph; typ: PType; owner: PSym; kind: TTypeAttachedOp
     src.typ = typ
 
   result.typ = newProcType(info, nextTypeId(idgen), result)
+  if kind in {attachedAsgn, attachedSink}:
+    result.typ.callConv = ccInline
+
   result.typ.addParam dest
   if kind != attachedDestructor:
     result.typ.addParam src

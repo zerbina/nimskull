@@ -470,8 +470,8 @@ proc `[]`*[I: Ordinal;T](a: T; i: I): T {.
   noSideEffect, magic: "ArrGet".}
 proc `[]=`*[I: Ordinal;T,S](a: T; i: I;
   x: sink S) {.noSideEffect, magic: "ArrPut".}
-proc `=`*[T](dest: var T; src: T) {.noSideEffect, magic: "Asgn".}
-proc `=copy`*[T](dest: var T; src: T) {.noSideEffect, magic: "Asgn".}
+proc `=`*[T](dest: var T; src: T) {.noSideEffect, inline, magic: "Asgn".}
+proc `=copy`*[T](dest: var T; src: T) {.noSideEffect, inline, magic: "Asgn".}
 
 proc arrGet[I: Ordinal;T](a: T; i: I): T {.
   noSideEffect, magic: "ArrGet".}
