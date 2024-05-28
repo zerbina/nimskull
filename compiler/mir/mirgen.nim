@@ -1710,52 +1710,60 @@ proc genIf(c: var TCtx, n: PNode, dest: Destination) =
 
 proc lowerMatchCase(c: var TCtx, n: PNode, dest: Destination) =
   let typ = n[0].typ
-  let kindType = typ.n[0].typ
-  let val = capture(c, n[0])
+  let kindType = c.typeToMir(typ.n[0].typ)
+  let val = genUse(c, n[0])
   let v = c.wrapTemp kindType:
-    c.subTree MirNode(kind: mnkPathNamed, typ: kindType, field: typ.n[0].sym):
+    c.subTree MirNode(kind: mnkPathNamed, typ: kindType, field: typ.n[0].sym.position.int32):
       c.use val
 
-  c.add MirNode(kind: mnkCase, len: n.len - 1)
+  c.add MirNode(kind: mnkCase, len: uint32(n.len))
   c.use v
 
-  for _, branch in branches(n):
-    var binding: PSym
+  let firstLabel = c.builder.nextLabel
+  # first step: emit the dispatcher
+  for (_, branch) in branches(n):
     case branch.kind
+    of nkElse:
+      c.add MirNode(kind: mnkBranch, len: uint32(branch.len))
     of nkOfBranch:
       let hasBinding = branch[^2].sym.kind != skType
-      c.add MirNode(kind: mnkBranch, len: branch.len - 1 - ord(hasBinding))
+      c.add MirNode(kind: mnkBranch, len: uint32(branch.len - ord(hasBinding)))
       for i, it in branchLabels(branch):
         if it.sym.kind == skType:
-          c.add MirNode(kind: mnkLiteral, lit: newIntTypeNode(it.sym.position, kindType))
-        else:
-          binding = it.sym
-    of nkElse:
-      c.add MirNode(kind: mnkBranch, len: 0)
+          c.use c.env.intLiteral(it.sym.position, kindType)
     else:
-      unreachable()
+      unreachable(branch.kind)
 
-    c.scope:
-      if binding != nil:
-        # find the field for the branch:
-        var field: PSym
-        for i in 0..<typ.sons.len:
-          if typ[i].id == skipTypes(binding.typ.base, {tyDistinct}).id:
-            field = typ.n[i+1][^1].sym
-            break
-        assert field != nil
-        # emit the actual definition for the binding:
-        c.subTree mnkDef:
-          c.add c.nameNode(binding)
-          c.buildTree mnkView, binding.typ:
-            c.subTree MirNode(kind: mnkPathNamed, typ: field.typ, field: field):
-              c.use val
-
-      genBranch(c, branch.lastSon, dest)
-
+    c.add newLabelNode(c) # the jump target
     c.add endNode(mnkBranch)
 
   c.add endNode(mnkCase)
+
+  # second step: emit the branch bodies
+  c.withBlock bkBlock:
+    for (i, branch) in branches(n):
+      c.join LabelId(firstLabel + uint32(i))
+      c.unreachable = false # every branch starts as reachable again
+      c.scope:
+        if branch.kind == nkOfBranch and branch[^2].sym.kind != skType:
+          let binding = branch[^2].sym
+          # find the field for the branch:
+          var field: PSym
+          for i in 0..<typ.sons.len:
+            if typ[i].id == skipTypes(binding.typ.base, {tyDistinct}).id:
+              field = typ.n[i+1][^1].sym
+              break
+          assert field != nil
+          discard c.addLocal(binding)
+          # emit the actual definition for the binding:
+          c.subTree mnkDef:
+            c.add c.nameNode(binding)
+            c.buildTree mnkView, c.typeToMir(binding.typ):
+              c.subTree MirNode(kind: mnkPathNamed, typ: c.typeToMir(field.typ), field: field.position.int32):
+                c.use val
+
+        genBranch(c, branch.lastSon, dest)
+        leaveBlock(c)
 
 proc genCase(c: var TCtx, n: PNode, dest: Destination) =
   ## Generates the MIR code for an ``nkCaseStmt`` node.
