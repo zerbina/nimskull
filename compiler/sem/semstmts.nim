@@ -1781,7 +1781,6 @@ proc semCase(c: PContext, n: PNode; flags: TExprFlags): PNode =
   if n[0].typ.kind == tyCase:
     result = semCaseMatcher(c, n, flags)
     closeScope(c)
-    popCaseContext(c)
     return
 
   result[0] = n[0]
