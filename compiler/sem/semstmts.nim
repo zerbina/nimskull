@@ -1751,7 +1751,10 @@ proc semCaseMatcher(c: PContext, n: PNode, flags: TExprFlags): PNode =
     # not all labels were covered, add a default branch
     # TODO: do this at a later stage (e.g., transf)
     # TODO: emit a proper raise statement
-    result.add newTreeI(nkElse, n.info, newTreeI(nkRaiseStmt, n.info, c.graph.emptyNode))
+    let typ = newTypeS(tyRef, c)
+    typ.rawAddSon(c.graph.getCompilerProc("Exception").typ)
+    result.add newTreeI(nkElse, n.info, newTreeI(nkRaiseStmt, n.info,
+      newTreeIT(nkObjConstr, n.info, typ, newNodeIT(nkType, n.info, typ))))
 
   if isEmptyType(typ) or typ.kind in {tyNil, tyUntyped}:
     for i in 1..<n.len:
