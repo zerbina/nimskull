@@ -1353,7 +1353,7 @@ proc lookupInType*(ty: PType, position: int): PSym =
   var ty = ty.skipTypes(skipPtrs + tyUserTypeClasses + tyDistinct)
   while ty != nil:
     ty = ty.skipTypes(skipPtrs)
-    assert ty.kind in {tyTuple, tyObject}
+    assert ty.kind in {tyTuple, tyObject, tyCase}
     result = lookupInRecord(ty.n, position)
     if result != nil:
       break

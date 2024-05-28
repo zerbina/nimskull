@@ -625,7 +625,7 @@ proc exprToPmir(c: TranslateCtx, result: var seq[ProtoItem], n: PNode, sink: boo
     wantValue(n[0])
     let typ = n[0].typ.skipTypes(IrrelevantTypes)
     case typ.kind
-    of tyObject:
+    of tyObject, tyCase:
       node pirFieldAccess, field, n[1].sym
     of tyTuple:
       result.add tupleAccessToPmir(n, typ, n[1].sym.position)
