@@ -85,5 +85,5 @@ proc canonicalize*(graph: ModuleGraph, idgen: IdGenerator, env: var MirEnv,
   echoMir(graph.config, owner, body)
 
   # step 2: generate the ``CgNode`` tree
-  result = generateIR(graph, idgen, env, owner, body)
+  result = cgirgen.generateIR(graph, idgen, env, owner, body)
   echoOutput(graph.config, owner, result)

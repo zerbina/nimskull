@@ -121,6 +121,8 @@ type
     exc: PNode  ## stack of exceptions
     tags: PNode ## list of tags
     bottom, inTryStmt, inExceptOrFinallyStmt, leftPartOfAsgn: int
+    isReraiseAllowed: int
+      ## > 0 if a re-raise statement is allowed
     owner: PSym
     ownerModule: PSym
     init: seq[int] ## list of initialized variables
@@ -161,7 +163,8 @@ proc getLockLevel(t: PType): TLockLevel =
   var t = t
   # tyGenericInst(TLock {tyGenericBody}, tyStatic, tyObject):
   if t.kind == tyGenericInst and t.len == 3: t = t[1]
-  if t.kind == tyStatic and t.n != nil and t.n.kind in {nkCharLit..nkInt64Lit}:
+  if t.kind == tyStatic and t.n != nil and t.n.kind in nkIntLiterals:
+    assert t.n.kind in nkSIntLiterals
     result = t.n.intVal.TLockLevel
 
 proc lockLocations(a: PEffects; pragma: PNode) =
@@ -577,12 +580,19 @@ proc trackTryStmt(tracked: PEffects, n: PNode) =
     let b = n[i]
     if b.kind == nkExceptBranch:
       setLen(tracked.init, oldState)
+      inc tracked.isReraiseAllowed
       track(tracked, b[^1])
+      dec tracked.isReraiseAllowed
       for i in oldState..<tracked.init.len:
         addToIntersection(inter, tracked.init[i])
     else:
       setLen(tracked.init, oldState)
+      let prev = tracked.isReraiseAllowed
+      # re-raising in a finally clause would allow handling the exception,
+      # which is illegal. Therefore, re-raising is disallowed:
+      tracked.isReraiseAllowed = 0
       track(tracked, b[^1])
+      tracked.isReraiseAllowed = prev
       hasFinally = true
 
   tracked.bottom = oldBottom
@@ -685,7 +695,7 @@ proc notNilCheck(tracked: PEffects, n: PNode, paramType: PType) =
         # addr(x[]) can't be proven, but addr(x) can:
         if not containsNode(n, {nkDerefExpr, nkHiddenDeref}): return
       elif (n.kind == nkSym and n.sym.kind in routineKinds) or
-          (n.kind in procDefs+{nkObjConstr, nkBracket, nkClosure, nkStrLit..nkTripleStrLit}) or
+          (n.kind in procDefs + {nkObjConstr, nkBracket, nkClosure} + nkStrLiterals) or
           (n.kind in nkCallKinds and n[0].kind == nkSym and n[0].sym.magic == mArrToSeq) or
           n.typ.kind == tyTypeDesc:
         # 'p' is not nil obviously:
@@ -999,7 +1009,7 @@ proc trackCall(tracked: PEffects; n: PNode) =
       let arg = n[1]
       initVarViaNew(tracked, arg)
       if arg.typ.len != 0 and {tfRequiresInit} * arg.typ.lastSon.flags != {}:
-        if a.sym.magic == mNewSeq and n[2].kind in {nkCharLit..nkUInt64Lit} and
+        if a.sym.magic == mNewSeq and n[2].kind in nkIntLiterals and
             n[2].intVal == 0:
           # var s: seq[notnil];  newSeq(s, 0)  is a special case!
           discard
@@ -1115,14 +1125,14 @@ proc trackInnerProc(tracked: PEffects, n: PNode) =
     let s = n.sym
     if s.kind == skParam and s.owner == tracked.owner:
       tracked.escapingParams.incl s.id
-  of nkNone..pred(nkSym), succ(nkSym)..nkNilLit:
+  of nkWithoutSons - nkSym:
     discard
   of nkProcDef, nkConverterDef, nkMethodDef, nkIteratorDef, nkLambda, nkFuncDef, nkDo:
     if n[0].kind == nkSym and n[0].sym.ast != nil:
       trackInnerProc(tracked, getBody(tracked.graph, n[0].sym))
-  of nkTypeSection, nkMacroDef, nkTemplateDef, nkError,
+  of nkTypeSection, nkMacroDef, nkTemplateDef,
      nkConstSection, nkConstDef, nkIncludeStmt, nkImportStmt,
-     nkExportStmt, nkPragma, nkCommentStmt, nkTypeOfExpr, nkMixinStmt,
+     nkExportStmt, nkPragma, nkTypeOfExpr, nkMixinStmt,
      nkBindStmt:
     discard
   else:
@@ -1130,7 +1140,7 @@ proc trackInnerProc(tracked: PEffects, n: PNode) =
 
 proc allowCStringConv(n: PNode): bool =
   case n.kind
-  of nkStrLit..nkTripleStrLit: result = true
+  of nkStrLiterals: result = true
   of nkSym: result = n.sym.kind in {skConst, skParam}
   of nkAddr: result = isCharArrayPtr(n.typ, true)
   of nkCallKinds:
@@ -1170,11 +1180,15 @@ proc track(tracked: PEffects, n: PNode) =
       for i in 0..<n.safeLen:
         track(tracked, n[i])
       createTypeBoundOps(tracked, n[0].typ, n.info)
-    else:
+    elif tracked.isReraiseAllowed > 0:
       # A `raise` with no arguments means we're going to re-raise the exception
-      # being handled or, if outside of an `except` block, a `ReraiseDefect`.
-      # Here we add a `Exception` tag in order to cover both the cases.
+      # being handled
+      # XXX: using an `Exception` tag is overly conservative. It is statically
+      #      known which exceptions an except branch covers, but this
+      #      information isn't available here, at the moment.
       addRaiseEffect(tracked, createRaise(tracked.graph, n), nil)
+    else:
+      localReport(tracked.config, n, reportSem(rsemCannotReraise))
   of nkCallKinds:
     trackCall(tracked, n)
   of nkDotExpr:
@@ -1300,7 +1314,15 @@ proc track(tracked: PEffects, n: PNode) =
       if iterCall[1].typ != nil and
          iterCall[1].typ.skipTypes(abstractVar).kind notin {tyVarargs, tyOpenArray}:
         createTypeBoundOps(tracked, iterCall[1].typ, iterCall[1].info)
-    
+
+    if tracked.owner.kind != skMacro and iterCall.kind in nkCallKinds and
+       iterCall[0].typ != nil and # XXX: untyped AST can reach here due to
+                                  # semTypeNode discarding the typed AST
+       iterCall[0].typ.skipTypes(abstractInst).callConv == ccClosure:
+      # the loop is a for-loop over a closure iterator. Lift the hooks for
+      # the iterator
+      createTypeBoundOps(tracked, iterCall[0].typ, iterCall[0].info)
+
     track(tracked, iterCall)
     track(tracked, loopBody)
     setLen(tracked.init, oldState)
@@ -1765,6 +1787,21 @@ proc trackProc*(c: PContext; s: PSym, body: PNode) =
     effects[tagEffects] = tagsSpec
   else:
     effects[tagEffects] = t.tags
+
+  # ensure that user-provided hooks have no effects and don't raise
+  if sfOverriden in s.flags:
+    # if raising was explicitly disabled (i.e., via ``.raises: []``),
+    # exceptions, if any, were already reported; don't report errors again in
+    # that case
+    if raisesSpec.isNil or raisesSpec.len > 0:
+      let newSpec = newNodeI(nkArgList, s.info)
+      checkRaisesSpec(g, rsemHookCannotRaise, newSpec,
+                      t.exc, hints=off, nil)
+      # override the raises specification to prevent cascading errors:
+      effects[exceptionEffects] = newSpec
+
+    # enforce that no defects escape the routine at run-time:
+    s.flags.incl sfNeverRaises
 
   var mutationInfo = MutationInfo()
   var hasMutationSideEffect = false

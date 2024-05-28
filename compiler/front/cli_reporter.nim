@@ -964,9 +964,6 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
     of rsemInvalidBindContext:
       result = "invalid context for 'bind' statement: " & render(r.ast)
 
-    of rsemExpectedTypelessDeferBody:
-      result = "'defer' takes a 'void' expression"
-
     of rsemUnexpectedToplevelDefer:
       result = "defer statement not supported at top level"
 
@@ -1139,6 +1136,9 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
     of rsemRangeIsEmpty:
       result = "range is empty"
 
+    of rsemStringRangeNotAllowed:
+      result = "cannot create a range of strings"
+
     of rsemExpectedOrdinalOrFloat:
       result = "ordinal or float type expected"
 
@@ -1306,6 +1306,9 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
     of rsemXCannotRaiseY:
       result = "'$1' cannot raise '$2'" % [r.ast.render, r.raisesList.render]
 
+    of rsemHookCannotRaise:
+      result = "a hook routine is not allowed to raise. ($1)" % r.typ.render
+
     of rsemUnlistedRaises, rsemWarnUnlistedRaises:
       result.add("$1 can raise an unlisted exception: " % r.ast.render,
                  r.typ.render)
@@ -1349,6 +1352,10 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
 
     of rsemMisplacedRunnableExample:
       result = "runnableExamples must appear before the first non-comment statement"
+
+    of rsemCannotReraise:
+      result = "an exception can only be re-raised within the scope of an" &
+               " except, with no finally in-between"
 
     of rsemCannotInferTypeOfLiteral:
       result = "cannot infer the type of the $1" % r.typ.kind.toHumanStr
@@ -1894,6 +1901,12 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
     of rsemHintLibDependency:
       result = r.str
 
+    of rsemUnknownHint:
+      result = "unknown hint: '$1'" % [r.str]
+
+    of rsemUnknownWarning:
+      result = "unknown warning: '$1'" % [r.str]
+
     of rsemObservableStores:
       result = "observable stores to '$1'" % r.ast.render
 
@@ -1985,21 +1998,6 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
 
     of rsemDisallowedRangeForComputedGoto:
       result = "range notation not available for computed goto"
-
-    of rsemExpectedCaseForComputedGoto:
-      result = "no case statement found for computed goto"
-
-    of rsemExpectedLow0ForComputedGoto:
-      result = "case statement has to start at 0 for computed goto"
-
-    of rsemTooManyEntriesForComputedGoto:
-      result = "case statement has too many cases for computed goto"
-
-    of rsemExpectedUnholyEnumForComputedGoto:
-      result = "case statement cannot work on enums with holes for computed goto"
-
-    of rsemExpectedExhaustiveCaseForComputedGoto:
-      result = "case statement must be exhaustive for computed goto"
 
     of rsemExpectedNimcallProc:
       result = r.symstr & " needs to have the 'nimcall' calling convention"
@@ -2957,6 +2955,9 @@ proc reportBody*(conf: ConfigRef, r: VMReport): string =
   of rvmFieldNotFound:
     result = "node lacks field: " & r.str
 
+  of rvmCannotCreateNode:
+    result = "cannot manually create a node of kind: n" & r.str
+
   of rvmCannotSetChild:
     result = "cannot set child of node kind: n" & $r.ast.kind
 
@@ -3227,6 +3228,8 @@ func astDiagToLegacyReport(conf: ConfigRef, diag: PAstDiag): Report {.inline.} =
       adSemCallInCompilesContextNotAProcOrField,
       adSemExpressionHasNoType,
       adSemTypeExpected,
+      adSemStringRangeNotAllowed,
+      adSemRangeIsEmpty,
       adSemIllformedAst,
       adSemInvalidExpression,
       adSemExpectedNonemptyPattern,
@@ -3840,6 +3843,13 @@ func astDiagToLegacyReport(conf: ConfigRef, diag: PAstDiag): Report {.inline.} =
       ast: diag.wrongNode,
       str: diag.compilerOpt.getStr,
       compilerOptArg: diag.compilerOptArg.getStr)
+  of adSemCannotBeRaised, adSemCannotRaiseNonException:
+    semRep = SemReport(
+      location: some diag.location,
+      reportInst: diag.instLoc.toReportLineInfo,
+      kind: kind,
+      ast: diag.wrongNode,
+      typ: diag.wrongNode[0].typ)
   of adVmError:
     let
       kind = diag.vmErr.kind.astDiagVmToLegacyReportKind()
@@ -3882,7 +3892,8 @@ func astDiagToLegacyReport(conf: ConfigRef, diag: PAstDiag): Report {.inline.} =
         location: some location,
         reportInst: diag.instLoc.toReportLineInfo)
     of rvmErrInternal, rvmNilAccess, rvmIllegalConv, rvmFieldInavailable,
-        rvmFieldNotFound, rvmCacheKeyAlreadyExists, rvmMissingCacheKey:
+        rvmFieldNotFound, rvmCacheKeyAlreadyExists, rvmMissingCacheKey,
+        rvmCannotCreateNode:
       vmRep = VMReport(
         kind: kind,
         str: diag.vmErr.msg,

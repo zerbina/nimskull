@@ -284,6 +284,10 @@ proc newStrNode*(strVal: string; info: TLineInfo): PNode =
   result = newNodeI(nkStrLit, info)
   result.strVal = strVal
 
+proc newStrNode*(strVal: sink string, typ: PType; info=unknownLineInfo): PNode =
+  result = newNodeIT(nkStrLit, info, typ)
+  result.strVal = strVal
+
 proc newProcNode*(kind: TNodeKind, info: TLineInfo, body: PNode,
                  params,
                  name, pattern, genericParams,
@@ -478,8 +482,8 @@ template copyNodeImpl(dst, src, processSonsStmt) =
     dst.floatLitBase = src.floatLitBase
   of nkSym: dst.sym = src.sym
   of nkIdent: dst.ident = src.ident
-  of nkStrLit..nkTripleStrLit: dst.strVal = src.strVal
-  of nkEmpty, nkNone, nkNilLit, nkType, nkCommentStmt: discard "no children"
+  of nkStrLiterals: dst.strVal = src.strVal
+  of nkEmpty, nkNilLit, nkType, nkCommentStmt: discard "no children"
   of nkError: dst.diag = src.diag # do cheap copies
   of nkWithSons: processSonsStmt
 

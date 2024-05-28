@@ -52,10 +52,9 @@ type
   TNodeKind* = enum
     ## order is important, because ranges are used to check whether a node
     ## belongs to a certain class
-
-    nkNone                ## unknown node kind: indicates an error
-                          ## Expressions:
-                          ## Atoms:
+    ## Expressions:
+    ## Atoms:
+    nkError               ## erroneous AST node see `errorhandling`
     nkEmpty               ## the node is empty
     nkIdent               ## node is an identifier
     nkSym                 ## node is a symbol
@@ -201,9 +200,6 @@ type
     nkBlockExpr           ## a statement block ending in an expr; this is used
                           ## to allow powerful multi-line templates that open a
                           ## temporary scope
-    nkStmtListType        ## a statement list ending in a type; for macros
-    nkBlockType           ## a statement block ending in a type; for macros
-                          ## types as syntactic trees:
 
     nkWith                ## distinct with `foo`
     nkWithout             ## distinct without `foo`
@@ -237,7 +233,6 @@ type
                           ## transformation
     nkFuncDef             ## a func
     nkTupleConstr         ## a tuple constructor
-    nkError               ## erroneous AST node see `errorhandling`
     nkNimNodeLit          ## a ``NimNode`` literal. Stores a single sub node
                           ## that represents the ``NimNode`` AST
     nkModuleRef           ## for .rod file support: A (moduleId, itemId) pair
@@ -247,14 +242,20 @@ type
   TNodeKinds* = set[TNodeKind]
 
 const
+  nkUIntLiterals*  = {nkCharLit, nkUIntLit..nkUInt64Lit}
+    ## Unsigned int literals
+  nkSIntLiterals*  = {nkIntLit..nkInt64Lit}
+    ## Signed int literals
+  nkIntLiterals*   = nkUIntLiterals + nkSIntLiterals
+  nkFloatLiterals* = {nkFloatLit..nkFloat64Lit}
+  nkStrLiterals*   = {nkStrLit..nkTripleStrLit}
+  nkLiterals*      = nkIntLiterals + nkFloatLiterals + nkStrLiterals + nkNilLit
+
   nkWithoutSons* =
-    {nkEmpty, nkNone} +
+    {nkEmpty} +
     {nkIdent, nkSym} +
     {nkType} +
-    {nkCharLit..nkUInt64Lit} +
-    {nkFloatLit..nkFloat64Lit} +
-    {nkStrLit..nkTripleStrLit} +
-    {nkNilLit} +
+    nkLiterals +
     {nkError} +
     {nkCommentStmt}
 
@@ -825,6 +826,9 @@ type
     mChckRange
       ## chckRange(v, lower, upper); conversion + range check -- returns
       ## either the type-converted value or raises a defect
+    mChckNaN
+      ## chckNaN(v); raise an error when the float value `v` is a quiet NaN.
+      ## Behaviour with signaling NaNs is undefined.
     mChckIndex
       ## chckIndex(arr, idx); raise an error when `idx` is not within `arr`'s
       ## bounds
@@ -986,6 +990,7 @@ type
     adVmFieldNotFound
     adVmNotAField
     adVmFieldUnavailable
+    adVmCannotCreateNode
     adVmCannotSetChild
     adVmCannotAddChild
     adVmCannotGetChild
@@ -1008,7 +1013,8 @@ type
         indexSpec*: tuple[usedIdx, minIdx, maxIdx: Int128]
       of adVmErrInternal, adVmNilAccess, adVmIllegalConv,
           adVmFieldUnavailable, adVmFieldNotFound,
-          adVmCacheKeyAlreadyExists, adVmMissingCacheKey:
+          adVmCacheKeyAlreadyExists, adVmMissingCacheKey,
+          adVmCannotCreateNode:
         msg*: string
       of adVmCannotSetChild, adVmCannotAddChild, adVmCannotGetChild,
           adVmUnhandledException, adVmNoType, adVmNodeNotASymbol:
@@ -1156,6 +1162,8 @@ type
     adSemDefNameSym   ## when creating a sym node from `nkIdentKinds`
     # semtypes
     adSemTypeExpected
+    adSemStringRangeNotAllowed
+    adSemRangeIsEmpty
     # semtempl
     adSemIllformedAst
     adSemIllformedAstExpectedPragmaOrIdent
@@ -1189,6 +1197,8 @@ type
     adSemCallOperatorsNotEnabled
     adSemUnexpectedPattern
     adSemNotACasePart
+    adSemCannotBeRaised
+    adSemCannotRaiseNonException
     # types
     adSemTypeKindMismatch
     # semexprs
@@ -1332,6 +1342,8 @@ type
         adSemCallInCompilesContextNotAProcOrField,
         adSemExpressionHasNoType,
         adSemTypeExpected,
+        adSemStringRangeNotAllowed,
+        adSemRangeIsEmpty,
         adSemIllformedAst,
         adSemIllformedAstExpectedPragmaOrIdent,
         adSemInvalidExpression,
@@ -1347,6 +1359,8 @@ type
         adSemDotOperatorsNotEnabled,
         adSemCallOperatorsNotEnabled,
         adSemUnexpectedPattern,
+        adSemCannotBeRaised,
+        adSemCannotRaiseNonException,
         adSemIsOperatorTakes2Args,
         adSemNoTupleTypeForConstructor,
         adSemInvalidOrderInArrayConstructor,
@@ -1578,21 +1592,21 @@ type
     info*: TLineInfo
     flags*: TNodeFlags
     case kind*: TNodeKind
-    of nkCharLit..nkUInt64Lit:
+    of nkIntLiterals:
       intVal*: BiggestInt
       intLitBase*: NumericalBase
-    of nkFloatLit..nkFloat64Lit:
+    of nkFloatLiterals:
       floatVal*: BiggestFloat
       floatLitBase*: NumericalBase
         # Once case branches can share fields this can be unified with
         # intLitBase above
-    of nkStrLit..nkTripleStrLit:
+    of nkStrLiterals:
       strVal*: string
     of nkSym:
       sym*: PSym
     of nkIdent:
       ident*: PIdent
-    of nkEmpty, nkNone, nkType, nkNilLit, nkCommentStmt:
+    of nkEmpty, nkType, nkNilLit, nkCommentStmt:
       discard
     of nkError:
       diag*: PAstDiag

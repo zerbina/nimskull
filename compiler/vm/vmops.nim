@@ -156,6 +156,31 @@ proc setCurrentExceptionWrapper(a: VmArgs) {.nimcall.} =
   asgnRef(a.currentException, deref(a.getHandle(0)).refVal,
           a.mem[], reset=true)
 
+proc prepareExceptionWrapper(a: VmArgs) {.nimcall.} =
+  let
+    raised = a.heap[].tryDeref(deref(a.getHandle(0)).refVal, noneType).value()
+    nameField = raised.getFieldHandle(1.fpos)
+
+  # set the name of the exception if it hasn't been already:
+  if deref(nameField).strVal.len == 0:
+    # XXX: the VM doesn't distinguish between a `nil` cstring and an empty
+    #      `cstring`, leading to the name erroneously being overridden if
+    #      it was explicitly initialized with `""`
+    asgnVmString(deref(nameField).strVal,
+                 deref(a.getHandle(1)).strVal,
+                 a.mem.allocator)
+
+proc nimUnhandledExceptionWrapper(a: VmArgs) {.nimcall.} =
+  # setup the exception AST:
+  let
+    exc = a.heap[].tryDeref(a.currentException, noneType).value()
+    ast = toExceptionAst($exc.getFieldHandle(1.fpos).deref().strVal,
+                         $exc.getFieldHandle(2.fpos).deref().strVal)
+  # report the unhandled exception:
+  # XXX: the current stack-trace should be passed along, but we don't
+  #      have access to it here
+  raiseVmError(VmEvent(kind: vmEvtUnhandledException, exc: ast))
+
 proc prepareMutationWrapper(a: VmArgs) {.nimcall.} =
   discard "no-op"
 
@@ -189,8 +214,8 @@ when defined(nimHasInvariant):
     of SingleValueSetting.projectFull: result = conf.projectFull.string
     of SingleValueSetting.command: result = conf.command
     of SingleValueSetting.commandLine: result = conf.commandLine
-    of SingleValueSetting.linkOptions: result = conf.linkOptions
-    of SingleValueSetting.compileOptions: result = conf.compileOptions
+    of SingleValueSetting.linkOptions: result = conf.getLinkOptionsStr()
+    of SingleValueSetting.compileOptions: result = conf.getCompileOptionsStr()
     of SingleValueSetting.ccompilerPath: result = conf.cCompilerPath
     of SingleValueSetting.backend: result = $conf.backend
     of SingleValueSetting.libPath: result = conf.libpath.string
@@ -232,6 +257,8 @@ iterator basicOps*(): Override =
   # system operations
   systemop(getCurrentExceptionMsg)
   systemop(getCurrentException)
+  systemop(prepareException)
+  systemop(nimUnhandledException)
   systemop(prepareMutation)
   override("stdlib.system.closureIterSetupExc",
            setCurrentExceptionWrapper)

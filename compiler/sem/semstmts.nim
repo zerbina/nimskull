@@ -116,9 +116,10 @@ proc fixNilType(c: PContext; n: PNode) =
 
 # start `discard` check related code
 
-proc implicitlyDiscardable(n: PNode): bool =
-  var n = n
-  while n.kind in skipForDiscardable: n = n.lastSon
+func implicitlyDiscardable(n: PNode): bool =
+  ## true if a node, `n`, is implicitly discardable, meaning it's a control
+  ## flow ending statement in a block (`return`, `break`, `raise`, etc) or a
+  ## routine call to a routine type marked as `{.discardable.}`.
   result = n.kind in nkLastBlockStmts or
            (isCallExpr(n) and n[0].kind == nkSym and
            sfDiscardable in n[0].sym.flags)
@@ -130,24 +131,24 @@ proc discardCheck(c: PContext, n: PNode, flags: TExprFlags): PNode =
   if c.matchedConcept != nil or efInTypeof in flags: return
 
   if n.typ != nil and n.typ.kind notin {tyTyped, tyVoid}:
-    if implicitlyDiscardable(n):
+    var m = n
+    while m.kind in skipForDiscardable:
+      case m.kind
+      of nkTryStmt:
+        m =
+          case m[^1].kind
+          of nkFinally:
+            m[^2]
+          of nkExceptBranch:
+            m[^1]
+          of nkAllNodeKinds - {nkFinally, nkExceptBranch}:
+            unreachable()
+      else:
+        m = m.lastSon
+
+    if implicitlyDiscardable(m):
       result = newTreeI(nkDiscardStmt, n.info, n)
     elif n.typ.kind != tyError and c.config.cmd != cmdInteractive:
-      var m = n
-      while m.kind in skipForDiscardable:
-        case m.kind
-        of nkTryStmt:
-          m =
-            case m[^1].kind
-            of nkFinally:
-              m[^2]
-            of nkExceptBranch:
-              m[^1]
-            of nkAllNodeKinds - {nkFinally, nkExceptBranch}:
-              unreachable()
-        else:
-          m = m.lastSon
-
       result = newError(c.config, n,
         PAstDiag(kind: adSemUseOrDiscardExpr, undiscarded: m))
 
@@ -338,7 +339,7 @@ proc fitRemoveHiddenConv(c: PContext, typ: PType, n: PNode): PNode =
   case result.kind
   of nkHiddenStdConv, nkHiddenSubConv:
     let r1 = result[1]
-    if r1.kind in {nkCharLit..nkUInt64Lit} and
+    if r1.kind in nkIntLiterals and
        typ.skipTypes(abstractRange).kind in {tyFloat..tyFloat64}:
       result = newFloatNode(nkFloatLit, BiggestFloat r1.intVal)
       result.info = n.info
@@ -1769,10 +1770,9 @@ proc semCaseMatcher(c: PContext, n: PNode, flags: TExprFlags): PNode =
     result.typ = typ
 
 proc semCase(c: PContext, n: PNode; flags: TExprFlags): PNode =
-  result = n
   checkMinSonsLen(n, 2, c.config)
+  result = copyNodeWithKids(n)
   openScope(c)
-  pushCaseContext(c, n)
   n[0] = semExprWithType(c, n[0])
 
   if n[0].typ.kind == tyCase:
@@ -1781,11 +1781,13 @@ proc semCase(c: PContext, n: PNode; flags: TExprFlags): PNode =
     popCaseContext(c)
     return
 
+  result[0] = n[0]
+  let selector = result[0].typ
   var chckCovered = false
   var covered: Int128 = toInt128(0)
   var typ = commonTypeBegin
   var hasElse = false
-  let caseTyp = skipTypes(n[0].typ, abstractVar-{tyTypeDesc})
+  let caseTyp = skipTypes(selector, abstractInst-{tyTypeDesc})
   const shouldChckCovered = {tyInt..tyInt64, tyChar, tyEnum, tyUInt..tyUInt64, tyBool}
   case caseTyp.kind
   of shouldChckCovered:
@@ -1794,91 +1796,111 @@ proc semCase(c: PContext, n: PNode; flags: TExprFlags): PNode =
     if skipTypes(caseTyp[0], abstractInst).kind in shouldChckCovered:
       chckCovered = true
   of tyFloat..tyFloat64, tyString:
-    # xxx: possible case statement macro bug, as it'll be skipped here
-    discard
+    discard "not all possible values have to be covered"
   else:
-    popCaseContext(c)
     closeScope(c)
-    result[0] = c.config.newError(n[0],
+    result[0] = c.config.newError(result[0],
                           PAstDiag(kind: adSemSelectorMustBeOfCertainTypes))
+    result = c.config.wrapError(result)
     return
+
+  pushCaseContext(c, result) # push the in-progress case context
   for i in 1..<n.len:
     setCaseContextIdx(c, i)
-    var x = n[i]
+    let x = n[i]
     when defined(nimsuggest):
       if c.config.ideCmd == ideSug and c.config.m.trackPos == x.info and caseTyp.kind == tyEnum:
         suggestEnum(c, x, caseTyp)
     case x.kind
     of nkOfBranch:
-      checkMinSonsLen(x, 2, c.config)
-      semCaseBranch(c, n, x, i, covered)
-      var last = x.len-1
-      x[last] = semExprBranchScope(c, x[last])
-      typ = commonType(c, typ, x[last])
+      let branch = semCaseBranch(c, selector, x, covered)
+      result[i] = branch
+      checkBranchForOverlap(c, result, i, result[i].len - 1)
+      # the branch node might be inspected from within the body, so make sure
+      # it is syntactically valid prior to the analysis
+      branch.add c.graph.emptyNode
+      branch[^1] = semExprBranchScope(c, x[^1])
     of nkElifBranch:
       chckCovered = false
       checkSonsLen(x, 2, c.config)
       openScope(c)
-      x[0] = forceBool(c, semExprWithType(c, x[0]))
-      x[1] = semExprBranch(c, x[1])
-      typ = commonType(c, typ, x[1])
+      let branch = shallowCopy(x)
+      branch[0] = forceBool(c, semExprWithType(c, x[0]))
+      branch[1] = semExprBranch(c, x[1])
       closeScope(c)
+      result[i] = branch
     of nkElse:
       checkSonsLen(x, 1, c.config)
-      x[0] = semExprBranchScope(c, x[0])
-      typ = commonType(c, typ, x[0])
-      if (chckCovered and covered == toCover(c, n[0].typ)) or hasElse:
+      let branch = shallowCopy(x)
+      branch[0] = semExprBranchScope(c, x[0])
+      result[i] = branch
+      if (chckCovered and covered == toCover(c, selector)) or hasElse:
         localReport(c.config, x.info, SemReport(kind: rsemUnreachableElse))
       hasElse = true
       chckCovered = false
     else:
       semReportIllformedAst(c.config, x, {nkElse, nkElifBranch, nkOfBranch})
 
+    # update the expression type:
+    typ = commonType(c, typ, result[i][^1])
+
   if chckCovered:
-    if covered == toCover(c, n[0].typ):
+    if covered == toCover(c, selector):
       hasElse = true
-    elif n[0].typ.skipTypes(abstractRange).kind in {tyEnum, tyChar}:
-      localReport(c.config, n, SemReport(
+    elif selector.skipTypes(abstractRange).kind in {tyEnum, tyChar}:
+      localReport(c.config, result, SemReport(
         kind: rsemMissingCaseBranches,
-        nodes: formatMissingBranches(c, n)))
+        nodes: formatMissingBranches(c, result)))
 
     else:
-      localReport(c.config, n, reportSem rsemMissingCaseBranches)
+      localReport(c.config, result, reportSem rsemMissingCaseBranches)
 
   popCaseContext(c)
   closeScope(c)
   if isEmptyType(typ) or typ.kind in {tyNil, tyUntyped} or
       (not hasElse and efInTypeof notin flags):
-    for i in 1..<n.len:
-      n[i][^1] = discardCheck(c, n[i][^1], flags)
-      if n[i][^1].isError:
-        return wrapError(c.config, n)
+    for _, it in branches(result):
+      it[^1] = discardCheck(c, it[^1], flags)
+
     # propagate any enforced VoidContext:
     if typ == c.enforceVoidContext:
       result.typ = c.enforceVoidContext
   else:
-    for i in 1..<n.len:
-      var it = n[i]
+    for i, it in branches(result):
       let j = it.len-1
       if not endsInNoReturn(it[j]):
         it[j] = fitNode(c, typ, it[j], it[j].info)
+
     result.typ = typ
 
-proc semRaise(c: PContext, n: PNode): PNode =
-  result = n
-  checkSonsLen(n, 1, c.config)
-  if n[0].kind != nkEmpty:
-    n[0] = semExprWithType(c, n[0])
-    var typ = n[0].typ
-    if not isImportedException(typ, c.config):
-      typ = typ.skipTypes({tyAlias, tyGenericInst})
-      if typ.kind != tyRef:
-        localReport(c.config, n.info, reportTyp(
-          rsemCannotBeRaised, typ))
+  # wrap in an error, if necessary:
+  for _, b in branches(result):
+    # check a single layer, everything else had error propagated already
+    for it in b.items:
+      if it.kind == nkError:
+        return c.config.wrapError(result)
 
-      if typ.len > 0 and not isException(typ.lastSon):
-        localReport(c.config, n.info, reportTyp(
-          rsemCannotRaiseNonException, typ))
+proc semRaise(c: PContext, n: PNode): PNode =
+  checkSonsLen(n, 1, c.config)
+  result = shallowCopy(n)
+  case n[0].kind
+  of nkEmpty:
+    # make sure to copy, the nfSem flag needs to be included
+    result[0] = copyNode(n[0])
+    result[0].flags.incl nfSem
+  else:
+    result[0] = semExprWithType(c, n[0])
+    let typ = result[0].typ
+    if result[0].kind == nkError:
+      result = c.config.wrapError(result)
+    elif not isImportedException(typ, c.config):
+      let refTyp = typ.skipTypes({tyAlias, tyGenericInst})
+      if refTyp.kind != tyRef:
+        result = c.config.newError(result,
+          PAstDiag(kind: adSemCannotBeRaised))
+      elif not isException(refTyp.lastSon):
+        result = c.config.newError(result,
+          PAstDiag(kind: adSemCannotRaiseNonException))
 
 proc addGenericParamListToScope(c: PContext, n: PNode) =
   if n.kind != nkGenericParams:
@@ -2103,10 +2125,11 @@ proc typeSectionRightSidePass(c: PContext, n: PNode) =
       # ``static type``
       rawAddSon(s.typ, newTypeS(tyNone, c))
       s.ast = a
-      inc c.inGenericContext
-      var body = semTypeNode(c, a[2], nil)
-      dec c.inGenericContext
-      if body != nil:
+      # magic type definitions are allowed to not have a body on the right
+      if s.magic == mNone or a[2].kind != nkEmpty:
+        inc c.inGenericContext
+        var body = semTypeNode(c, a[2], nil)
+        dec c.inGenericContext
         body.sym = s
         body.size = -1 # could not be computed properly
         s.typ[^1] = body

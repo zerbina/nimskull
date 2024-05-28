@@ -393,6 +393,23 @@ passStrTableField symbols
 passStrTableField macrosToExpand
 passStrTableField arcToExpand
 
+proc getCompileOptionsStr*(conf: ConfigRef): string =
+  ## Returns the combination of the current C compile options and the
+  ## global `--passC` options (combined in that exact order).
+  ##
+  ## Global `--passC` options already present in the current C compile
+  ## options are *not* include again.
+  result = conf.compileOptions
+
+  for option in conf.compileOptionsCmd:
+    if strutils.find(result, option, 0) < 0:
+      if result.len == 0 or result[^1] != ' ': result.add " "
+      result.add option
+
+proc getLinkOptionsStr*(conf: ConfigRef): string =
+  ## Returns the combination of the current C linker options and the global
+  ## `--passL` options (combined in that exact order).
+  conf.linkOptions & " " & conf.linkOptionsCmd.join(" ")
 
 proc defineSymbol*(conf: ConfigRef, symbol: string, value: string = "true") =
   conf.symbolsSet(symbol, value)
@@ -1282,6 +1299,19 @@ proc completeGeneratedFilePath*(conf: ConfigRef; f: AbsoluteFile,
       conf.quitOrRaise "cannot create directory: " & subdir.string
   result = subdir / RelativeFile f.string.splitPath.tail
   #echo "completeGeneratedFilePath(", f, ") = ", result
+
+proc completeGeneratedExtFilePath*(conf: ConfigRef, f: AbsoluteFile
+                                  ): AbsoluteFile =
+  ## Returns the absolute file path within the cache directory for file `f`.
+  ## This procedure is meant to be used for external files with names not
+  ## controlled by the compiler -- a sub-directory is used to prevent
+  ## collisions.
+  let subdir = getNimcacheDir(conf.active) / RelativeDir("external")
+  try:
+    createDir(subdir.string)
+  except OSError:
+    conf.quitOrRaise "cannot create directory: " & subdir.string
+  result = subdir / RelativeFile(f.string.splitPath.tail)
 
 proc toRodFile*(conf: ConfigRef; f: AbsoluteFile; ext = RodExt): AbsoluteFile =
   result = changeFileExt(completeGeneratedFilePath(conf,

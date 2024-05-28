@@ -15,38 +15,14 @@ const
   stringCaseThreshold = 8
     # above X strings a hash-switch for strings is generated
 
-proc isAssignedImmediately(conf: ConfigRef; n: CgNode): bool {.inline.} =
-  if n.kind == cnkEmpty: return false
-  if isInvalidReturnType(conf, n.typ):
-    # var v = f()
-    # is transformed into: var v;  f(addr v)
-    # where 'f' **does not** initialize the result!
-    return false
-  result = true
-
-proc inExceptBlockLen(p: BProc): int =
-  for x in p.nestedTryStmts:
-    if x.inExcept: result.inc
-
-proc startBlockInternal(p: BProc, blk: int) =
-  inc(p.labels)
+proc startBlockInternal(p: BProc) =
   let result = p.blocks.len
   setLen(p.blocks, result + 1)
-  p.blocks[result].id = p.labels
-  p.blocks[result].blk = blk
-  p.blocks[result].nestedTryStmts = p.nestedTryStmts.len.int16
-  p.blocks[result].nestedExceptStmts = p.inExceptBlockLen.int16
 
 template startBlock(p: BProc, start: FormatStr = "{$n",
-                args: varargs[Rope]) =
+                args: varargs[Rope]) {.used.} =
   lineCg(p, cpsStmts, start, args)
-  startBlockInternal(p, 0)
-
-template startBlock(p: BProc, id: BlockId) =
-  lineCg(p, cpsStmts, "{$n", [])
-  startBlockInternal(p, id.int + 1)
-
-proc endBlock(p: BProc)
+  startBlockInternal(p)
 
 proc loadInto(p: BProc, le, ri: CgNode, a: var TLoc) {.inline.} =
   if ri.kind in {cnkCall, cnkCheckedCall} and
@@ -62,10 +38,6 @@ proc loadInto(p: BProc, le, ri: CgNode, a: var TLoc) {.inline.} =
     # worth the effort until version 1.0 is out.
     a.flags.incl(lfEnforceDeref)
     expr(p, ri, a)
-
-proc assignLabel(b: var TBlock): Rope {.inline.} =
-  b.label = "LA" & b.id.rope
-  result = b.label
 
 proc blockBody(b: var TBlock): Rope =
   result = b.sections[cpsLocals]
@@ -89,47 +61,8 @@ proc endBlock(p: BProc) =
   var blockEnd: Rope
   if frameLen > 0:
     blockEnd.addf("FR_.len-=$1;$n", [frameLen.rope])
-  if p.blocks[topBlock].label != "":
-    blockEnd.addf("} $1: ;$n", [p.blocks[topBlock].label])
-  else:
-    blockEnd.addf("}$n", [])
+  blockEnd.addf("}$n", [])
   endBlock(p, blockEnd)
-
-proc stmtBlock(p: BProc, n: CgNode) =
-  startBlock(p)
-  genStmts(p, n)
-  endBlock(p)
-
-proc blockLeaveActions(p: BProc, howManyTrys, howManyExcepts: int) =
-  # Called by return and break stmts.
-  # Deals with issues faced when jumping out of try/except/finally stmts.
-
-  var stack = newSeq[typeof(p.nestedTryStmts[0])](0)
-
-  inc p.withinBlockLeaveActions
-  for i in 1..howManyTrys:
-    let tryStmt = p.nestedTryStmts.pop
-    # Pop this try-stmt of the list of nested trys
-    # so we don't infinite recurse on it in the next step.
-    stack.add(tryStmt)
-
-    # Find finally-stmt for this try-stmt
-    # and generate a copy of its sons
-    var finallyStmt = tryStmt.fin
-    if finallyStmt != nil:
-      genStmts(p, finallyStmt[0])
-
-  dec p.withinBlockLeaveActions
-
-  # push old elements again:
-  for i in countdown(howManyTrys-1, 0):
-    p.nestedTryStmts.add(stack[i])
-
-  # Pop exceptions that was handled by the
-  # except-blocks we are in
-  block:
-    for i in countdown(howManyExcepts-1, 0):
-      linefmt(p, cpsStmts, "#popCurrentException();$n", [])
 
 proc genGotoVar(p: BProc; value: CgNode) =
   case value.kind
@@ -149,9 +82,16 @@ proc genSingleVar(p: BProc, vn, value: CgNode) =
     genGotoVar(p, value)
     return
 
-  let imm = isAssignedImmediately(p.config, value)
   assignLocalVar(p, vn)
-  initLocalVar(p, v, imm)
+  # default-initialize the local if no initial value is supplied. Automatic
+  # initialization is also ommitted when the `value` expression is a
+  # potentially-raising call, because for a definition like:
+  #   def x = f()
+  # no except or finally section that is entered when `f` raises can access
+  # `x`, nor can any code that the except or finally section can exit into,
+  # meaning that it's safe to potentially leave `x` uninitialized if `f`
+  # raises
+  initLocalVar(p, v, immediateAsgn = (value.kind != cnkEmpty))
 
   if value.kind != cnkEmpty:
     genLineDir(p, vn)
@@ -168,15 +108,7 @@ proc genIf(p: BProc, n: CgNode) =
 
   initLocExprSingleUse(p, n[0], a)
   lineF(p, cpsStmts, "if ($1)$n", [rdLoc(a)])
-  stmtBlock(p, n[1])
-
-proc genReturnStmt(p: BProc, t: CgNode) =
-  p.flags.incl beforeRetNeeded
-  genLineDir(p, t)
-  blockLeaveActions(p,
-    howManyTrys    = p.nestedTryStmts.len,
-    howManyExcepts = p.inExceptBlockLen)
-  lineF(p, cpsStmts, "goto BeforeRet_;$n", [])
+  startBlock(p)
 
 proc genGotoForCase(p: BProc; caseStmt: CgNode) =
   for i in 1..<caseStmt.len:
@@ -188,169 +120,51 @@ proc genGotoForCase(p: BProc; caseStmt: CgNode) =
         return
       let val = getOrdValue(it[j])
       lineF(p, cpsStmts, "NIMSTATE_$#:$n", [val.rope])
-    genStmts(p, it.lastSon)
+
+    lineCg(p, cpsStmts, "goto $1;$n", [it[^1].label])
     endBlock(p)
 
-proc genAsgn(p: BProc, e: CgNode)
+proc exit(n: CgNode): CgNode =
+  # XXX: exists as a convenience for overflow check, index check, etc.
+  #      code gen. Should be removed once those are fully lowered prior
+  #      to code generation
+  case n.kind
+  of cnkCheckedCall: n[^1]
+  else:              nil
 
-proc genComputedGoto(p: BProc; n: CgNode) =
-  # first pass: Generate array of computed labels:
+proc useLabel(p: BProc, label: CLabel) {.inline.} =
+  if label.id == ExitLabel:
+    p.flags.incl beforeRetNeeded
 
-  # flatten the loop body because otherwise let and var sections
-  # wrapped inside stmt lists by inject destructors won't be recognised
-  # XXX: ^^ this doesn't work as intended (see the comment in
-  #      ``flattenStmts``)
-  let n = n.flattenStmts()
-  var casePos = -1
-  var arraySize: int
-  for i in 0..<n.len:
-    let it = n[i]
-    if it.kind == cnkCaseStmt:
-      # XXX: move the checks into the semantic analysis phase
-      if not isOfBranch(it[^1]):
-        localReport(p.config, it.info, reportSem rsemExpectedExhaustiveCaseForComputedGoto)
-        return
-
-      casePos = i
-      if enumHasHoles(it[0].typ):
-        localReport(p.config, it.info, reportSem rsemExpectedUnholyEnumForComputedGoto)
-        return
-
-      let aSize = lengthOrd(p.config, it[0].typ)
-      if aSize > 10_000:
-        localReport(p.config, it.info, reportSem rsemTooManyEntriesForComputedGoto)
-        return
-
-      arraySize = toInt(aSize)
-      if firstOrd(p.config, it[0].typ) != 0:
-        localReport(p.config, it.info, reportSem rsemExpectedLow0ForComputedGoto)
-        return
-
-  if casePos < 0:
-    localReport(p.config, n.info, reportSem rsemExpectedCaseForComputedGoto)
-    return
-
-  var id = p.labels+1
-  inc p.labels, arraySize+1
-  let tmp = "TMP$1_" % [id.rope]
-  var gotoArray = "static void* $#[$#] = {" % [tmp, arraySize.rope]
-  for i in 1..arraySize-1:
-    gotoArray.addf("&&TMP$#_, ", [rope(id+i)])
-  gotoArray.addf("&&TMP$#_};$n", [rope(id+arraySize)])
-  line(p, cpsLocals, gotoArray)
-
-  for j in 0..<casePos:
-    genStmts(p, n[j])
-
-  let caseStmt = n[casePos]
-  var a: TLoc
-  initLocExpr(p, caseStmt[0], a)
-  # first goto:
-  lineF(p, cpsStmts, "goto *$#[$#];$n", [tmp, a.rdLoc])
-
-  for i in 1..<caseStmt.len:
-    startBlock(p)
-    let it = caseStmt[i]
-    for j in 0..<it.len-1:
-      if it[j].kind == cnkRange:
-        localReport(p.config, it.info, reportSem rsemDisallowedRangeForComputedGoto)
-        return
-
-      let val = getOrdValue(it[j])
-      lineF(p, cpsStmts, "TMP$#_:$n", [intLiteral(toInt64(val)+id+1)])
-
-    genStmts(p, it.lastSon)
-
-    for j in casePos+1..<n.len:
-      genStmts(p, n[j])
-
-    for j in 0..<casePos:
-      # prevent new local declarations
-      # compile declarations as assignments
-      let it = n[j]
-      if it.kind == cnkDef:
-        genAsgn(p, it)
-      else:
-        genStmts(p, it)
-
-    var a: TLoc
-    initLocExpr(p, caseStmt[0], a)
-    lineF(p, cpsStmts, "goto *$#[$#];$n", [tmp, a.rdLoc])
-    endBlock(p)
-
-  for j in casePos+1..<n.len:
-    genStmts(p, n[j])
-
-
-proc genRepeatStmt(p: BProc, t: CgNode) =
-  # we don't generate labels here as for example GCC would produce
-  # significantly worse code
-  inc(p.withinLoop)
-  genLineDir(p, t)
-
-  if true:
-    var loopBody = t[0]
-    if loopBody.stmtsContainPragma(wComputedGoto) and
-       hasComputedGoto in CC[p.config.cCompiler].props:
-      genComputedGoto(p, loopBody)
+proc raiseInstr(p: BProc, n: CgNode): Rope =
+  if n != nil:
+    case n.kind
+    of cnkLabel:
+      # easy case, simply goto the target:
+      result = ropecg(p.module, "goto $1;", [n.label])
+    of cnkTargetList:
+      # the first non-leave operand is the initial jump target
+      let label = toCLabel(n[0], p.specifier)
+      useLabel(p, label)
+      result = ropecg(p.module, "goto $1;", [label])
     else:
-      startBlock(p, "while (1) {$n")
-      genStmts(p, loopBody)
+      unreachable(n.kind)
+  else:
+    # absence of an node storing the target means "never exits"
+    if hasAssume in CC[p.config.cCompiler].props:
+      result = "__asume(0);"
+    else:
+      # don't just fall-through; doing so would inhibit C compiler
+      # optimizations
+      p.flags.incl beforeRetNeeded
+      result = "goto BeforeRet_;"
 
-      if optProfiler in p.options:
-        # invoke at loop body exit:
-        linefmt(p, cpsStmts, "#nimProfile();$n", [])
-      endBlock(p)
-
-  dec(p.withinLoop)
-
-proc genBlock(p: BProc, n: CgNode) =
-  startBlock(p, n[0].label)
-  genStmts(p, n[1])
-  endBlock(p)
-
-proc genBreakStmt(p: BProc, t: CgNode) =
-  assert t[0].kind == cnkLabel
-  var idx = p.blocks.high
-  # search for the ``TBlock`` that corresponds to the label. `blk` stores the
-  # ID offset by 1, which has to be accounted for here
-  while idx >= 0 and p.blocks[idx].blk != (t[0].label.int + 1):
-    dec idx
-
-  let label = assignLabel(p.blocks[idx])
-  blockLeaveActions(p,
-    p.nestedTryStmts.len - p.blocks[idx].nestedTryStmts,
-    p.inExceptBlockLen - p.blocks[idx].nestedExceptStmts)
-  genLineDir(p, t)
-  lineF(p, cpsStmts, "goto $1;$n", [label])
-
-proc raiseExit(p: BProc) =
+proc raiseExit(p: BProc, n: CgNode) =
   assert p.config.exc == excGoto
   if nimErrorFlagDisabled notin p.flags:
     p.flags.incl nimErrorFlagAccessed
-    if p.nestedTryStmts.len == 0:
-      p.flags.incl beforeRetNeeded
-      # easy case, simply goto 'ret':
-      lineCg(p, cpsStmts, "if (NIM_UNLIKELY(*nimErr_)) goto BeforeRet_;$n", [])
-    else:
-      lineCg(p, cpsStmts, "if (NIM_UNLIKELY(*nimErr_)) goto LA$1_;$n",
-        [p.nestedTryStmts[^1].label])
-
-proc raiseInstr(p: BProc): Rope =
-  if p.config.exc == excGoto:
-    let L = p.nestedTryStmts.len
-    if L == 0:
-      p.flags.incl beforeRetNeeded
-      # easy case, simply goto 'ret':
-      result = ropecg(p.module, "goto BeforeRet_;$n", [])
-    else:
-      # raise inside an 'except' must go to the finally block,
-      # raise outside an 'except' block must go to the 'except' list.
-      result = ropecg(p.module, "goto LA$1_;$n",
-        [p.nestedTryStmts[L-1].label])
-      # + ord(p.nestedTryStmts[L-1].inExcept)])
-  else:
-    result = ""
+    lineCg(p, cpsStmts, "if (NIM_UNLIKELY(*nimErr_)) $1$n",
+           [raiseInstr(p, n)])
 
 proc genRaiseStmt(p: BProc, t: CgNode) =
   if t[0].kind != cnkEmpty:
@@ -363,8 +177,8 @@ proc genRaiseStmt(p: BProc, t: CgNode) =
     if isImportedException(typ, p.config):
       lineF(p, cpsStmts, "throw $1;$n", [e])
     else:
-      lineCg(p, cpsStmts, "#raiseExceptionEx((#Exception*)$1, $2, $3, $4, $5);$n",
-          [e, makeCString(typ.sym.name.s),
+      lineCg(p, cpsStmts, "#raiseException2((#Exception*)$1, $2, $3, $4);$n",
+          [e,
           makeCString(if p.prc != nil: p.prc.name.s else: p.module.module.name.s),
           quotedFilename(p.config, t.info), toLinenumber(t.info)])
 
@@ -372,12 +186,11 @@ proc genRaiseStmt(p: BProc, t: CgNode) =
     genLineDir(p, t)
     # reraise the last exception:
     linefmt(p, cpsStmts, "#reraiseException();$n", [])
-  let gotoInstr = raiseInstr(p)
-  if gotoInstr != "":
-    line(p, cpsStmts, gotoInstr)
+
+  # the goto is emitted separately
 
 template genCaseGenericBranch(p: BProc, b: CgNode, e: TLoc,
-                          rangeFormat, eqFormat: FormatStr, labl: TLabel) =
+                          rangeFormat, eqFormat: FormatStr, labl: BlockId) =
   var x, y: TLoc
   for i in 0..<b.len - 1:
     if b[i].kind == cnkRange:
@@ -389,56 +202,31 @@ template genCaseGenericBranch(p: BProc, b: CgNode, e: TLoc,
       initLocExpr(p, b[i], x)
       lineCg(p, cpsStmts, eqFormat, [rdCharLoc(e), rdCharLoc(x), labl])
 
-proc genCaseSecondPass(p: BProc, t: CgNode,
-                       labId, until: int): TLabel =
-  var lend = getLabel(p)
-  for i in 1..until:
-    lineF(p, cpsStmts, "LA$1_: ;$n", [rope(labId + i)])
-    if isOfBranch(t[i]):
-      stmtBlock(p, t[i][^1])
-      lineF(p, cpsStmts, "goto $1;$n", [lend])
-    else:
-      stmtBlock(p, t[i][0])
-  result = lend
-
 template genIfForCaseUntil(p: BProc, t: CgNode,
                        rangeFormat, eqFormat: FormatStr,
-                       until: int, a: TLoc): TLabel =
+                       until: int, a: TLoc) =
   # generate a C-if statement for a Nim case statement
-  var res: TLabel
-  var labId = p.labels
   for i in 1..until:
-    inc(p.labels)
     if isOfBranch(t[i]):
       genCaseGenericBranch(p, t[i], a, rangeFormat, eqFormat,
-                           "LA" & rope(p.labels) & "_")
+                           t[i][^1].label)
     else:
-      lineF(p, cpsStmts, "goto LA$1_;$n", [rope(p.labels)])
-  if until < t.len-1:
-    inc(p.labels)
-    var gotoTarget = p.labels
-    lineF(p, cpsStmts, "goto LA$1_;$n", [rope(gotoTarget)])
-    res = genCaseSecondPass(p, t, labId, until)
-    lineF(p, cpsStmts, "LA$1_: ;$n", [rope(gotoTarget)])
-  else:
-    res = genCaseSecondPass(p, t, labId, until)
-  res
+      linefmt(p, cpsStmts, "goto $1;$n", [t[i][^1].label])
 
 template genCaseGeneric(p: BProc, t: CgNode,
                     rangeFormat, eqFormat: FormatStr) =
   var a: TLoc
   initLocExpr(p, t[0], a)
-  var lend = genIfForCaseUntil(p, t, rangeFormat, eqFormat, t.len-1, a)
-  fixLabel(p, lend)
+  genIfForCaseUntil(p, t, rangeFormat, eqFormat, t.len-1, a)
 
-proc genCaseStringBranch(p: BProc, b: CgNode, e: TLoc, labl: TLabel,
+proc genCaseStringBranch(p: BProc, b: CgNode, e: TLoc, labl: BlockId,
                          branches: var openArray[Rope]) =
   var x: TLoc
   for i in 0..<b.len - 1:
     assert(b[i].kind != cnkRange)
     initLocExpr(p, b[i], x)
     assert(b[i].kind == cnkStrLit)
-    var j = int(hashString(p.config, b[i].strVal) and high(branches))
+    var j = int(hashString(p.config, getString(p, b[i])) and high(branches))
     appcg(p.module, branches[j], "if (#eqStrings($1, $2)) goto $3;$n",
          [rdLoc(e), rdLoc(x), labl])
 
@@ -453,15 +241,11 @@ proc genStringCase(p: BProc, t: CgNode) =
     newSeq(branches, bitMask + 1)
     var a: TLoc
     initLocExpr(p, t[0], a) # fist pass: generate ifs+goto:
-    var labId = p.labels
     for i in 1..<t.len:
-      inc(p.labels)
       if isOfBranch(t[i]):
-        genCaseStringBranch(p, t[i], a, "LA" & rope(p.labels) & "_",
-                            branches)
+        genCaseStringBranch(p, t[i], a, t[i][^1].label, branches)
       else:
         # else statement: nothing to do yet
-        # but we reserved a label, which we use later
         discard
     linefmt(p, cpsStmts, "switch (#hashString($1) & $2) {$n",
             [rdLoc(a), bitMask])
@@ -471,10 +255,8 @@ proc genStringCase(p: BProc, t: CgNode) =
              [intLiteral(j), branches[j]])
     lineF(p, cpsStmts, "}$n", []) # else statement:
     if not isOfBranch(t[^1]):
-      lineF(p, cpsStmts, "goto LA$1_;$n", [rope(p.labels)])
-    # third pass: generate statements
-    var lend = genCaseSecondPass(p, t, labId, t.len-1)
-    fixLabel(p, lend)
+      lineCg(p, cpsStmts, "goto $1;$n", [t[^1][0].label])
+
   else:
     genCaseGeneric(p, t, "", "if (#eqStrings($1, $2)) goto $3;$n")
 
@@ -524,10 +306,11 @@ proc genOrdinalCase(p: BProc, n: CgNode) =
   # generate if part (might be empty):
   var a: TLoc
   initLocExpr(p, n[0], a)
-  var lend = if splitPoint > 0: genIfForCaseUntil(p, n,
+  if splitPoint > 0:
+    genIfForCaseUntil(p, n,
                     rangeFormat = "if ($1 >= $2 && $1 <= $3) goto $4;$n",
                     eqFormat = "if ($1 == $2) goto $3;$n",
-                    splitPoint, a) else: ""
+                    splitPoint, a)
 
   # generate switch part (might be empty):
   if splitPoint+1 < n.len:
@@ -541,12 +324,11 @@ proc genOrdinalCase(p: BProc, n: CgNode) =
         # else part of case statement:
         lineF(p, cpsStmts, "default:$n", [])
         hasDefault = true
-      stmtBlock(p, branch.lastSon)
-      lineF(p, cpsStmts, "break;$n", [])
+
+      linefmt(p, cpsStmts, "goto $1;$n", [branch[^1].label])
     if (hasAssume in CC[p.config.cCompiler].props) and not hasDefault:
       lineF(p, cpsStmts, "default: __assume(0);$n", [])
     lineF(p, cpsStmts, "}$n", [])
-  if lend != "": fixLabel(p, lend)
 
 proc genCase(p: BProc, t: CgNode) =
   genLineDir(p, t)
@@ -577,107 +359,47 @@ proc bodyCanRaise(p: BProc; n: CgNode): bool =
       if bodyCanRaise(p, it): return true
     result = false
 
-proc genTryGoto(p: BProc; t: CgNode) =
-  let fin = if t[^1].kind == cnkFinally: t[^1] else: nil
-  inc p.labels
-  let lab = p.labels
-  let hasExcept = t[1].kind == cnkExcept
-  if hasExcept: inc p.withinTryWithExcept
-  p.nestedTryStmts.add((fin, false, Natural lab))
+proc genExcept(p: BProc, n: CgNode) =
+  ## Generates and emits the C code for an ``Except`` join point.
 
-  p.flags.incl nimErrorFlagAccessed
+  if n.len > 1:
+    # it's a handler with a filter/matcher
+    var condExpr = ""
+    for j in 1..<n.len - 1:
+      assert n[j].kind == cnkType
+      if condExpr != "":
+        condExpr.add("||")
 
-  var errorFlagSet = false ## tracks whether the error flag is set to 'true'
-    ## on a control-flow path connected to the finally section
+      # make sure the Exception type is available in the module:
+      discard
+        getTypeDesc(p.module, p.module.g.graph.getCompilerProc("Exception").typ)
 
-  template checkSetsErrorFlag(n: CgNode) =
-    if fin != nil and not errorFlagSet:
-      errorFlagSet = bodyCanRaise(p, n)
+      appcg(p.module, condExpr, "#isObj(#nimBorrowCurrentException()->Sup.m_type, $1)",
+            [genTypeInfo2Name(p.module, n[j].typ)])
 
-  genStmts(p, t[0])
-  checkSetsErrorFlag(t[0])
-
-  if 1 < t.len and t[1].kind == cnkExcept:
-    startBlock(p, "if (NIM_UNLIKELY(*nimErr_)) {$n")
+    # jump to the next handler in the chain if the filter doesn't apply
+    linefmt(p, cpsStmts, "if (!($1)) {$2}$n",
+            [condExpr, raiseInstr(p, n[^1])])
   else:
-    startBlock(p)
-  linefmt(p, cpsStmts, "LA$1_:;$n", [lab])
+    discard "catch-all handler, nothing to check"
 
-  p.nestedTryStmts[^1].inExcept = true
-  var i = 1
-  while (i < t.len) and (t[i].kind == cnkExcept):
-
-    inc p.labels
-    let nextExcept = p.labels
-    p.nestedTryStmts[^1].label = nextExcept
-
-    if t[i].len == 1:
-      # general except section:
-      if i > 1: lineF(p, cpsStmts, "else", [])
-      startBlock(p)
-      # we handled the exception, remember this:
-      linefmt(p, cpsStmts, "*nimErr_ = NIM_FALSE;$n", [])
-      genStmts(p, t[i][0])
-      checkSetsErrorFlag(t[i][0])
-    else:
-      var orExpr = ""
-      for j in 0..<t[i].len - 1:
-        assert(t[i][j].kind == cnkType)
-        if orExpr != "": orExpr.add("||")
-        let checkFor = genTypeInfo2Name(p.module, t[i][j].typ)
-        let memberName = "Sup.m_type"
-        appcg(p.module, orExpr, "#isObj(#nimBorrowCurrentException()->$1, $2)", [memberName, checkFor])
-
-      if i > 1: line(p, cpsStmts, "else ")
-      startBlock(p, "if ($1) {$n", [orExpr])
-      # we handled the exception, remember this:
-      linefmt(p, cpsStmts, "*nimErr_ = NIM_FALSE;$n", [])
-      genStmts(p, t[i][^1])
-      checkSetsErrorFlag(t[i][^1])
-
-    linefmt(p, cpsStmts, "#popCurrentException();$n", [])
-    linefmt(p, cpsStmts, "LA$1_:;$n", [nextExcept])
-    endBlock(p)
-
-    inc(i)
-  discard pop(p.nestedTryStmts)
-  endBlock(p)
-
-  if i < t.len and t[i].kind == cnkFinally:
-    startBlock(p)
-    # future direction: the code generator should track for each procedure
-    # whether it observes the error flag. If the finally clause's body
-    # doesn't observes it itself, and also doesn't call any procedure that
-    # does, we can also omit the save/restore pair
-    if not errorFlagSet:
-      # this is an optimization; if the error flag is proven to never be
-      # 'true' when the finally section is reached, we don't need to erase
-      # nor restore it:
-      genStmts(p, t[i][0])
-    else:
-      # pretend we did handle the error for the safe execution of the 'finally' section:
-      p.procSec(cpsLocals).add(ropecg(p.module, "NIM_BOOL oldNimErrFin$1_;$n", [lab]))
-      linefmt(p, cpsStmts, "oldNimErrFin$1_ = *nimErr_; *nimErr_ = NIM_FALSE;$n", [lab])
-      genStmts(p, t[i][0])
-      # this is correct for all these cases:
-      # 1. finally is run during ordinary control flow
-      # 2. finally is run after 'except' block handling: these however set the
-      #    error back to nil.
-      # 3. finally is run for exception handling code without any 'except'
-      #    handler present or only handlers that did not match.
-      linefmt(p, cpsStmts, "*nimErr_ = oldNimErrFin$1_;$n", [lab])
-    endBlock(p)
-  raiseExit(p)
-  if hasExcept: inc p.withinTryWithExcept
+  startBlock(p)
+  p.flags.incl nimErrorFlagAccessed
+  # exit error mode:
+  lineCg(p, cpsStmts, "*nimErr_ = NIM_FALSE;$n", [])
+  # setup the handler frame:
+  var tmp: TLoc
+  getTemp(p, p.module.g.graph.getCompilerProc("ExceptionFrame").typ, tmp)
+  lineCg(p, cpsStmts, "#nimCatchException($1);$n", [addrLoc(p.config, tmp)])
 
 proc genAsmOrEmitStmt(p: BProc, t: CgNode, isAsmStmt=false): Rope =
   var res = ""
   for it in t.items:
     case it.kind
     of cnkStrLit:
-      res.add(it.strVal)
-    of cnkField:
-        let sym = it.field
+      res.add(getString(p, it))
+    of cnkAstLit:
+        let sym = it.astLit.sym
         # special support for raw field symbols
         discard getTypeDesc(p.module, skipTypes(sym.typ, abstractPtrs))
         p.config.internalAssert(sym.locId != 0, it.info):
@@ -726,10 +448,10 @@ proc genAsmStmt(p: BProc, t: CgNode) =
   else:
     p.s(cpsStmts).add indentLine(p, runtimeFormat(CC[p.config.cCompiler].asmStmtFrmt, [s]))
 
-proc determineSection(n: CgNode): TCFileSection =
+proc determineSection(env: MirEnv, n: CgNode): TCFileSection =
   result = cfsProcHeaders
   if n.len >= 1 and n[0].kind == cnkStrLit:
-    let sec = n[0].strVal
+    let sec = env[n[0].strVal]
     if sec.startsWith("/*TYPESECTION*/"): result = cfsTypes
     elif sec.startsWith("/*VARSECTION*/"): result = cfsVars
     elif sec.startsWith("/*INCLUDESECTION*/"): result = cfsHeaders
@@ -738,7 +460,7 @@ proc genEmit(p: BProc, t: CgNode) =
   var s = genAsmOrEmitStmt(p, t)
   if sfTopLevel in p.prc.flags:
     # top level emit pragma?
-    let section = determineSection(t)
+    let section = determineSection(p.env, t)
     genCLineDir(p.module.s[section], t.info, p.config)
     p.module.s[section].add(s)
   else:
@@ -770,14 +492,14 @@ proc genAsgn(p: BProc, e: CgNode) =
     let ri = e[1]
     var a: TLoc
     initLoc(a, locNone, le, OnUnknown)
-    a.flags.incl {lfEnforceDeref, lfPrepareForMutation, lfWantLvalue}
+    a.flags.incl {lfEnforceDeref, lfWantLvalue}
     expr(p, le, a)
-    a.flags.excl {lfPrepareForMutation, lfWantLvalue}
+    a.flags.excl {lfWantLvalue}
     assert(a.t != nil)
     genLineDir(p, ri)
     loadInto(p, le, ri, a)
 
-proc genStmts(p: BProc, t: CgNode) =
+proc genStmt(p: BProc, t: CgNode) =
   var a: TLoc
 
   let isPush = p.config.hasHint(rsemExtendedContext)
@@ -785,3 +507,79 @@ proc genStmts(p: BProc, t: CgNode) =
   expr(p, t, a)
   if isPush: popInfoContext(p.config)
   internalAssert p.config, a.k in {locNone, locTemp, locLocalVar, locExpr}
+
+proc gen(p: BProc, code: openArray[CInstr], stmts: CgNode) =
+  ## Generates and emits the C code for `code` and `stmts`. This is the main
+  ## driver of C code generation.
+  var pos = 0
+  while pos < code.len:
+    let it = code[pos]
+    case it.op
+    of opLabel:
+      lineCg(p, cpsStmts, "$1:;$n", [it.label])
+    of opJump:
+      useLabel(p, it.label)
+      lineCg(p, cpsStmts, "goto $1;$n", [it.label])
+    of opDispJump:
+      # must only be part of a dispatcher
+      unreachable()
+    of opSetTarget:
+      lineCg(p, cpsStmts, "Target$1_ = $2;$n", [$it.discr, it.value])
+    of opDispatcher:
+      lineF(p, cpsLocals, "NU8 Target$1_;$N", [$it.discr])
+      lineF(p, cpsStmts, "switch (Target$1_) {$n", [$it.discr])
+      for i in 0..<it.value:
+        inc pos
+        useLabel(p, code[pos].label)
+        lineCg(p, cpsStmts, "case $1: goto $2;$n", [i, code[pos].label])
+
+      # help the C compiler a bit by making the case statement exhaustive
+      if hasAssume in CC[p.config.cCompiler].props:
+        lineF(p, cpsStmts, "default: __assume(0);$n", [])
+      # TODO: use ``__builtin_unreachable();`` for compiler supporting the
+      #       GCC built-ins
+      lineF(p, cpsStmts, "}$n", [])
+    of opBackup:
+      if nimErrorFlagDisabled notin p.flags:
+        p.flags.incl nimErrorFlagAccessed
+        lineCg(p, cpsStmts, "NI32 oldNimErrFin$1_ = *nimErr_; *nimErr_ = NIM_FALSE;$n",
+              [$it.local])
+    of opRestore:
+      if nimErrorFlagDisabled notin p.flags:
+        p.flags.incl nimErrorFlagAccessed
+        lineCg(p, cpsStmts, "*nimErr_ = oldNimErrFin$1_;$n", [$it.local])
+    of opErrJump:
+      if nimErrorFlagDisabled notin p.flags:
+        useLabel(p, code[pos].label)
+        p.flags.incl nimErrorFlagAccessed
+        lineCg(p, cpsStmts, "if (NIM_UNLIKELY(*nimErr_)) goto $1;$n",
+               [it.label])
+
+    of opStmts:
+      # generate the code for all statements; no label specifier is set
+      p.specifier = none CLabelSpecifier
+      for i in it.stmts.items:
+        genStmt(p, stmts[i])
+    of opStmt:
+      p.specifier = some it.specifier
+      genStmt(p, stmts[it.stmt])
+
+    of opAbort:
+      if nimErrorFlagDisabled in p.flags:
+        lineCg(p, cpsStmts, "#nimAbortException();$n", [])
+      else:
+        # there's only something to abort when the finalizer was intercepted a
+        # raise
+        lineCg(p, cpsStmts, "if (NIM_UNLIKELY(oldNimErrFin$1_)) #nimAbortException();$n",
+               [$it.local])
+    of opPopHandler:
+      lineCg(p, cpsStmts, "#nimLeaveExcept();$n", [])
+
+    inc pos
+
+proc genStmts*(p: BProc, n: CgNode) =
+  ## Generates and emits the C code for the statement list node `n`, which
+  ## makes up the full body of the procedure. This is the external entry
+  ## point into the C code generator.
+  assert n.kind == cnkStmtList
+  gen(p, toInstrList(n, true), n)

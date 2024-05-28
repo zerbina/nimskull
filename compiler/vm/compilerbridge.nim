@@ -27,6 +27,10 @@ import
     msgs,
     options
   ],
+  compiler/mir/[
+    mirenv,
+    mirtrees
+  ],
   compiler/modules/[
     modulegraphs
   ],
@@ -47,6 +51,7 @@ import
     vmlegacy,
     vmops,
     vmprofiler,
+    vmserialize,
     vmtypegen,
     vmutils,
     vm
@@ -90,13 +95,22 @@ type
   ExecutionResult* = Result[PNode, ExecErrorReport]
 
   PEvalContext* = ref EvalContext
-  EvalContext* = object of TPassContext
+  EvalContext* {.final.} = object of RootObj
     ## All state required to on-demand translate AST to VM bytecode and execute
     ## it. An ``EvalContext`` instance makes up everything that is required
     ## for running code at compile-time.
     vm*: TCtx
     jit*: JitState
 
+  PVmCtx* = ref object of RootObj
+    ## Wrapper type intended for storing only a VM instance (without a JIT
+    ## environment) in the module graph.
+    context*: TCtx
+
+  PEvalPassContext = ref object of PPassContext
+    ## Pass context for the evaluation pass.
+    graph: ModuleGraph
+    module: PSym
     oldErrorCount: int
 
 # prevent a default `$` implementation from being generated
@@ -117,86 +131,28 @@ proc logBytecode(c: TCtx, owner: PSym, start: int) =
 
 proc putIntoReg(dest: var TFullReg; jit: var JitState, c: var TCtx, n: PNode,
                 formal: PType) =
-  ## Put the value that is represented by `n` (but not the node itself) into
-  ## `dest`. Implicit conversion is also performed, if necessary.
-  # XXX: requring access to the JIT state here is all kinds of wrong and
-  #      indicates that ``putIntoReg`` is not a good idea to begin with. The
-  #      XXX comment below describes a good way to get out of this mess
-  let t = formal.skipTypes(abstractInst+{tyStatic}-{tyTypeDesc})
-
-  # XXX: instead of performing conversion here manually, sem could generate a
-  #      small thunk for macro invocations that sets up static arguments and
-  #      then invokes the macro. The thunk would be executed in the VM, making
-  #      the code here obsolete while also eliminating unnecessary
-  #      deserialize/serialize round-trips
-
-  proc registerProcs(jit: var JitState, c: var TCtx, n: PNode) =
-    # note: this kind of scanning only works for AST representing concrete
-    # values
-    case n.kind
-    of nkSym:
-      if n.sym.kind in routineKinds:
-        discard registerProcedure(jit, c, n.sym)
-    of nkWithoutSons - {nkSym}:
-      discard "not relevant"
-    of nkWithSons:
-      for it in n.items:
-        registerProcs(jit, c, it)
-
-  # create a function table entry for each procedure referenced by `n` --
-  # ``serialize`` depends on it
-  registerProcs(jit, c, n)
-
-  case t.kind
-  of tyBool, tyChar, tyEnum, tyInt..tyInt64, tyUInt..tyUInt64:
-    assert n.kind in nkCharLit..nkUInt64Lit
+  ## Treats `n` as a constant expression and loads the value it represents
+  ## into `dest`.
+  let
+    typ = c.getOrCreate(formal.skipTypes({tySink, tyStatic}))
+    data = constDataToMir(c, jit, n)
+  case typ.kind
+  of akInt:
     dest.ensureKind(rkInt, c.memory)
-    dest.intVal = n.intVal
-  of tyFloat..tyFloat64:
-    assert n.kind in nkFloatLit..nkFloat64Lit
+    dest.intVal = jit.env.getInt(data[0].number)
+  of akFloat:
     dest.ensureKind(rkFloat, c.memory)
-    dest.floatVal = n.floatVal
-  of tyNil, tyPtr, tyPointer:
+    dest.floatVal = jit.env.getFloat(data[0].number)
+  of akPtr:
     dest.ensureKind(rkAddress, c.memory)
-    # XXX: it's currently forbidden to pass non-nil pointer to static
-    #      parameters. `deserialize` already reports an error, so an
-    #      assert is used here to make sure that it really got reported
-    #      earlier
-    assert n.kind == nkNilLit
-  of tyOpenArray:
-    # Handle `openArray` parameters the same way they're handled elsewhere
-    # in the VM: simply pass the argument without a conversion
-    let typ = c.getOrCreate(n.typ)
-    dest.initLocReg(typ, c.memory)
-    c.serialize(n, dest.handle)
-  of tyProc:
-    let val =
-      if t.callConv == ccClosure:
-        # do what ``transf`` would do and turn the expression into a closure
-        # construction
-        case n.kind
-        of nkSym:
-          newTreeIT(nkClosure, n.info, t, [n, newNode(nkNilLit)])
-        of nkClosure, nkNilLit:
-          n
-        else:
-          unreachable()
-      else:
-        n
-
-    dest.initLocReg(c.getOrCreate(t), c.memory)
-    c.serialize(val, dest.handle)
+    # non-nil values should have already been reported as an error
+    assert data[0].kind == mnkNilLit
+  of akPNode:
+    dest.ensureKind(rkNimNode, c.memory)
+    dest.nimNode = jit.env[data[0].ast]
   else:
-    if t.kind == tyRef and t.sym != nil and t.sym.magic == mPNimrodNode:
-      # A NimNode
-      dest.ensureKind(rkNimNode, c.memory)
-      dest.nimNode = n
-    else:
-      let typ = c.getOrCreate(formal)
-      dest.initLocReg(typ, c.memory)
-      # XXX: overriding the type (passing `formal`), leads to issues (internal
-      #      compiler error) when passing an empty set to a static parameter
-      c.serialize(n, dest.handle)#, formal)
+    dest.initLocReg(typ, c.memory)
+    initFromExpr(dest.handle, data, jit.env, c)
 
 proc unpackResult(res: sink ExecutionResult; config: ConfigRef, node: PNode): PNode =
   ## Unpacks the execution result. If the result represents a failure, returns
@@ -282,7 +238,9 @@ proc buildError(c: TCtx, thread: VmThread, event: sink VmEvent): ExecErrorReport
   ## Creates an `ExecErrorReport` with the `event` and a stack-trace for
   ## `thread`
   let stackTrace =
-    if event.kind == vmEvtUnhandledException:
+    if event.kind == vmEvtUnhandledException and event.trace.len > 0:
+      # HACK: an unhandled exception can be reported without providing a trace.
+      #       Ideally, that shouldn't happen
       createStackTrace(c, event.trace)
     else:
       createStackTrace(c, thread)
@@ -328,14 +286,13 @@ proc createLegacyStackTrace(
                     location: some source(c, thread),
                     reportInst: toReportLineInfo(instLoc))
 
-proc execute(jit: var JitState, c: var TCtx, start: int, frame: sink TStackFrame;
+proc execute(jit: var JitState, c: var TCtx, thread: sink VmThread,
              cb: proc(c: TCtx, r: TFullReg): PNode
             ): ExecutionResult {.inline.} =
   ## This is the entry point for invoking the VM to execute code at
   ## compile-time. The `cb` callback is used to deserialize the result stored
   ## as VM data into ``PNode`` AST, and is invoked with the register that
   ## holds the result
-  var thread = initVmThread(c, start, frame)
 
   # run the VM until either no code is left to execute or an event implying
   # execution can't go on occurs
@@ -348,7 +305,7 @@ proc execute(jit: var JitState, c: var TCtx, start: int, frame: sink TStackFrame
         "non-static stmt evaluation must produce a value, mode: " & $c.mode
       let reg =
         if r.reg.isSome:
-          thread[0].slots[r.reg.get]
+          thread.regs[r.reg.get]
         else:
           TFullReg(kind: rkNone)
       result.initSuccess cb(c, reg)
@@ -397,9 +354,8 @@ proc execute(jit: var JitState, c: var TCtx, start: int, frame: sink TStackFrame
   dispose(c, thread)
 
 proc execute(jit: var JitState, c: var TCtx, info: CodeInfo): ExecutionResult =
-  var tos = TStackFrame(prc: nil, comesFrom: 0)
-  tos.slots.newSeq(info.regCount)
-  execute(jit, c, info.start, tos,
+  let thread = initVmThread(c, info.start, info.regCount, nil)
+  execute(jit, c, thread,
           proc(c: TCtx, r: TFullReg): PNode = c.graph.emptyNode)
 
 template returnOnErr(res: VmGenResult, config: ConfigRef, node: PNode): CodeInfo =
@@ -513,7 +469,12 @@ proc setupGlobalCtx*(module: PSym; graph: ModuleGraph; idgen: IdGenerator) =
     ctx.flags = {cgfAllowMeta}
     registerAdditionalOps(ctx, disallowDangerous)
 
-    graph.vm = PEvalContext(vm: ctx)
+    graph.vm = PEvalContext(vm: ctx, jit: initJit(graph))
+  elif graph.vm of PVmCtx:
+    # take the VM instance provided by the wrapper and create a proper
+    # evaluation context from it
+    let ctx = move PVmCtx(graph.vm).context
+    graph.vm = PEvalContext(vm: ctx, jit: initJit(graph))
   else:
     let c = PEvalContext(graph.vm)
     refresh(c.vm, module, idgen)
@@ -533,16 +494,14 @@ proc eval(jit: var JitState, c: var TCtx; prc: PSym, n: PNode): PNode =
 
   logBytecode(c, prc, start)
 
-  var tos = TStackFrame(prc: prc, comesFrom: 0)
-  tos.slots.newSeq(regCount)
-  #for i in 0..<regCount: tos.slots[i] = newNode(nkEmpty)
   let cb =
     if requiresValue:
       mkCallback(c, r): c.regToNode(r, n.typ, n.info)
     else:
       mkCallback(c, r): newNodeI(nkEmpty, n.info)
 
-  result = execute(jit, c, start, tos, cb).unpackResult(c.config, n)
+  let thread = initVmThread(c, start, regCount, prc)
+  result = execute(jit, c, thread, cb).unpackResult(c.config, n)
 
 proc evalConstExprAux(module: PSym, idgen: IdGenerator, g: ModuleGraph,
                       prc: PSym, n: PNode,
@@ -610,22 +569,20 @@ proc evalMacroCall*(jit: var JitState, c: var TCtx, call, args: PNode,
     c.mode = oldMode
     c.callsite = nil
 
-  let wasAvailable = isAvailable(c, sym)
+  let wasAvailable = isAvailable(jit, c, sym)
   let (start, regCount) = loadProc(jit, c, sym).returnOnErr(c.config, call)
 
   # make sure to only output the code listing once:
   if not wasAvailable:
     logBytecode(c, sym, start)
 
-  var tos = TStackFrame(prc: sym, comesFrom: 0)
-  tos.slots.newSeq(regCount)
-
+  var thread = initVmThread(c, start, regCount, sym)
   # return value:
-  tos.slots[0] = TFullReg(kind: rkNimNode, nimNode: newNodeI(nkEmpty, call.info))
+  thread.regs[0] = TFullReg(kind: rkNimNode, nimNode: newNodeI(nkEmpty, call.info))
 
   # put the normal arguments into registers
   for i in 1..<sym.typ.len:
-    setupMacroParam(tos.slots[i], jit, c, args[i - 1], sym.typ[i])
+    setupMacroParam(thread.regs[i], jit, c, args[i - 1], sym.typ[i])
 
   # put the generic arguments into registers
   let gp = sym.ast[genericParamsPos]
@@ -634,10 +591,10 @@ proc evalMacroCall*(jit: var JitState, c: var TCtx, call, args: PNode,
     # signature
     if tfImplicitTypeParam notin gp[i].sym.typ.flags:
       let idx = sym.typ.len + i
-      setupMacroParam(tos.slots[idx], jit, c, args[idx - 1], gp[i].sym.typ)
+      setupMacroParam(thread.regs[idx], jit, c, args[idx - 1], gp[i].sym.typ)
 
   let cb = mkCallback(c, r): r.nimNode
-  result = execute(jit, c, start, tos, cb).unpackResult(c.config, call)
+  result = execute(jit, c, thread, cb).unpackResult(c.config, call)
 
   if result.kind != nkError and cyclicTree(result):
     result = c.config.newError(call, PAstDiag(kind: adCyclicTree))
@@ -690,17 +647,16 @@ proc execProc*(jit: var JitState, c: var TCtx; sym: PSym;
           return nil
         r.unsafeGet
 
-      var tos = TStackFrame(prc: sym, comesFrom: 0)
-      tos.slots.newSeq(maxSlots)
+      var thread = initVmThread(c, start, maxSlots, sym)
 
       # setup parameters:
       if not isEmptyType(sym.typ[0]) or sym.kind == skMacro:
         let typ = c.getOrCreate(sym.typ[0])
-        if not tos.slots[0].loadEmptyReg(typ, sym.info, c.memory):
-          tos.slots[0].initLocReg(typ, c.memory)
+        if not thread.regs[0].loadEmptyReg(typ, sym.info, c.memory):
+          thread.regs[0].initLocReg(typ, c.memory)
       # XXX We could perform some type checking here.
       for i in 1..<sym.typ.len:
-        putIntoReg(tos.slots[i], jit, c, args[i-1], sym.typ[i])
+        putIntoReg(thread.regs[i], jit, c, args[i-1], sym.typ[i])
 
       let cb =
         if not isEmptyType(sym.typ[0]):
@@ -711,7 +667,7 @@ proc execProc*(jit: var JitState, c: var TCtx; sym: PSym;
         else:
           mkCallback(c, r): newNodeI(nkEmpty, sym.info)
 
-      let r = execute(jit, c, start, tos, cb)
+      let r = execute(jit, c, thread, cb)
       result = r.unpackResult(c.config, c.graph.emptyNode)
       reportIfError(c.config, result)
       if result.isError:
@@ -724,48 +680,64 @@ proc execProc*(jit: var JitState, c: var TCtx; sym: PSym;
 #      could be used to modify the actual global value, but this is not
 #      possible anymore
 
-proc getGlobalValue*(c: TCtx; s: PSym): PNode =
+proc getGlobalValue*(c: EvalContext, s: PSym): PNode =
   ## Does not perform type checking, so ensure that `s.typ` matches the
   ## global's type
-  internalAssert(c.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
-  let slotIdx = c.globals[c.linking.symToIndexTbl[s.id]]
-  let slot = c.heap.slots[slotIdx]
+  internalAssert(c.vm.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
+  let
+    slotIdx = c.vm.globals[c.jit.getGlobal(s)]
+    slot = c.vm.heap.slots[slotIdx]
 
-  result = c.deserialize(slot.handle, s.typ, s.info)
+  result = c.vm.deserialize(slot.handle, s.typ, s.info)
 
-proc setGlobalValue*(c: var TCtx; s: PSym, val: PNode) =
+proc setGlobalValue*(c: var EvalContext; s: PSym, val: PNode) =
   ## Does not do type checking so ensure the `val` matches the `s.typ`
-  internalAssert(c.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
-  let slotIdx = c.globals[c.linking.symToIndexTbl[s.id]]
-  let slot = c.heap.slots[slotIdx]
+  internalAssert(c.vm.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
+  let
+    slotIdx = c.vm.globals[c.jit.getGlobal(s)]
+    slot = c.vm.heap.slots[slotIdx]
+    data = constDataToMir(c.vm, c.jit, val)
 
-  c.serialize(val, slot.handle)
+  initFromExpr(slot.handle, data, c.jit.env, c.vm)
 
 ## what follows is an implementation of the ``passes`` interface that evaluates
 ## the code directly inside the VM. It is used for NimScript execution and by
 ## the ``nimeval`` interface
 
 proc myOpen(graph: ModuleGraph; module: PSym; idgen: IdGenerator): PPassContext {.nosinks.} =
-  #var c = newEvalContext(module, emRepl)
-  #c.features = {allowCast, allowInfiniteLoops}
-  #pushStackFrame(c, newStackFrame())
+  result = PEvalPassContext(idgen: idgen, graph: graph, module: module)
 
-  # XXX produce a new 'globals' environment here:
-  setupGlobalCtx(module, graph, idgen)
-  result = PEvalContext graph.vm
+proc isDecl(n: PNode): bool =
+  case n.kind
+  of nkStmtList:
+    # if one sub-node is not declarative, neither is `n`
+    for it in n.items:
+      if not isDecl(it):
+        return false
+    result = true
+  of nkEmpty, nkTypeSection, nkConstSection, nkImportStmt, nkImportAs,
+     nkImportExceptStmt, nkFromStmt, nkCommentStmt, routineDefs:
+    result = true
+  else:
+    result = false
 
 proc myProcess(c: PPassContext, n: PNode): PNode =
-  let c = PEvalContext(c)
-  # don't eval errornous code:
-  if c.oldErrorCount == c.vm.config.errorCounter and not n.isError:
-    let r = evalStmt(c.jit, c.vm, n)
-    reportIfError(c.vm.config, r)
+  let c = PEvalPassContext(c)
+  # don't eval errornous code. Also skip declarative nodes, as those represent
+  # type definitions required for bootstrapping the basic type environment
+  if c.oldErrorCount == c.graph.config.errorCounter and not n.isError and
+     not isDecl(n):
+    setupGlobalCtx(c.module, c.graph, c.idgen)
+    let eval = PEvalContext(c.graph.vm)
+
+    let r = evalStmt(eval.jit, eval.vm, n)
+    reportIfError(c.graph.config, r)
     # TODO: use the node returned by evalStmt as the result and don't report
     #       the error here
     result = newNodeI(nkEmpty, n.info)
   else:
     result = n
-  c.oldErrorCount = c.vm.config.errorCounter
+  c.oldErrorCount = c.graph.config.errorCounter
 
 proc myClose(graph: ModuleGraph; c: PPassContext, n: PNode): PNode =
   result = myProcess(c, n)

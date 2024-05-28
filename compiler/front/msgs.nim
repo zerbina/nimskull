@@ -391,6 +391,7 @@ func astDiagVmToLegacyReportKind*(
   of adVmFieldNotFound: rvmFieldNotFound
   of adVmNotAField: rvmNotAField
   of adVmFieldUnavailable: rvmFieldInavailable
+  of adVmCannotCreateNode: rvmCannotCreateNode
   of adVmCannotSetChild: rvmCannotSetChild
   of adVmCannotAddChild: rvmCannotAddChild
   of adVmCannotGetChild: rvmCannotGetChild
@@ -501,6 +502,8 @@ func astDiagToLegacyReportKind*(
   of adSemCalleeHasAnError: rsemCalleeHasAnError
   of adSemExpressionHasNoType: rsemExpressionHasNoType
   of adSemTypeExpected: rsemTypeExpected
+  of adSemStringRangeNotAllowed: rsemStringRangeNotAllowed
+  of adSemRangeIsEmpty: rsemRangeIsEmpty
   of adSemIllformedAst: rsemIllformedAst
   of adSemIllformedAstExpectedPragmaOrIdent: rsemIllformedAst
   of adSemIllformedAstExpectedOneOf: rsemIllformedAst
@@ -531,6 +534,8 @@ func astDiagToLegacyReportKind*(
   of adSemDotOperatorsNotEnabled: rsemEnableDotOperatorsExperimental
   of adSemCallOperatorsNotEnabled: rsemEnableCallOperatorExperimental
   of adSemUnexpectedPattern: rsemUnexpectedPattern
+  of adSemCannotBeRaised: rsemCannotBeRaised
+  of adSemCannotRaiseNonException: rsemCannotRaiseNonException
   of adSemConstantOfTypeHasNoValue: rsemConstantOfTypeHasNoValue
   of adSemTypeConversionArgumentMismatch: rsemTypeConversionArgumentMismatch
   of adSemUnexpectedEqInObjectConstructor: rsemUnexpectedEqInObjectConstructor

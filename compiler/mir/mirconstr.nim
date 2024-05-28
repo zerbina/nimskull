@@ -2,12 +2,15 @@
 
 import
   compiler/ast/[
+    ast_query,
     ast_types
   ],
   compiler/mir/[
-    mirtrees
+    mirtrees,
+    mirbodies
   ],
   compiler/utils/[
+    containers,
     idioms
   ],
   experimental/[
@@ -25,7 +28,7 @@ type
   Fragment* = object
     ## Identifies a fragment (usually a sub-tree) within the staging buffer.
     s: NodeSlice
-    typ*: PType
+    typ*: TypeId
 
   MirBuffer = object
     ## Accumulates in-progress MIR code and keeps track of additional state
@@ -51,15 +54,16 @@ type
       ## the ID of the meta-data to associate with all added nodes (that
       ## don't have an explicitly assigned source ID)
 
-    numTemps*: uint32
-      ## tracks the number of existing temporaries. Used for allocating new
-      ## IDs.
+    locals*: PartialStore[LocalId, Local]
+      ## new locals created with the builder
+    nextLabel*: uint32
+      ## the ID to use when allocating a new label ID
 
     # XXX: the internal fields are currently exported for the integration
     #      with changesets to work, but future refactorings should focus
     #      on making them hidden
 
-func typ*(val: Value): PType =
+func typ*(val: Value): TypeId =
   assert val.node.kind != mnkNone, "uninitialized"
   val.node.typ
 
@@ -70,26 +74,37 @@ func endNode*(k: MirNodeKind): MirNode {.inline.} =
   assert k in SubTreeNodes
   MirNode(kind: mnkEnd, start: k)
 
-func typeLit*(t: PType): Value =
+func typeLit*(t: TypeId): Value =
   Value(node: MirNode(kind: mnkType, typ: t))
 
-func literal*(n: PNode): Value =
-  Value(node: MirNode(kind: mnkLiteral, typ: n.typ, lit: n))
+func literal*(kind: range[mnkIntLit..mnkFloatLit], n: NumberId,
+              typ: TypeId): Value =
+  Value(node: MirNode(kind: kind, typ: typ, number: n))
 
-func temp*(typ: PType, id: TempId): Value =
-  Value(node: MirNode(kind: mnkTemp, typ: typ, temp: id))
+func literal*(str: StringId, typ: TypeId): Value =
+  Value(node: MirNode(kind: mnkStrLit, typ: typ, strVal: str))
 
-func alias*(typ: PType, id: TempId): Value =
-  Value(node: MirNode(kind: mnkAlias, typ: typ, temp: id))
+func literal*(ast: AstId, typ: TypeId): Value =
+  Value(node: MirNode(kind: mnkAstLit, typ: typ, ast: ast))
 
-func toValue*(id: ConstId, typ: PType): Value =
+func temp*(typ: TypeId, id: LocalId): Value =
+  Value(node: MirNode(kind: mnkTemp, typ: typ, local: id))
+
+func alias*(typ: TypeId, id: LocalId): Value =
+  Value(node: MirNode(kind: mnkAlias, typ: typ, local: id))
+
+func toValue*(id: ConstId, typ: TypeId): Value =
   Value(node: MirNode(kind: mnkConst, typ: typ, cnst: id))
 
-func toValue*(id: GlobalId, typ: PType): Value =
+func toValue*(id: GlobalId, typ: TypeId): Value =
   Value(node: MirNode(kind: mnkGlobal, typ: typ, global: id))
 
-func toValue*(id: ProcedureId, typ: PType): Value =
-  Value(node: MirNode(kind: mnkProc, typ: typ, prc: id))
+func toValue*(id: ProcedureId, typ: TypeId): Value =
+  Value(node: MirNode(kind: mnkProcVal, typ: typ, prc: id))
+
+func toValue*(kind: range[mnkParam..mnkLocal], id: LocalId,
+              typ: TypeId): Value =
+  Value(node: MirNode(kind: kind, typ: typ, local: id))
 
 # --------- MirBuffer interface ----------
 
@@ -183,19 +198,27 @@ template push*(bu: var MirBuilder, body: untyped): Fragment =
            typ: if start < bu.staging.len:
                   bu.staging[start].typ
                 else:
-                  nil)
+                  VoidType)
 
 func pop*(bu: var MirBuilder, f: Fragment) =
   ## Moves the expression/statement identified by `v` from the top of the
   ## staging buffer to the final buffer.
+  func popAux(dst, src: var MirBuffer, start: int, id: SourceId) =
+    if dst.len == 0 and start == 0:
+      # the whole source buffer's content is moved into the empty destination
+      # buffer. Moving the nodes is not necessary, the buffers can simply be
+      # swapped
+      swap(dst, src)
+    else:
+      dst.apply(id)
+      src.moveTo(dst, start)
+
   if bu.swapped:
     assert f.s.b.int == bu.front.len
-    bu.back.apply(bu.currentSourceId)
-    bu.front.moveTo(bu.back, f.s.a.int)
+    popAux(bu.back, bu.front, f.s.a.int, bu.currentSourceId)
   else:
     assert f.s.b.int == bu.back.len
-    bu.front.apply(bu.currentSourceId)
-    bu.back.moveTo(bu.front, f.s.a.int)
+    popAux(bu.front, bu.back, f.s.a.int, bu.currentSourceId)
 
 template withFront*(bu: var MirBuilder, body: untyped) =
   ## Runs `body` with the final buffer as the front buffer.
@@ -208,6 +231,17 @@ template buildStmt*(bu: var MirBuilder, body: untyped) =
   ## A shortcut for ``push`` + ``pop``.
   let v = bu.push(body)
   bu.pop(v)
+
+template buildIf*(bu: var MirBuilder, cond, body: untyped) =
+  ## Emits the start and end of an ``if``, with `cond` providing the MIR for
+  ## the condition, and `body` providing the MIR for the body.
+  let label = bu.allocLabel()
+  bu.subTree mnkIf:
+    cond
+    bu.add MirNode(kind: mnkLabel, label: label)
+  body
+  bu.subTree mnkEndStruct:
+    bu.add MirNode(kind: mnkLabel, label: label)
 
 template buildStmt*(bu: var MirBuilder, k: MirNodeKind, body: untyped) =
   ## Similar to `buildStmt <#buildStmt,TCtx,untyped>`_, but also starts a sub-
@@ -238,6 +272,10 @@ func setSource*(bu: var MirBuilder, id: SourceId) =
     bu.back.apply(prev)
     # now change the active ID
     bu.currentSourceId = id
+
+func addLocal*(bu: var MirBuilder, data: sink Local): LocalId {.inline.} =
+  ## Adds a new local to the body and returns the ID to address it with.
+  bu.locals.add data
 
 func add*(bu: var MirBuilder, n: sink MirNode) {.inline.} =
   ## Emits `n` to the node buffers.
@@ -277,19 +315,23 @@ template scope*(bu: var MirBuilder, body: untyped) =
   bu.subTree MirNode(kind: mnkScope):
     body
 
-func allocTemp(bu: MirBuilder, t: PType; id: TempId, alias: bool): Value =
+func allocTemp(bu: MirBuilder, t: TypeId; id: LocalId, alias: bool): Value =
   ## Allocates a new temporary or alias and returns it.
   let kind = if alias: mnkAlias
              else:     mnkTemp
   {.cast(uncheckedAssign).}:
-    result = Value(node: MirNode(kind: kind, typ: t, temp: id),
+    result = Value(node: MirNode(kind: kind, typ: t, local: id),
                    info: someOpt bu.currentSourceId)
 
-template allocTemp*(bu: var MirBuilder, t: PType, alias = false): Value =
+template allocTemp*(bu: var MirBuilder, t: TypeId, alias = false): Value =
   # XXX: the only purpose of this is to work around a ``strictFuncs`` bug
-  let id = TempId bu.numTemps
-  inc bu.numTemps
+  let id = bu.addLocal(Local(typ: t))
   allocTemp(bu, t, id, alias)
+
+func allocLabel*(bu: var MirBuilder): LabelId =
+  ## Allocates a fresh label ID.
+  result = LabelId(bu.nextLabel)
+  inc bu.nextLabel
 
 func use*(bu: var MirBuilder, val: sink Value) {.inline.} =
   ## Emits a use of `val`.
@@ -298,7 +340,7 @@ func use*(bu: var MirBuilder, val: sink Value) {.inline.} =
   else:
     bu.add val.node
 
-template wrapTemp*(bu: var MirBuilder, t: PType,
+template wrapTemp*(bu: var MirBuilder, t: TypeId,
                   body: untyped): Value =
   ## Emits a definition of a temporary with `body` as the initializer
   ## expression.
@@ -308,7 +350,7 @@ template wrapTemp*(bu: var MirBuilder, t: PType,
     body
   val
 
-template wrapAlias*(bu: var MirBuilder, t: PType, body: untyped): Value =
+template wrapAlias*(bu: var MirBuilder, t: TypeId, body: untyped): Value =
   ## Emits an ``mnkBind`` statement with `body` as the lvalue expression.
   ## Returns the name of the alias.
   let val = allocTemp(bu, t, true)
@@ -317,7 +359,7 @@ template wrapAlias*(bu: var MirBuilder, t: PType, body: untyped): Value =
     body
   val
 
-template wrapMutAlias*(bu: var MirBuilder, t: PType, body: untyped): Value =
+template wrapMutAlias*(bu: var MirBuilder, t: TypeId, body: untyped): Value =
   ## Emits a ``mnkBindMut`` statement with `body` as the lvalue expression.
   ## Returns the name of the alias.
   let val = allocTemp(bu, t, true)
@@ -326,47 +368,74 @@ template wrapMutAlias*(bu: var MirBuilder, t: PType, body: untyped): Value =
     body
   val
 
-template buildMagicCall*(bu: var MirBuilder, m: TMagic, t: PType,
+template buildMagicCall*(bu: var MirBuilder, m: TMagic, t: TypeId,
                          body: untyped) =
   bu.subTree MirNode(kind: mnkCall, typ: t):
     bu.add MirNode(kind: mnkMagic, magic: m)
     body
 
-template buildCall*(bu: var MirBuilder, prc: ProcedureId, pt, t: PType,
+template buildCall*(bu: var MirBuilder, prc: ProcedureId, t: TypeId,
                     body: untyped) =
   ## Build and emits a call tree to the active buffer. `pt` is the type of the
   ## procedure.
   bu.subTree MirNode(kind: mnkCall, typ: t):
-    bu.use toValue(prc, pt)
+    bu.add procNode(prc)
     body
 
 func emitByVal*(bu: var MirBuilder, y: Value) =
   bu.subTree mnkArg:
     bu.use y
 
-func emitByName*(bu: var MirBuilder, val: Value, e: EffectKind) =
+template emitByName*(bu: var MirBuilder, e: EffectKind, body: untyped) =
   bu.subTree mnkName:
     bu.subTree MirNode(kind: mnkTag, effect: e):
-      bu.use val
+      body
+
+func emitByName*(bu: var MirBuilder, val: Value, e: EffectKind) =
+  bu.emitByName e:
+    bu.use val
+
+func move*(bu: var MirBuilder, val: Value) =
+  ## Emits ``move val``.
+  bu.subTree MirNode(kind: mnkMove, typ: val.typ):
+    bu.use val
 
 func asgn*(buf: var MirBuilder, a, b: Value) =
-  ## Emits an assignment of `b` to `a`.
+  ## Emits a shallow assignment: ``a = b``.
   buf.subTree MirNode(kind: mnkAsgn):
     buf.use a
     buf.use b
 
+func asgnMove*(bu: var MirBuilder, a, b: Value) =
+  ## Emits a move assignment: ``a = move b``.
+  bu.subTree mnkAsgn:
+    bu.use a
+    bu.move b
+
+func join*(bu: var MirBuilder, label: LabelId) =
+  ## Emits a ``join`` statement with `label`.
+  bu.subTree mnkJoin:
+    bu.add MirNode(kind: mnkLabel, label: label)
+
+template buildBlock*(bu: var MirBuilder, id: LabelId, body: untyped) =
+  ## Emits `body` followed by a join statement for the given `id`.
+  body
+  bu.join id
+
 func inline*(bu: var MirBuilder, tree: MirTree, fr: NodePosition): Value =
-  ## Inlines the operand for non-mutating use. This is meant to be used for
-  ## materialzing immutable arguments when inlining calls / expanding
+  ## Inlines the lvalue operand for non-mutating use. This is meant to be used
+  ## for materialzing immutable arguments when inlining calls / expanding
   ## assignments.
   case tree[fr].kind
   of Atoms:
     result = Value(node: tree[fr])
-  else:
+  of LvalueExprKinds - Atoms:
     result = allocTemp(bu, tree[fr].typ)
-    bu.subTree mnkDef:
+    bu.subTree mnkDefCursor:
       bu.use result
       bu.emitFrom(tree, fr)
+  else:
+    unreachable("can only inline lvalue-expression arguments")
 
 func bindImmutable*(bu: var MirBuilder, tree: MirTree,
                     lval: NodePosition): Value =
@@ -407,8 +476,14 @@ func materialize*(bu: var MirBuilder, loc: Value): Value =
     bu.use result
     bu.use loc
 
-func finish*(bu: sink MirBuilder): MirTree =
-  ## Consumes `bu` and returns the finished tree.
+func materializeMove*(bu: var MirBuilder, loc: Value): Value =
+  ## Emits a new owning temporary that's initialized with the moved-from `loc`.
+  bu.wrapTemp loc.typ:
+    bu.move loc
+
+func finish*(bu: sink MirBuilder): auto =
+  ## Low-level procedure that consumes `bu` and returns the finished tree
+  ## and partial store of the locals.
   if bu.swapped:
     swap(bu.front, bu.back)
     bu.swapped = false
@@ -416,4 +491,13 @@ func finish*(bu: sink MirBuilder): MirTree =
   assert bu.back.len == 0, "staging buffer is not empty"
   # make sure all nodes have their info IDs assigned:
   apply(bu.front, bu.currentSourceId)
-  result = move bu.front.nodes
+  result = (move bu.front.nodes, move bu.locals)
+
+func finish*(bu: sink MirBuilder, locals: sink Store[LocalId, Local]): auto =
+  ## Returns the finished tree from `bu`, plus `locals` joined with the locals
+  ## created with the builder. `locals` must be the store the `bu` was initially
+  ## set-up with.
+  let (tree, partial) = finish(bu)
+  result = (tree, move locals)
+  # join the partial store into the base store:
+  join(result[1], partial)

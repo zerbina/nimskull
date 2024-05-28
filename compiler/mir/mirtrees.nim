@@ -11,25 +11,32 @@ import
   ]
 
 type
-  LocalId {.used.} = distinct uint32
+  LocalId* = distinct uint32
     ## Identifies a local inside a code fragment
   GlobalId* = distinct uint32
     ## Identifies a global across all MIR code
   ConstId* = distinct uint32
-    ## Identifies a named constant across all MIR code
+    ## Identifies a constant across all MIR code. This includes both
+    ## user-defined constants as well as anonymous constants
   ParamId {.used.} = distinct uint32
     ## Identifies a parameter of the code fragment
   FieldId {.used.} = distinct uint32
     ## Identifies the field of a record type
   ProcedureId* = distinct uint32
     ## Identifies a procedure
-  LiteralId {.used.} = distinct uint32
-    ## Identifies a literal
+  NumberId* = distinct uint32
+    ## Uniquely identifies some numerical value (float, signed int,
+    ## unsigned int). Two values with the same bit pattern have the same ID
+  StringId* = distinct uint32
+    ## Uniquely identifies a string value. Two strings sharing the same
+    ## content map to the same ID
+  AstId* = distinct uint32
+    ## Identifies an AST fragment stored in the MIR environment.
+  DataId* = distinct uint32
+    ## Identifies a complete constant expression
 
-  TypeInstance {.used.} = distinct uint32
-    ## Refers to an existing type instance
-  TypeId {.used.} = distinct uint32
-    ## The ID of a type instance or nil
+  TypeId* = distinct uint32
+    ## Identifies a type
 
   SourceId* = distinct range[0'u32 .. high(uint32)-1]
     ## The ID of a source-mapping that's stored separately from the MIR nodes.
@@ -38,15 +45,9 @@ type
 template indexLike*(_: typedesc[SourceId]) = discard
 
 type
-  ## Different to the ID types above, how and what the following ID types
-  ## represent is dictated by the MIR
-  TempId* = distinct uint32
-    ## ID of a temporary location. A temporary location is created and
-    ## inserted by the compiler. The only difference to other named locations
-    ## is that temporaries are allowed to be elided (by an optimization pass,
-    ## for example) if it's deemed to have no effect on the codes' semantics
   LabelId* = distinct uint32
-    ## ID of a label, used to identify a block (``mnkBlock``).
+    ## ID of a label, used to identify the control-flow destinations and
+    ## constructs.
 
   MirNodeKind* = enum
     ## Users of ``MirNodeKind`` should not depend on the absolute or relative
@@ -55,21 +56,26 @@ type
     mnkNone
 
     # entity names:
-    mnkProc   ## procedure
+    mnkProc   ## procedure reference; only allowed in callee slots
+    mnkProcVal## procedural value
     mnkConst  ## named constant
     mnkGlobal ## global location
     mnkParam  ## parameter
     mnkLocal  ## local location
-    mnkTemp   ## temporary introduced during the MIR phase. Has the same
-              ## semantics as ``mnkLocal``
+    mnkTemp   ## like ``mnkLocal``, but the local was introduced by the
+              ## compiler during the MIR phase
     mnkAlias  ## local run-time handle. This is essentially a ``var T`` or
               ## ``lent T`` local
 
     mnkField  ## declarative node only allowed in special contexts
+    mnkLabel  ## name of a label
 
-    mnkLiteral ## literal data. Currently represented via a ``PNode``
-    # future direction: split into IntLit, FloatLit, and StrLit and store the
-    # values in a separate table (so that MirNode gets smaller)
+    mnkNilLit  ## nil literal
+    mnkIntLit  ## reference to signed integer literal
+    mnkUIntLit ## reference to unsigend integer literal
+    mnkFloatLit## reference to float literal
+    mnkStrLit  ## reference to a literal string
+    mnkAstLit  ## reference to AST fragment
     mnkType    ## a type literal
 
     # future direction:
@@ -79,24 +85,23 @@ type
     mnkMagic  ## only allowed in a callee position. Refers to a magic
               ## procedure
 
+    mnkResume    ## special action in a target list that means "resume
+                 ## exception handling in caller"
+    mnkLeave     ## a leave action within a target list
+    mnkTargetList## describes the actions to perform prior to jumping, as well
+                 ## as the final jump
+
     mnkDef       ## marks the start of existence of a local, global, procedure,
                  ## or temporary. Supports an optional intial value (except for
                  ## procedure definitions)
     mnkDefCursor ## marks the start of existence of a non-owning location
-    # future direction: remove this distinction and perform all related decision
-    # making (e.g., injecting destructors) requiring knowledge of locations'
-    # ownership in ``mirgen``. There's only going to be the ``Def`` kind
-    mnkDefUnpack ## intermediate hack required by destructor injection. Don't
-                 ## use
+
     mnkBind      ## introduces an alias that may be used for read/write
                  ## access, but not for direct assignments. The source
                  ## expression must not be empty
     mnkBindMut   ## introduces an alias that may be used for read/write access
                  ## and assignments. The source expression must not be empty
 
-    mnkFastAsgn ## assignment that cannot be rewritten into copy, move, or
-                ## hook call
-    # future direction: same as with DefCursor, remove FastAsgn
     mnkAsgn     ## normal assignment; the destination might store a value
                 ## already. Whether the source is copied or moved depends
                 ## on the expression
@@ -130,6 +135,7 @@ type
     mnkDeref  ## dereference a ``ptr`` or ``ref`` value
 
     mnkView      ## create a first-class safe alias from an lvalue
+    mnkMutView   ## create a safe mutable view from an lvalue
     mnkDerefView ## dereference a first-class safe alias
 
     mnkStdConv    ## a standard conversion. Produce a new value.
@@ -146,27 +152,54 @@ type
                   ##   upper bound
     # XXX: consider using a separate operator for the slice-from-sub-sequence
     #      operation
+    mnkToMutSlice ## version of ``mnkToSlice`` for creating a mutable slice
 
     mnkCall   ## invoke a procedure and pass along the provided arguments.
               ## Used for both static and dynamic calls
     mnkCheckedCall  ## invoke a magic procedure and pass along the provided arguments
 
+    # unary arithmetic operations:
+    mnkNeg ## signed integer and float negation (for ints, overflow is UB)
+    # binary arithmetic operations:
+    mnkAdd ## signed integer and float addition (for ints, overflow is UB)
+    mnkSub ## signed integer and float subtraction (for ints, overflow is UB)
+    mnkMul ## signed integer and float multiplication (for ints, overflow is
+           ##  UB)
+    mnkDiv ## signed integer and float division (for ints, division by zero is
+           ## UB)
+    mnkModI ## compute the remainder of an integer division (division by zero
+            ## is UB)
+    # future direction: the arithmetic operations should also apply to
+    # unsigned integers
+
     mnkRaise  ## if the operand is an ``mnkNone`` node, reraises the
-              ## currently active exception. Otherwise, set the operand value
-              ## as the active exception (via a move). Control-flow is
-              ## transfered to the closest exception handler. If none exists,
-              ## the program terminates
+              ## currently active exception. Otherwise, consumes the operand
+              ## and sets it as the active exception
 
     mnkTag    ## must only appear as the immediate subnode to a ``mnkName``
               ## tree. Describes what kind of mutation is applied to the
               ## lvalue within the called procedure
 
-    mnkConstr     ## constructs a either new aggregate value or set value made
-                  ## up of the input values. Whether the resulting value is
-                  ## owned depends on whether one the context it's used in
-    mnkObjConstr  ## either allocate a new managed heap cell and returns a
-                  ## ``ref`` to it, or or constructs a new aggregate value
-                  ## with named fields
+    mnkSetConstr  ## constructor for set values
+    mnkRange      ## range constructor. May only appear in set constructions
+                  ## and as a branch label
+    mnkArrayConstr## constructor for array values
+    mnkSeqConstr  ## constructor for seq values
+    mnkTupleConstr## constructor for tuple values
+    mnkClosureConstr## constructor for closure values
+    mnkObjConstr  ## constructor for object values
+    mnkRefConstr  ## allocates a new managed heap cell and initializes it
+
+    mnkCopy   ## denotes the assignment as copying the source value
+    mnkMove   ## denotes the assignment as moving the value. This does
+              ## not imply a phyiscal change to the source location
+    mnkSink   ## collapses into one of the following:
+              ## - a copy (`mnkCopy`)
+              ## - a non-destructive move (`mnkMove`)
+              ## - a destructive move
+              ##
+              ## Collapsing ``mnkSink`` is the responsibility of the move
+              ## analyzer.
 
     mnkArg    ## when used in a call: denotes an argument that may either be
               ## passed by value or by name. Evaluation order is unspecified
@@ -180,39 +213,28 @@ type
               ## * syntactic statement node for representing void calls
               ## * statement acting as a use of the given lvalue
 
-    mnkStmtList ## a sequence of statements, grouped together as a single
-                ## statement
     mnkScope  ## the only way to introduce a scope. Scopes can be nested and
               ## dictate the lifetime of the locals that are directly enclosed
               ## by them
 
+    mnkGoto   ## unconditional jump
     mnkIf     ## depending on the run-time value of `x`, transfers control-
               ## flow to either the start or the end of the spanned code
-    mnkCase   ## dispatches to one the its branches based on the run-time
+    mnkCase   ## dispatches to one of its branches based on the run-time
               ## value of the operand
-    mnkRepeat ## repeats the body indefinitely
-    mnkTry    ## associates one one or more statements (the first sub-node)
-              ## with: an exception handler, a finalizer, or both
-    mnkExcept ## defines and attaches an exception handler to a ``try`` block.
-              ## Only one handler can be attached to a ``try`` block
-    mnkFinally## defines a finalizer in the context of a ``try`` construct. All
-              ## control-flow that either leaves the body of the ``try`` and
-              ## does not target the exception handler (if one is present) or
-              ## that leaves the exception handler is redirected to inside the
-              ## finalizer first. Once control-flow reaches the end of a
-              ## finalizer, it is transferred to the original destination. Only
-              ## one finalizer can be attached to a ``try`` block
-    mnkBlock  ## attaches a label to a span of code. If control-flow reaches
-              ## this statement, it is transferred to the start of the body.
-              ## Once control-flow reaches the end of a ``block``, it is
-              ## transferred to the next statement/operation following the
-              ## block
-    mnkBreak  ## transfers control-flow to the statement/operation following
-              ## after the ``block`` with the given label
-    mnkReturn ## if the code-fragment represents the body of a procedure,
-              ## transfers control-flow back to the caller
+    mnkBranch ## a branch in a ``mnkCase`` dispatcher
+    mnkLoop   ## unconditional jump to the associated-with loop start
 
-    mnkBranch ## defines a branch of an ``mnkExcept`` or ``mnkCase``
+    mnkJoin   ## join point for gotos and branches
+    mnkLoopJoin## join point for loops. Represents the start of a loop
+    mnkExcept ## starts an exception handler
+    mnkFinally## starts a finally section. Must be paired with exactly one
+              ## ``mnkContinue`` that follows
+    mnkContinue## marks the end of a finally section
+    mnkEndStruct ## marks the end of an if or except
+
+    mnkDestroy## destroys the value stored in the given location, leaving the
+              ## location in an undefined state
 
     mnkAsm    ## embeds backend-dependent code directly into the output
     mnkEmit   ## embeds backend-dependent code directly into the output
@@ -223,12 +245,6 @@ type
     # nodes of a sub-tree on the node itself. This will require significant
     # structural changes, as not all node kinds are able to use the length
     # field at the moment
-
-    mnkPNode ## depending on the context, either statement or something else.
-             ## If it appears as a statement, it is expected to not have any
-             ## obsersvable effects
-             ## XXX: eventually, everything that currently requires
-             ##      ``mnkPNode`` should be expressable directly in the IR
 
   EffectKind* = enum
     ekMutate    ## the value in the location is mutated
@@ -243,43 +259,43 @@ type
     geMutateGlobal ## the operation mutates global state
 
   MirNode* = object
-    typ*: PType ## non-nil for all expressions
+    typ*: TypeId ## valid for all expression, including all calls
     info*: SourceId
       ## non-critical meta-data associated with the node (e.g., origin
       ## information)
     case kind*: MirNodeKind
-    of mnkProc:
+    of mnkProc, mnkProcVal:
       prc*: ProcedureId
     of mnkGlobal:
       global*: GlobalId
     of mnkConst:
       cnst*: ConstId
-    of mnkParam, mnkLocal:
-      sym*: PSym
+    of mnkParam, mnkLocal, mnkTemp, mnkAlias:
+      local*: LocalId
     of mnkField, mnkPathNamed, mnkPathVariant:
-      field*: PSym
-    of mnkLiteral:
-      lit*: PNode
-    of mnkTemp, mnkAlias:
-      temp*: TempId
+      field*: int32
+        ## field position
+    of mnkIntLit, mnkUIntLit, mnkFloatLit:
+      number*: NumberId
+    of mnkStrLit:
+      strVal*: StringId
+    of mnkAstLit:
+      ast*: AstId
     of mnkPathPos:
       position*: uint32 ## the 0-based position of the field
     of mnkCall, mnkCheckedCall:
       effects*: set[GeneralEffect]
+    of mnkLabel, mnkLeave:
+      label*: LabelId
     of mnkMagic:
       magic*: TMagic
-    of mnkBlock, mnkBreak:
-      label*: LabelId ## for a block, the label that identifies the block;
-                      ## for a break, the label of the block to break out of
     of mnkEnd:
       start*: MirNodeKind ## the kind of the corresponding start node
-    of mnkPNode:
-      node*: PNode
     of mnkTag:
       effect*: EffectKind ## the effect that happens when the operator the
                           ## tagged value is passed to is executed
     else:
-      len*: int
+      len*: uint32
 
   MirTree* = seq[MirNode]
   MirNodeSeq* = seq[MirNode]
@@ -299,11 +315,11 @@ const
   AllNodeKinds* = {low(MirNodeKind)..high(MirNodeKind)}
     ## Convenience set containing all existing node kinds
 
-  DefNodes* = {mnkDef, mnkDefCursor, mnkDefUnpack, mnkBind, mnkBindMut}
+  DefNodes* = {mnkDef, mnkDefCursor, mnkBind, mnkBindMut}
     ## Node kinds that represent definition statements (i.e. something that
     ## introduces a named entity)
 
-  AtomNodes* = {mnkNone..mnkType, mnkMagic, mnkBreak, mnkReturn, mnkPNode}
+  AtomNodes* = {mnkNone..mnkLeave}
     ## Nodes that don't support sub nodes.
 
   SubTreeNodes* = AllNodeKinds - AtomNodes - {mnkEnd}
@@ -313,41 +329,80 @@ const
   SingleOperandNodes* = {mnkPathNamed, mnkPathPos, mnkPathVariant, mnkPathConv,
                          mnkAddr, mnkDeref, mnkView, mnkDerefView, mnkStdConv,
                          mnkConv, mnkCast, mnkRaise, mnkTag, mnkArg,
-                         mnkName, mnkConsume, mnkVoid}
+                         mnkName, mnkConsume, mnkVoid, mnkCopy, mnkMove,
+                         mnkSink, mnkDestroy, mnkMutView, mnkToMutSlice}
     ## Nodes that start sub-trees but that always have a single sub node.
 
   ArgumentNodes* = {mnkArg, mnkName, mnkConsume}
     ## Nodes only allowed in argument contexts.
 
-  SymbolLike* = {mnkParam, mnkLocal}
-    ## Nodes for which the `sym` field is available
+  ModifierNodes* = {mnkCopy, mnkMove, mnkSink}
+    ## Assignment modifiers. Nodes that can only appear directly in the source
+    ## slot of assignments.
+
+  LabelNodes* = {mnkLabel, mnkLeave}
+
+  LiteralDataNodes* = {mnkNilLit, mnkIntLit, mnkUIntLit, mnkFloatLit,
+                       mnkStrLit, mnkAstLit}
+
+  ConstrTreeNodes* = {mnkSetConstr, mnkRange, mnkArrayConstr, mnkSeqConstr,
+                      mnkTupleConstr, mnkClosureConstr, mnkObjConstr,
+                      mnkRefConstr, mnkProcVal, mnkArg, mnkField,
+                      mnkEnd} + LiteralDataNodes
+    ## Nodes that can appear in the MIR subset used for constant expressions.
+
+  StmtNodes* = {mnkScope, mnkGoto, mnkIf, mnkCase, mnkLoop, mnkJoin,
+                mnkLoopJoin, mnkExcept, mnkFinally, mnkContinue, mnkEndStruct,
+                mnkInit, mnkAsgn, mnkSwitch, mnkVoid, mnkRaise, mnkDestroy,
+                mnkEmit, mnkAsm} + DefNodes
+    ## Nodes that are treated like statements, in terms of syntax.
 
   # --- semantics-focused sets:
 
-  Atoms* = {mnkNone .. mnkType} - {mnkField}
+  Atoms* = {mnkNone .. mnkType} - {mnkField, mnkProc, mnkLabel}
     ## Nodes that may be appear in atom-expecting slots.
 
-  StmtNodes* = {mnkScope, mnkStmtList, mnkIf, mnkCase, mnkRepeat, mnkTry,
-                mnkBlock, mnkBreak, mnkReturn, mnkRaise, mnkPNode, mnkInit,
-                mnkAsgn, mnkSwitch, mnkFastAsgn, mnkVoid, mnkRaise, mnkEmit,
-                mnkAsm} + DefNodes
+  UnaryOps*  = {mnkNeg}
+    ## All unary operators
+  BinaryOps* = {mnkAdd, mnkSub, mnkMul, mnkDiv, mnkModI}
+    ## All binary operators
 
   LvalueExprKinds* = {mnkPathPos, mnkPathNamed, mnkPathArray, mnkPathVariant,
                       mnkPathConv, mnkDeref, mnkDerefView, mnkTemp, mnkAlias,
                       mnkLocal, mnkParam, mnkConst, mnkGlobal}
-  RvalueExprKinds* = {mnkLiteral, mnkType, mnkProc, mnkConv, mnkStdConv,
-                      mnkCast, mnkAddr, mnkView, mnkToSlice}
-  ExprKinds* =       {mnkCall, mnkCheckedCall, mnkConstr, mnkObjConstr} +
-                     LvalueExprKinds + RvalueExprKinds
+  RvalueExprKinds* = {mnkType, mnkProcVal, mnkConv, mnkStdConv, mnkCast,
+                      mnkAddr, mnkView, mnkMutView, mnkToSlice,
+                      mnkToMutSlice} + UnaryOps + BinaryOps + LiteralDataNodes
+  ExprKinds* =       {mnkCall, mnkCheckedCall, mnkSetConstr, mnkArrayConstr,
+                      mnkSeqConstr, mnkTupleConstr, mnkClosureConstr,
+                      mnkObjConstr, mnkRefConstr} + LvalueExprKinds +
+                     RvalueExprKinds + ModifierNodes
 
   CallKinds* = {mnkCall, mnkCheckedCall}
 
 func `==`*(a, b: SourceId): bool {.borrow.}
-func `==`*(a, b: TempId): bool {.borrow.}
+func `==`*(a, b: LocalId): bool {.borrow.}
 func `==`*(a, b: LabelId): bool {.borrow.}
 func `==`*(a, b: ConstId): bool {.borrow.}
 func `==`*(a, b: GlobalId): bool {.borrow.}
 func `==`*(a, b: ProcedureId): bool {.borrow.}
+func `==`*(a, b: DataId): bool {.borrow.}
+func `==`*(a, b: NumberId): bool {.borrow.}
+func `==`*(a, b: StringId): bool {.borrow.}
+func `==`*(a, b: AstId): bool {.borrow.}
+func `==`*(a, b: TypeId): bool {.borrow.}
+
+func isAnon*(id: ConstId): bool =
+  ## Returns whether `id` represents an anonymous constant.
+  (uint32(id) and (1'u32 shl 31)) != 0
+
+func extract*(id: ConstId): DataId =
+  ## Extracts the ``DataId`` from `id`.
+  DataId(uint32(id) and not(1'u32 shl 31))
+
+func toConstId*(id: DataId): ConstId =
+  ## Creates the ID for an anonymous constant with `id` as the content.
+  ConstId((1'u32 shl 31) or uint32(id))
 
 # XXX: ideally, the arithmetic operations on ``NodePosition`` should not be
 #      exported. How the nodes are stored should be an implementation detail
@@ -501,10 +556,19 @@ func findParent*(tree: MirTree, start: NodePosition,
   while tree[result].kind != kind:
     result = parent(tree, result)
 
-func numArgs*(tree: MirTree, n: NodePosition): int =
-  ## Computes the number of arguments in the call tree.
+func len*(tree: MirTree, n: NodePosition): int =
+  ## Computes the number of child nodes for the given sub-tree node.
   var n = n + 1
   while tree[n].kind != mnkEnd:
+    inc result
+    n = tree.sibling(n)
+
+func numArgs*(tree: MirTree, n: NodePosition): int =
+  ## Counts and returns the number of *call arguments* in the call tree at
+  ## `n`.
+  assert tree[n].kind in CallKinds
+  var n = tree.sibling(n + 1) # skip the callee
+  while tree[n].kind in ArgumentNodes:
     inc result
     n = tree.sibling(n)
 
@@ -555,14 +619,17 @@ iterator arguments*(tree: MirTree, n: NodePosition): (ArgKinds, OpValue) =
   ## Returns the argument kinds together with the operand node (or tag tree).
   assert tree[n].kind in CallKinds
   var i = tree.sibling(n + 1) # skip the callee
-  while tree[i].kind != mnkEnd:
+  # XXX: iterating until no more argument nodes are found is a temporary
+  #      workaround until call nodes store their number of sub-nodes
+  while tree[i].kind in ArgumentNodes:
     yield (ArgKinds(tree[i].kind), tree.operand(i))
     i = tree.sibling(i)
 
 func findDef*(tree: MirTree, n: NodePosition): NodePosition =
   ## Finds and returns the first definition for the name of the temporary
   ## at node `n`. No control-flow analysis is performed.
-  let expected = tree[n].temp
+  assert tree[n].kind in {mnkTemp, mnkAlias}
+  let expected = tree[n].local
   # first, unwind until the closest statement
   result = n
   while tree[result].kind notin StmtNodes:
@@ -572,7 +639,8 @@ func findDef*(tree: MirTree, n: NodePosition): NodePosition =
   while result > NodePosition 0:
     if tree[result].kind in DefNodes:
       let name = tree.operand(result, 0)
-      if tree[name].kind in {mnkTemp, mnkAlias} and tree[name].temp == expected:
+      if tree[name].kind in {mnkTemp, mnkAlias} and
+         tree[name].local == expected:
         return
 
     result = tree.previous(result)

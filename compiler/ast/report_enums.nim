@@ -247,6 +247,7 @@ type
     rvmCacheKeyAlreadyExists
     rvmFieldNotFound
     rvmFieldInavailable
+    rvmCannotCreateNode
     rvmCannotSetChild
     rvmCannotAddChild
     rvmCannotGetChild
@@ -355,6 +356,7 @@ type
     rsemTIsNotAConcreteType
     rsemProcIsNotAConcreteType
     rsemRangeIsEmpty
+    rsemStringRangeNotAllowed
 
     rsemCannotInstantiate
     rsemCannotInstantiateWithParameter
@@ -421,6 +423,7 @@ type
     rsemCallingConventionMismatch
     rsemHasSideEffects
     rsemCantPassProcvar
+    rsemHookCannotRaise
     rsemUnlistedRaises
     rsemUnlistedEffects
     rsemOverrideSafetyMismatch
@@ -498,6 +501,7 @@ type
     rsemUnexpectedPragmaInDefinitionOf
     rsemMisplacedRunnableExample
     rsemNotACasePart
+    rsemCannotReraise
 
     # Expressions
     rsemConstantOfTypeHasNoValue
@@ -567,7 +571,6 @@ type
     rsemExpectedModuleNameForImportExcept
     rsemCannotExport
     rsemCannotMixTypesAndValuesInTuple
-    rsemExpectedTypelessDeferBody
     rsemInvalidBindContext
     rsemCannotCreateImplicitOpenarray
     rsemCannotAssignToDiscriminantWithCustomDestructor
@@ -628,11 +631,6 @@ type
     # Codegen
     rsemRttiRequestForIncompleteObject
     rsemExpectedNimcallProc
-    rsemExpectedExhaustiveCaseForComputedGoto
-    rsemExpectedUnholyEnumForComputedGoto
-    rsemTooManyEntriesForComputedGoto
-    rsemExpectedLow0ForComputedGoto
-    rsemExpectedCaseForComputedGoto
     rsemDisallowedRangeForComputedGoto
     rsemExpectedParameterForJsPattern
     rsemExpectedLiteralForGoto
@@ -773,6 +771,8 @@ type
     rsemUntypedParamsFollwedByMoreSpecificType
     rsemBindDeprecated
     rsemObservableStores       = "ObservableStores"
+    rsemUnknownHint            = "UnknownHint"
+    rsemUnknownWarning         = "UnknownWarning"
     rsemUseOfGc                = "GcMem" # last !
     # END !! add reports BEFORE the last enum !!
 

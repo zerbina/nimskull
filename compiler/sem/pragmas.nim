@@ -283,7 +283,7 @@ proc intLitToIntOrErr(c: PContext, n: PNode): (int, PNode) =
   else:
     n[1] = c.semConstExpr(c, n[1])
     case n[1].kind
-    of nkIntLit..nkInt64Lit:
+    of nkSIntLiterals:
       (int(n[1].intVal), nil)
     else:
       (-1, c.config.newError(n, PAstDiag(kind: adSemIntLiteralExpected)))
@@ -371,7 +371,7 @@ proc getLib(c: PContext, kind: TLibKind, path: PNode): LibId =
 
   var lib = initLib(kind)
   lib.path = path
-  if path.kind in {nkStrLit..nkTripleStrLit}:
+  if path.kind in nkStrLiterals:
     lib.isOverriden = options.isDynlibOverride(c.config, path.strVal)
 
   result = c.addLib(lib)
@@ -426,25 +426,44 @@ proc processDynLib(c: PContext, n: PNode, sym: PSym): PNode =
       sym.typ.callConv = ccCDecl
 
 proc processNote(c: PContext, n: PNode): PNode =
-  ## process a single pragma "note" `n`
-  ## xxx: document this better, this is awful
-  proc handleNote(enumVals: ReportKinds, notes: ConfNoteSet): PNode =
-    let x = findStr(enumVals, n[0][1].ident.s, repNone)
-    case x:
-      of repNone:
-        invalidPragma(c, n)
+  ## Analyzes the pragma expression `n`, verifying that its of the form
+  ## ``note[name]: val``.
+  ##
+  ## If `note` is the name of a valid note set, `name` is the name of a valid
+  ## enum part of that set, and `val` evaluates to a bool value, includes or
+  ## excludes `val` from the `note` set and returns the typed AST. An error is
+  ## returned otherwise.
+
+  proc handleNote(warning: bool, notes: ConfNoteSet, n: PNode): PNode =
+    let
+      enumVals =
+        if warning: repWarningKinds
+        else:       repHintKinds
+      # search for an enum value that has the provided name:
+      nk = findStr(enumVals, n[0][1].ident.s, repNone)
+
+    if nk == repNone:
+      # not part of the allowed set
+      localReport(c.config, n[0][1].info):
+        reportStr(if warning: rsemUnknownWarning else: rsemUnknownHint,
+                  n[0][1].ident.s)
+
+    # always evaluate the boolean expression:
+    let enable = c.semConstBoolExpr(c, n[1])
+
+    if nk != repNone and enable.kind == nkIntLit:
+      if enable.intVal != 0:
+        incl(c.config, notes, nk)
       else:
-        let
-          nk = x
-          x = c.semConstBoolExpr(c, n[1])
-        n[1] = x
+        excl(c.config, notes, nk)
 
-        if x.kind == nkIntLit and x.intVal != 0:
-          incl(c.config, notes, nk)
-        else:
-          excl(c.config, notes, nk)
+    # setup the production:
+    result = shallowCopy(n)
+    result[0] = n[0]
+    result[1] = enable
 
-        n
+    if enable.kind == nkError:
+      result = c.config.wrapError(result)
 
   let
     validPragma = n.kind in nkPragmaCallKinds and n.len == 2
@@ -461,10 +480,10 @@ proc processNote(c: PContext, n: PNode): PNode =
     if isBracketExpr:
       let cw = whichKeyword(n[0][0].ident)
       case cw:
-      of wHint:           handleNote(repHintKinds,    cnCurrent)
-      of wWarning:        handleNote(repWarningKinds, cnCurrent)
-      of wWarningAsError: handleNote(repWarningKinds, cnWarnAsError)
-      of wHintAsError:    handleNote(repHintKinds,    cnHintAsError)
+      of wHint:           handleNote(false, cnCurrent,     n)
+      of wWarning:        handleNote(true,  cnCurrent,     n)
+      of wWarningAsError: handleNote(true,  cnWarnAsError, n)
+      of wHintAsError:    handleNote(false, cnHintAsError, n)
       else: invalidPragma(c, n)
     else:
       bracketExpr
@@ -690,9 +709,9 @@ proc relativeFile(c: PContext; name: string, info: TLineInfo;
 
 proc processCompile(c: PContext, n: PNode): PNode =
   ## compile pragma
-  ## produces (mutates) `n`, which must be a callable, analysing its arg, or returning
-  ## `n` wrapped in an error.
-  result = n
+  ## Produces the pragma with all arguments evaluated, or returns an error.
+  ## If the pragma is well-formed, the external files to compile are added to
+  ## the build.
   proc docompile(c: PContext; it: PNode; src, dest: AbsoluteFile; customArgs: string) =
     var cf = Cfile(nimname: splitFile(src).name,
                    cname: src, obj: dest, flags: {CfileFlag.External},
@@ -700,65 +719,71 @@ proc processCompile(c: PContext, n: PNode): PNode =
     extccomp.addExternalFileToCompile(c.config, cf)
     recordPragma(c, it, "compile", src.string, dest.string, customArgs)
 
-  proc getStrLit(c: PContext, n: PNode; i: int): (string, PNode) =
-    n[i] = c.semConstExpr(c, n[i])
-    case n[i].kind
-    of nkStrLit, nkRStrLit, nkTripleStrLit:
-      shallowCopy(result[0], n[i].strVal)
-      result[1] = nil
+  proc expectString(c: PContext, n: PNode): PNode =
+    result = c.semConstExpr(c, n)
+    case result.kind
+    of nkStrLiterals:
+      discard "all good"
     else:
-      result = ("", c.config.newError(
-        n, PAstDiag(kind: adSemStringLiteralExpected)))
+      result = c.config.newError(n, PAstDiag(kind: adSemStringLiteralExpected))
 
-  let it = if n.kind in nkPragmaCallKinds and n.len == 2: n[1] else: n
-  if it.kind in {nkPar, nkTupleConstr} and it.len == 2:
-    let
-      (s, sErr) = getStrLit(c, it, 0)
-      (dest, destErr) = getStrLit(c, it, 1)
+  if n.kind notin nkPragmaCallKinds:
+    result = invalidPragma(c, n)
+  elif n.len == 2 and n[1].kind == nkTupleConstr and n[1].len == 2:
+    # the pattern matching version of the pragma
+    result = shallowCopy(n)
+    result[0] = n[0]
+    # both operands need to be strings:
+    let tup = shallowCopy(n[1])
+    tup[0] = expectString(c, n[1][0]) # input pattern
+    tup[1] = expectString(c, n[1][1]) # object file pattern
+    result[1] = tup
 
-    if sErr != nil:
-      result = sErr
-    elif destErr != nil:
-      result = destErr
+    if nkError in {tup[0].kind, tup[1].kind}:
+      return c.config.wrapError(result)
+
+    # add all files matching the pattern to the build:
+    let found = parentDir(toFullPath(c.config, n.info)) / tup[0].strVal
+    for f in os.walkFiles(found):
+      let obj = completeCfilePath(c.config,
+                                  AbsoluteFile(tup[1].strVal % extractFilename(f)))
+      docompile(c, n, AbsoluteFile f, obj, "")
+
+  elif n.len <= 3:
+    # the single file version. Can either have 1 or 2 arguments, both which must
+    # be strings
+    result = shallowCopy(n)
+    result[0] = n[0] # use the identifier as is
+    var hasError = false
+    for i in 1..<n.len:
+      result[i] = expectString(c, n[i])
+      hasError = hasError or result[i].isError
+
+    if hasError:
+      return c.config.wrapError(result)
+
+    # find the file and add it to the build:
+    let file = result[1].strVal # file path
+    var found: AbsoluteFile
+    if isAbsolute(file):
+      found = AbsoluteFile file
     else:
-      var found = parentDir(toFullPath(c.config, n.info)) / s
-      for f in os.walkFiles(found):
-        let obj = completeCfilePath(c.config, AbsoluteFile(dest % extractFilename(f)))
-        docompile(c, it, AbsoluteFile f, obj, "")
+      # first, look for the file relative to the current directory
+      found = AbsoluteFile(parentDir(toFullPath(c.config, n.info)) / file)
+      if not fileExists(found):
+        # look up the file relative to the search paths:
+        found = findFile(c.config, file)
+        if found.isEmpty: found = AbsoluteFile file
+
+    # prepend the package name derived from the file path to `found`, in order
+    # to prevent name collisions when there are multiple external C files with
+    # the same name
+    let obj = externalObjFile(c.config, withPackageName(c.config, found))
+    docompile(c, n, found, obj, (if n.len == 2: "" else: result[2].strVal))
   else:
-    var
-      s = ""
-      customArgs = ""
-      err: PNode
-    if n.kind in nkCallKinds:
-      (s, err) = getStrLit(c, n, 1)
-      if err.isNil:
-        if n.len <= 3:
-          (customArgs, err) = getStrLit(c, n, 2)
-          if err != nil:
-            result = err
-            return
-        else:
-          result = c.config.newError(n, PAstDiag(
-            kind: adSemExcessiveCompilePragmaArgs))
-          return
-      else:
-        result = err
-        return
-    else:
-      (s, err) = strLitToStrOrErr(c, n)
-      if err != nil:
-        result = err
-        return
-
-    var found = AbsoluteFile(parentDir(toFullPath(c.config, n.info)) / s)
-    if not fileExists(found):
-      if isAbsolute(s): found = AbsoluteFile s
-      else:
-        found = findFile(c.config, s)
-        if found.isEmpty: found = AbsoluteFile s
-    let obj = toObjFile(c.config, completeCfilePath(c.config, found, false))
-    docompile(c, it, found, obj, customArgs)
+    # too many arguments
+    result = c.config.newError(n,
+      PAstDiag(kind: adSemExcessiveCompilePragmaArgs))
 
 proc processLink(c: PContext, n: PNode): PNode =
   result = n
@@ -941,13 +966,14 @@ proc pragmaLocks(c: PContext, it: PNode): (TLockLevel, PNode) =
         result = (UnknownLockLevel, wrapError(c.config, it))
     else:
       let (x, err) = intLitToIntOrErr(c, it)
-      if err.isNil:
-        if x < 0 or x > MaxLockLevel:
-          it[1] = c.config.newError(it[1], PAstDiag(
-            kind: adSemLocksPragmaBadLevelRange))
-          result = (UnknownLockLevel, wrapError(c.config, it))
-        else:
-          result = (TLockLevel(x), nil)
+      if err != nil:
+        result = (UnknownLockLevel, err)
+      elif x < 0 or x > MaxLockLevel:
+        it[1] = c.config.newError(it[1], PAstDiag(
+          kind: adSemLocksPragmaBadLevelRange))
+        result = (UnknownLockLevel, wrapError(c.config, it))
+      else:
+        result = (TLockLevel(x), nil)
 
 proc typeBorrow(c: PContext; sym: PSym, n: PNode): PNode =
   result = n
