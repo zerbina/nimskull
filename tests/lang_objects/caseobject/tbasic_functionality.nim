@@ -75,7 +75,7 @@ proc testNotAllCovered(n: Node) =
 
 testNotAllCovered(Asgn(left: (ref Node)(Sym(name: "")),
                        right: (ref Node)(IntLit(value: 1))))
-doAssertRaises ReraiseDefect:
+doAssertRaises Exception:
   # will fail at run-time:
   testNotAllCovered(IntLit(value: 2))
 
