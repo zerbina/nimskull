@@ -70,6 +70,7 @@ import
     vmobjects,
     vmtypegen,
     vmtypes,
+    # vmbuiltins
   ],
   experimental/[
     results
@@ -80,12 +81,9 @@ import std/options as std_options
 from compiler/backend/compat import getInt, isOfBranch, skipConv, lastSon,
   getMagic, pick, numArgs
 
-from std/bitops import bitor
-
 when defined(nimCompilerStacktraceHints):
   import std/stackframes
   import compiler/utils/debugutils
-
 
 type
   VmGenResult* = Result[CodeInfo, VmGenDiag] ## Result of a vmgen invocation
@@ -93,29 +91,18 @@ type
   VmGenError = object of CatchableError
     diag: VmGenDiag
 
+  LocalIndex = int32
   TPosition = distinct int
-  TDest = range[-1..regAMask.int]
 
   TSlotKind = enum    # We try to re-use slots in a smart way to
                       # minimize allocations; however the VM supports arbitrary
                       # temporary slot usage. This is required for the parameter
                       # passing implementation.
-    slotEmpty,        ## slot is unused
-    slotNoValue       ## for values that fit into registers: an uninitialized
-                      ## register
-                      ## for values that don't: a handle to memory location
-                      ## that's in the zero'ed state
-    # XXX: ^^ this is a hack. The makeup of the destination needs to be passed
-    #      along with `TDest`, not made part of the slot kind
-    slotFixedVar,     ## slot is used for a fixed var/result (requires copy then)
-    slotFixedLet,     ## slot is used for a fixed param/let
-    slotTempUnknown,  ## slot but type unknown (argument of proc call)
-    slotTempInt,      ## some temporary int
-    slotTempFloat,    ## some temporary float
-    slotTempStr,      ## some temporary string
-    slotTempComplex,  ## some complex temporary (s.node field is used)
-    slotTempHandle,   ## some temporary handle into an object/array
-    slotTempPerm      ## slot is temporary but permanent (hack)
+    slotInt,          # slot is unused
+    slotFloat,
+    slotRef,
+    slotAddress
+    slotUninit
 
   RegInfo = object
     inUse: bool
@@ -123,7 +110,7 @@ type
 
   LocalLoc = object
     ## The current state for a local.
-    reg: TRegister   ## the register that holds either the handle or value
+    slot: LocalIndex ## the register that holds either the handle or value
     isIndirect: bool ## whether the local uses a handle while its value
                      ## would fit it into a register
 
@@ -151,18 +138,25 @@ type
     sym: PSym
     body: Body
       ## the full body of the current procedure/statement/expression
-    bestEffort: TLineInfo
-      ## the source-code position to point to for internal failures where
-      ## no line information is directly available
+    # bestEffort: TLineInfo
+    #   ## the source-code position to point to for internal failures where
+    #   ## no line information is directly available
     regInfo: seq[RegInfo]
 
     locals: OrdinalSeq[LocalId, LocalLoc]
       ## current state of all locals
 
+    pastJoin: bool
+      ## whether the next instruction comes immediately after a join. This
+      ## informs whether to allow instruction merging
+      # XXX: silly approach; just remember the position of the last join
+    overflows: seq[TPosition]
+
     # exception handling state:
     baseOffset: TPosition
       ## the bytecode position that instruction-to-EH mappings need to be
       ## relative to
+    ehStart: uint32
     ehExits: seq[tuple[label: BlockId, pos: uint32]]
       ## EH instructions that need patching once position and type of the
       ## target EH instruction is known
@@ -177,14 +171,13 @@ type
 
     # code-generator owned state:
     env*: MirEnv
+    typeInfoCache*: TypeTranslationState
 
     # immutable input parameters:
     graph*: ModuleGraph
     config*: ConfigRef
-    features*: TSandboxFlags
-    module*: PSym
-
-    callbackKeys*: Patterns
+    # features*: TSandboxFlags
+    # module*: PSym
 
     # input-output parameters:
     code*: seq[TInstr]
@@ -192,10 +185,23 @@ type
     ehTable*: seq[HandlerTableEntry]
     ehCode*: seq[EhInstr]
     constants*: seq[VmConstant]
-    typeInfoCache*: TypeInfoCache
-    rtti*: seq[VmTypeInfo]
+    types*: VmTypeEnv
+
+    map*: SeqMap[ProcedureId, FunctionIndex]
+    builtinMaps*: Table[string, FunctionIndex]
 
   TCtx = CodeGenCtx ## legacy alias
+
+  Temp = object
+    slot: int32
+    isReal: bool
+
+template imm32(x: untyped): int32 =
+  int32(x)
+template imm8(x: untyped): int8 =
+  int8(x)
+template imm16(x: untyped): int16 =
+  int16(x)
 
 const
   IrrelevantTypes = abstractInst + {tyStatic, tyEnum} - {tyTypeDesc}
@@ -206,24 +212,20 @@ const
                      cnkTupleAccess, cnkFieldAccess, cnkObjUpConv,
                      cnkObjDownConv, cnkDeref, cnkDerefView, cnkLvalueConv}
 
-  MagicsToKeep* = {mIsolate, mNHint, mNWarning, mNError, mMinI, mMaxI,
-                   mAbsI, mDotDot, mNGetType, mNSizeOf, mNLineInfo}
+  MagicsToKeep* = {mIsolate, mNLen..mNError, mMinI, mMaxI, mParseExprToAst, mParseStmtToAst,
+                   mAbsI, mDotDot, mNGetType, mNSizeOf, mNLineInfo, mSetLengthSeq, mEnumToStr, mRepr, mBoolToStr}
     ## the set of magics that are kept as normal procedure calls and thus need
     ## an entry in the function table.
     # XXX: mNGetType, mNGetSize, and mNLineInfo *are* real magics, but their
     #      symbols must reach here for disambiguation. This needs to be solved
     #      differently
 
-  noDest = TDest(-1)
-  slotSomeTemp* = slotTempUnknown
-
 proc initCodeGen*(g: ModuleGraph): CodeGenCtx =
-  CodeGenCtx(graph: g, config: g.config, env: initMirEnv(g))
+  CodeGenCtx(graph: g, config: g.config, env: initMirEnv(g), typeInfoCache: initTypeGen())
 
 proc getOrCreate*(c: var TCtx, typ: PType;
-                  noClosure = false): PVmType {.inline.} =
-  var cl: GenClosure
-  getOrCreate(c.typeInfoCache, c.config, typ, noClosure, cl)
+                  noClosure = false): VmTypeId {.inline.} =
+  getOrCreate(c.typeInfoCache, c.types, c.config, typ, noClosure)
 
 func raiseVmGenError(diag: sink VmGenDiag) {.noinline, noreturn.} =
   raise (ref VmGenError)(diag: diag)
@@ -295,14 +297,9 @@ template tryOrReturn(code): untyped =
     return VmGenResult.err(move e.diag)
 
 # forward declarations
-proc genLit(c: var TCtx; n: CgNode; lit: int; dest: var TDest)
-proc genTypeLit(c: var TCtx; info: CgNode, t: PType; dest: var TDest)
 proc genType(c: var TCtx, typ: PType; noClosure = false): int
 func fitsRegister(t: PType): bool
-proc genRegLoad(c: var TCtx, n: CgNode, dest, src: TRegister) {.inline.}
-proc genRegLoad(c: var TCtx, n: CgNode, typ: PType, dest, src: TRegister)
-
-template isUnset(x: TDest): bool = x < 0
+proc load(c: var TCtx, info: TLineInfo, typ: PType)
 
 template `[]`(p: BProc, id: LocalId): LocalLoc =
   ## Convenience shorthand.
@@ -352,105 +349,68 @@ func isNimNode(t: PType): bool =
   let t = skipTypes(t, IrrelevantTypes)
   t.sym != nil and t.sym.magic == mPNimrodNode
 
-func gABC*(ctx: var TCtx; i: TLineInfo; opc: TOpcode; a, b, c: TRegister = 0) =
-  ## Takes the registers `b` and `c`, applies the operation `opc` to them, and
-  ## stores the result into register `a`
-  ## The node is needed for debug information
-  assert opc.ord < 255
-  let ins = (opc.TInstrType or (a.TInstrType shl regAShift) or
-                           (b.TInstrType shl regBShift) or
-                           (c.TInstrType shl regCShift)).TInstr
-  #[
-  when false:
-    if ctx.code.len == 43:
-      writeStackTrace()
-      echo "generating ", opc
-  ]#
-  ctx.code.add(ins)
-  ctx.debug.add(i)
 
-proc gABI(c: var TCtx; i: TLineInfo; opc: TOpcode; a, b: TRegister; imm: BiggestInt) =
-  # Takes the `b` register and the immediate `imm`, applies the operation `opc`,
-  # and stores the output value into `a`.
-  # `imm` is signed and must be within [-128, 127]
-  c.config.internalAssert(imm in -128..127, i,
-    "VM: immediate value does not fit into an int8")
-
-  let ins = (opc.TInstrType or (a.TInstrType shl regAShift) or
-                           (b.TInstrType shl regBShift) or
-                           (imm+byteExcess).TInstrType shl regCShift).TInstr
-  c.code.add(ins)
+func instr*(c: var TCtx; i: TLineInfo; opc: Opcode) =
+  let ins = opc.TInstrType
+  c.code.add(TInstr ins)
   c.debug.add(i)
+  c.prc.pastJoin = false
 
-proc gABx*(c: var TCtx; i: TLineInfo; opc: TOpcode; a: TRegister = 0; bx: int) =
-  # Applies `opc` to `bx` and stores it into register `a`
-  # `bx` must be signed and in the range [regBxMin, regBxMax]
-
-  #[
-  when false:
-    if c.code.len == 43:
-      writeStackTrace()
-      echo "generating ", opc
-      ]#
-
-  c.config.internalAssert(bx in regBxMin-1..regBxMax, i,
-    "VM: immediate value does not fit into regBx")
-
-  let ins = (opc.TInstrType or a.TInstrType shl regAShift or
-            (bx+wordExcess).TInstrType shl regBxShift).TInstr
-  c.code.add(ins)
+func instr(c: var TCtx; i: TLineInfo; opc: TOpcode; a: int32) =
+  let ins = (opc.TInstrType or (a.TInstrType shl regAShift))
+  c.code.add(TInstr ins)
   c.debug.add(i)
+  c.prc.pastJoin = false
 
-# convenience templates that take the line information from the node
-template gABC*(ctx: var TCtx; n: CgNode; opc: TOpcode; a, b, c: TRegister = 0) =
-  gABC(ctx, n.info, opc, a, b, c)
+func instr*(c: var TCtx; i: TLineInfo; opc: TOpcode; a: int32, b: int8) =
+  let ins = (opc.TInstrType or (a.TInstrType shl regAShift) or (b.TInstrType shl regBShift))
+  c.code.add(TInstr ins)
+  c.debug.add(i)
+  c.prc.pastJoin = false
 
-template gABI(c: var TCtx; n: CgNode; opc: TOpcode; a, b: TRegister; imm: BiggestInt) =
-  gABI(c, n.info, opc, a, b, imm)
+func instr*(c: var TCtx; i: TLineInfo; opc: TOpcode; a: int8) =
+  let ins = (opc.TInstrType or (a.TInstrType shl regBShift))
+  c.code.add(TInstr ins)
+  c.debug.add(i)
+  c.prc.pastJoin = false
 
-template gABx(c: var TCtx, n: CgNode, opc: TOpcode; a: TRegister, bx: int) =
-  gABx(c, n.info, opc, a, bx)
+func instr*(c: var TCtx; i: TLineInfo; opc: TOpcode; a: int32, b: int16) =
+  let ins = (opc.TInstrType or (a.TInstrType shl regAShift) or (b.TInstrType shl regBShift))
+  c.code.add(TInstr ins)
+  c.debug.add(i)
+  c.prc.pastJoin = false
 
-proc xjmp(c: var TCtx; n: CgNode; opc: TOpcode; a: TRegister = 0): TPosition =
+proc xjmp(c: var TCtx; n: CgNode; opc: TOpcode; a: int8 = 0): TPosition =
   result = TPosition(c.code.len)
-  gABx(c, n, opc, a, 0)
+  c.instr(n.info, opc, imm32 0, imm8 a)
 
 func genLabel(c: TCtx): TPosition =
   result = TPosition(c.code.len)
-  #c.jumpTargets.incl(c.code.len)
 
 proc jmpBack(c: var TCtx, n: CgNode, p = TPosition(0)) =
   let dist = p.int - c.code.len
-  internalAssert(c.config, regBxMin < dist and dist < regBxMax)
-  gABx(c, n, opcJmpBack, 0, dist)
+  # internalAssert(c.config, regBxMin < dist and dist < regBxMax)
+  c.instr(n.info, opcJmp, imm32 dist)
+
+proc patchOpcode(instr: var TInstr, op: TOpcode) {.inline.} =
+  instr = TInstr((instr.TInstrType and not regOMask) or TInstrType(op))
+
+proc patchImm32(instr: var TInstr, imm: int32) =
+  instr = ((instr.TInstrType and not (regAMask and not regOMask)).TInstrType or
+               TInstrType(imm) shl regAShift).TInstr
 
 proc patch(c: var TCtx, p: TPosition) =
   # patch with current index
   let p = p.int
   let diff = c.code.len - p
-  #c.jumpTargets.incl(c.code.len)
-  internalAssert(c.config, regBxMin < diff and diff < regBxMax)
-  let oldInstr = c.code[p]
-  # opcode and regA stay the same:
-  c.code[p] = ((oldInstr.TInstrType and regBxMask).TInstrType or
-               TInstrType(diff+wordExcess) shl regBxShift).TInstr
+  # internalAssert(c.config, regBxMin < diff and diff < regBxMax)
+  patchImm32(c.code[p], imm32 diff)
+  c.prc.pastJoin = true
 
-proc genSetEh(c: var TCtx, info: TLineInfo): TPosition =
+proc setupEh(c: var TCtx) =
   # the correct values are set at a later point
-  result = c.code.len.TPosition
-  c.prc.baseOffset = result
-  c.gABC(info, opcSetEh, c.ehTable.len, 0)
-
-proc patchSetEh(c: var TCtx, p: TPosition) =
-  ## Patches the ``SetEh`` instruction at `p` with the mapping list's upper
-  ## bound (using the current end of the mapping list).
-  let
-    p = p.int
-    fin = c.ehTable.len
-    instr = c.code[p]
-  assert instr.opcode == opcSetEh
-  # opcode and regA stay the same, only regB is updated:
-  c.code[p] = TInstr(instr.TInstrType or TInstrType(fin shl regBShift))
+  c.prc.baseOffset = c.code.len.TPosition
+  c.prc.ehStart = c.ehTable.len.uint32
 
 proc genEhCode(c: var TCtx, n: CgNode)
 
@@ -514,189 +474,86 @@ proc registerEh(c: var TCtx, n: CgNode) =
 
 proc getSlotKind(t: PType): TSlotKind =
   case t.skipTypes(IrrelevantTypes+{tyRange}).kind
-  of tyBool, tyChar, tyInt..tyInt64, tyUInt..tyUInt64:
-    slotTempInt
-  of tyString, tyCstring:
-    slotTempStr
+  of tyBool, tyChar, tyInt..tyInt64, tyUInt..tyUInt64, tyPointer, tyNil,
+     tyPtr:
+    slotInt
+  of tyRef:
+    if isNimNode(t):
+      slotRef
+    else:
+      slotInt
+  of tyVar, tyLent:
+    if t[0].skipTypes(IrrelevantTypes).kind == tyOpenArray:
+      slotAddress # stored as an object
+    else:
+      slotInt # stored as a pointer
   of tyFloat..tyFloat64:
-    slotTempFloat
+    slotFloat
+  of tyProc:
+    if t.callConv == ccClosure:
+      slotAddress
+    else:
+      slotInt
+  of tyTypeDesc:
+    slotRef
   else:
-    slotTempComplex
+    slotAddress
 
-const
-  HighRegisterPressure = 40
+proc writeInstr(typ: PType): Opcode =
+  case typ.skipTypes(IrrelevantTypes + {tyRange}).kind
+  of tyInt, tyInt64, tyUInt, tyUInt64: opcWrInt64
+  of tyInt32, tyUInt32: opcWrInt32
+  of tyInt16, tyUInt16: opcWrInt16
+  of tyInt8, tyUInt8, tyBool, tyChar: opcWrInt8
+  of tyFloat, tyFloat64: opcWrFlt64
+  of tyFloat32: opcWrFlt32
+  of tyPointer, tyPtr, tyProc, tyVar, tyLent: opcWrInt64
+  of tyRef:
+    if typ.isNimNode(): opcWrRef
+    else:               opcWrInt64
+  else: unreachable(typ.skipTypes(IrrelevantTypes + {tyRange}).kind)
 
-proc getFreeRegister(c: var BProc; k: TSlotKind; start: int): TRegister =
-  # we prefer the same slot kind here for efficiency. Unfortunately for
-  # discardable return types we may not know the desired type. This can happen
-  # for e.g. mNAdd[Multiple]:
-  for i in start..c.regInfo.len-1:
+proc getFreeRegister(c: var BProc; k: TSlotKind): LocalIndex =
+  for i in 0..<c.regInfo.len:
     if c.regInfo[i].kind == k and not c.regInfo[i].inUse:
       c.regInfo[i].inUse = true
-      return TRegister(i)
+      return LocalIndex(i)
 
-  # if register pressure is high, we re-use more aggressively:
-  if c.regInfo.len >= high(TRegister):
-    for i in start..c.regInfo.len-1:
-      if not c.regInfo[i].inUse:
-        c.regInfo[i] = RegInfo(inUse: true, kind: k)
-        return TRegister(i)
-  if c.regInfo.len >= high(TRegister):
-    fail(c.bestEffort, vmGenDiagTooManyRegistersRequired)
+  if c.regInfo.len >= high(LocalIndex):
+    missing("error reporting")
+    # fail(c.bestEffort, vmGenDiagTooManyRegistersRequired)
 
-  result = TRegister(max(c.regInfo.len, start))
-  c.regInfo.setLen int(result)+1
-  c.regInfo[result] = RegInfo(inUse: true, kind: k)
+  c.regInfo.add RegInfo(inUse: true, kind: k)
+  result = LocalIndex(c.regInfo.high)
 
-func getTemp(cc: var TCtx; kind: TSlotKind): TRegister {.inline.} =
-  getFreeRegister(cc.prc, kind, start = 0)
+func getTemp(cc: var TCtx; kind: TSlotKind): LocalIndex {.inline.} =
+  getFreeRegister(cc.prc, kind)
 
-proc getTemp(cc: var TCtx; tt: PType): TRegister =
-  let typ = tt.skipTypesOrNil({tyStatic})
+proc getTemp(cc: var TCtx; tt: PType): LocalIndex =
+  let typ = tt.skipTypes(abstractRange + {tyStatic})
   # we prefer the same slot kind here for efficiency. Unfortunately for
   # discardable return types we may not know the desired type. This can happen
   # for e.g. mNAdd[Multiple]:
-  let k = if typ.isNil: slotTempComplex else: typ.getSlotKind
-  result = getFreeRegister(cc.prc, k, start = 0)
+  var kind = typ.getSlotKind
+  if kind == slotAddress: kind = slotInt
+  result = getFreeRegister(cc.prc, kind)
 
-  when false:
-    # enable this to find "register" leaks:
-    if result == 4:
-      echo "begin ---------------"
-      writeStackTrace()
-      echo "end ----------------"
+func freeTemp(c: var TCtx; r: LocalIndex) =
+  c.prc.regInfo[r].inUse = false
 
-func freeTemp(c: var TCtx; r: TRegister) =
-  case c.prc.regInfo[r].kind
-  of slotSomeTemp..slotTempHandle:
-    # this seems to cause https://github.com/nim-lang/Nim/issues/10647
-    c.prc.regInfo[r].inUse = false
-  else:
-    discard # do nothing
+func freeTemp(c: var TCtx; r: Temp) =
+  if r.isReal:
+    c.freeTemp(r.slot)
 
+func isEmpty(prc: BProc, reg: LocalIndex): bool =
+  prc.regInfo[reg].kind == slotUninit
 
-proc getTempRange(c: var BProc; n: int; kind: TSlotKind): TRegister =
-  # if register pressure is high, we re-use more aggressively:
-  # we could also customize via the following (with proper caching in ConfigRef):
-  # let highRegisterPressure = cc.config.getConfigVar("vm.highRegisterPressure", "40").parseInt
-  if c.regInfo.len >= HighRegisterPressure or c.regInfo.len+n >= high(TRegister):
-    for i in 0..c.regInfo.len-n:
-      if not c.regInfo[i].inUse:
-        block search:
-          for j in i+1..i+n-1:
-            if c.regInfo[j].inUse: break search
-          result = TRegister(i)
-          for k in result..result+n-1:
-            c.regInfo[k] = RegInfo(inUse: true, kind: kind)
-          return
-  if c.regInfo.len+n >= high(TRegister):
-    fail(c.bestEffort, vmGenDiagTooManyRegistersRequired)
+proc gen(c: var TCtx; n: CgNode)
 
-  result = TRegister(c.regInfo.len)
-  setLen c.regInfo, c.regInfo.len+n
-  for k in result .. result + n - 1:
-    c.regInfo[k] = RegInfo(inUse: true, kind: kind)
+proc operand(c: var TCtx, n: CgNode) =
+  gen(c, n)
 
-proc freeTempRange(c: var TCtx; start: TRegister, n: int) =
-  for i in start .. start + n - 1:
-    c.freeTemp(TRegister(i))
-
-proc getFullTemp(c: var TCtx, n: CgNode, t: PType): TRegister =
-  ## Allocates a register for a value of type `t`, and, if the value doesn't
-  ## fit into a register, emits the bytecode for allocating and setting up a
-  ## temporary location.
-  ##
-  ## The difference compared to ``getTemp`` is that ``getFullTemp`` also
-  ## allocates a location. While ``getFullTemp`` should ideally replace
-  ## ``getTemp``, doing so is currently not possible because ``getTemp`` gets
-  ## often passed an incorrect type
-  let kind = getSlotKind(t.skipTypes(abstractInst + {tyStatic} - {tyTypeDesc}))
-  result = getFreeRegister(c.prc, kind, start = 0)
-
-  if not fitsRegister(t):
-    c.gABx(n, opcLdNull, result, c.genType(t))
-
-func prepare(c: var TCtx, dest: var TDest, typ: PType) =
-  ## Initializes `dest` to a temporary register if it's not already set. `typ`
-  ## is passed to register allocation logic to improve allocation behaviour.
-  ## Do note that this is only a hint, no invalid code will be generated if
-  ## `typ` doesn't matches what's stored in the register.
-  if dest.isUnset:
-    dest = c.getTemp(typ)
-
-func isLocView(t: PType): bool {.inline.} =
-  ## Returns whether `t` is a a direct single-location view-type.
-  classifyBackendView(t) == bvcSingle
-
-func isDirectView(t: PType): bool {.inline.} =
-  ## Returns whether `t` is a direct view-type.
-  classifyBackendView(t) != bvcNone
-
-proc prepare(c: var TCtx, dest: var TDest, n: CgNode, typ: PType) =
-  ## If `dest` is not already set or refers to an argument slot, allocates a
-  ## location of `typ` and assigns the register holding the resulting handle or
-  ## value to it. `n` only provides the line information to use for emitted
-  ## instructions
-  if dest.isUnset:
-    dest = c.getFullTemp(n, typ)
-  elif c.prc.regInfo[dest].kind == slotTempUnknown and not fitsRegister(typ):
-    # the destination is a register slot used for argument passing, and the
-    # value doesn't fit into a register -> setup a temporary location
-    c.gABx(n, opcLdNull, dest, c.genType(typ))
-
-func isEmpty(prc: BProc, reg: TRegister): bool =
-  prc.regInfo[reg].kind == slotNoValue
-
-template withDest(tmp, body: untyped) {.dirty.} =
-  var tmp = noDest
-  body
-  assert tmp != noDest, "destination was not set"
-  c.freeTemp(tmp)
-
-proc gen(c: var TCtx; n: CgNode; dest: var TDest)
-proc gen(c: var TCtx; n: CgNode; dest: TRegister) =
-  var d: TDest = dest
-  gen(c, n, d)
-  #internalAssert c.config, d == dest # issue #7407
-
-proc gen(c: var TCtx; n: CgNode) =
-  var tmp: TDest = -1
-  gen(c, n, tmp)
-  if tmp >= 0:
-    freeTemp(c, tmp)
-  #if n.typ.isEmptyType: internalAssert tmp < 0
-
-proc genx(c: var TCtx; n: CgNode): TRegister =
-  var tmp: TDest = -1
-  gen(c, n, tmp)
-  #internalAssert c.config, tmp >= 0 # 'nim check' does not like this internalAssert.
-  if tmp >= 0:
-    result = TRegister(tmp)
-
-proc genLvalue(c: var TCtx, n: CgNode, dest: var TDest)
-proc genLvalue(c: var TCtx, n: CgNode): TRegister {.inline.} =
-  var dest = noDest
-  genLvalue(c, n, dest)
-  result = TRegister(dest)
-
-proc clearDest(c: var TCtx; n: CgNode; dest: var TDest) {.inline.} =
-  # stmt is different from 'void' in meta programming contexts.
-  # So we only set dest to -1 if 'void':
-  if dest >= 0 and (n.typ.isNil or n.typ.kind == tyVoid):
-    c.freeTemp(dest)
-    dest = -1
-
-func isNotOpr(env: MirEnv, n: CgNode): bool {.inline.} =
-  getMagic(env, n) == mNot
-
-proc whichAsgnOpc(t: PType): TOpcode {.used.} =
-  case t.skipTypes(IrrelevantTypes + {tyRange}).kind
-  of tyBool, tyChar, tyInt..tyInt64, tyUInt..tyUInt64:
-    opcAsgnInt
-  of tyFloat..tyFloat64:
-    opcAsgnFloat
-  else:
-    opcAsgnComplex
+proc genLvalue(c: var TCtx, n: CgNode)
 
 func pushBlock(c: var TCtx, blk: sink BlockInfo) =
   blk.oldRegisterCount = c.prc.regInfo.len
@@ -709,18 +566,13 @@ proc popBlock(c: var TCtx) =
   let blk = c.prc.blocks.pop()
   # free all register allocated for locals part of the block:
   for i in blk.oldRegisterCount..<c.prc.regInfo.len:
-      when not defined(release):
-        if c.prc.regInfo[i].inUse and c.prc.regInfo[i].kind in {slotTempUnknown,
-                                  slotTempInt,
-                                  slotTempFloat,
-                                  slotTempStr,
-                                  slotTempComplex,
-                                  slotTempHandle}:
-          doAssert false, "leaking temporary " & $i & " " & $c.prc.regInfo[i].kind
-      c.prc.regInfo[i] = RegInfo(kind: slotEmpty)
+      # when not defined(release):
+        # if c.prc.regInfo[i].inUse:
+        #   doAssert false, "leaking temporary " & $i & " " & $c.prc.regInfo[i].kind
+      c.prc.regInfo[i].inUse = false
 
-func controlReg(c: TCtx, blk: BlockInfo): TRegister =
-  c.code[blk.start.int].regA
+func controlReg(c: TCtx, blk: BlockInfo): LocalIndex =
+  c.code[blk.start.int].imm32
 
 proc genGoto(c: var TCtx; n: CgNode) =
   ## Generates and emits the code for a ``cnkGoto``. Depending on whether it's
@@ -745,9 +597,9 @@ proc genGoto(c: var TCtx; n: CgNode) =
           if blk.label == it[0].label:
             case blk.kind
             of bkExcept:
-              c.gABI(info, opcLeave, 0, 0, 0)
+              c.instr(info, opcLeave)
             of bkFinally:
-              c.gABI(info, opcLeave, c.controlReg(blk), 0, 1)
+              c.instr(info, opcLeave, imm32 c.controlReg(blk))
             else:
               unreachable()
             break
@@ -780,26 +632,16 @@ proc genIf(c: var TCtx, n: CgNode) =
   #  if (!expr1) goto lab1;
   #    thenPart
   #  lab1:
-  block:
-      let it = n
-      withDest(tmp):
-        var start: TPosition
-        if isNotOpr(c.env, it[0]):
-          c.gen(it[0][1], tmp)
-          start = c.xjmp(it[0][1], opcTJmp, tmp) # if true
-        else:
-          c.gen(it[0], tmp)
-          start = c.xjmp(it[0], opcFJmp, tmp) # if false
-
-      # the 'if' opens a block, which the corresponding 'end' closes
-      pushBlock(c): BlockInfo(kind: bkBlock, label: it[1].label, start: start)
+  c.operand(n[0])
+  let start = c.xjmp(n[0], opcBranch) # if false
+  # the 'if' opens a block, which the corresponding 'end' closes
+  pushBlock(c): BlockInfo(kind: bkBlock, label: n[1].label, start: start)
 
 # XXX `rawGenLiteral` should be a func, but can't due to `internalAssert`
 proc rawGenLiteral(c: var TCtx, val: sink VmConstant): int =
   result = c.constants.len
   c.constants.add val
-  internalAssert c.config, result < regBxMax, "Too many constants used"
-
+  # internalAssert c.config, result < regBxMax, "Too many constants used"
 
 template cmpFloatRep(a, b: BiggestFloat): bool =
   ## Compares the bit-representation of floats `a` and `b`
@@ -811,31 +653,16 @@ template cmpFloatRep(a, b: BiggestFloat): bool =
   # if a.floatVal == 0.0: result = cast[uint64](a.floatVal) == cast[uint64](b.floatVal)
   # else: result = a.floatVal == b.floatVal
 
-# Compares two trees for structural equality, also taking the type of
-# ``nkType`` nodes into account. This procedure is used to prevent the same
-# AST from being added as a node constant more than once
-makeTreeEquivalenceProc(cmpNodeCnst,
-  relaxedKindCheck = false,
-  symCheck     = a.sym == b.sym,
-  floatCheck   = cmpFloatRep(a.floatVal, b.floatVal),
-  typeCheck    = a.typ == b.typ,
-  commentCheck = a.comment == b.comment
-)
-
-template makeCnstFunc(name, vType, aKind, valName, cmp) {.dirty.} =
+template makeCnstFunc(name, vType, aKind, cmp) {.dirty.} =
   proc name(c: var TCtx, val: vType): int =
     for (i, cnst) in c.constants.pairs():
-      if cnst.kind == aKind and cmp(cnst.valName, val):
+      if cnst.typ == aKind and cmp(cast[vType](cnst.val), val):
         return i
 
-    c.rawGenLiteral: VmConstant(kind: aKind, valName: val)
+    c.rawGenLiteral: VmConstant(typ: aKind, val: cast[StackValue](val))
 
-
-makeCnstFunc(toNodeCnst, PNode, cnstNode, node, cmpNodeCnst)
-
-makeCnstFunc(toIntCnst, BiggestInt, cnstInt, intVal, `==`)
-
-makeCnstFunc(toFloatCnst, BiggestFloat, cnstFloat, floatVal, cmpFloatRep)
+makeCnstFunc(toIntCnst, BiggestInt, akInt, `==`)
+makeCnstFunc(toFloatCnst, BiggestFloat, akFloat, cmpFloatRep)
 
 proc toIntCnst(c: var TCtx, val: Int128): int =
   # integer constants are stored as their raw bit representation
@@ -848,139 +675,94 @@ proc genLiteral(c: var TCtx, n: CgNode): int =
   of cnkFloatLit: toFloatCnst(c, n.floatVal)
   else:           unreachable(n.kind)
 
-template fillSliceList[T](sl: var seq[Slice[T]], nodes: openArray[CgNode],
-                          get: untyped) =
-  sl.newSeq(nodes.len)
+proc dup(c: var TCtx, info: TLineInfo) =
+  # TODO: duplicate the instruction instead, if applicable
+  c.instr(info, opcDup, imm8 1)
 
-  template getIt(n): untyped =
-    block:
-      let it {.cursor, inject.} = n
-      get
+proc drop(c: var TCtx, info: TLineInfo) =
+  # TODO: drop the previous instruction, if possible (when it has no side
+  #       effects)
+  c.instr(info, opcDrop)
 
-  for (i, n) in nodes.pairs:
-    sl[i] =
-      if n.kind == cnkRange:
-        getIt(n[0]) .. getIt(n[1])
-      else:
-        let e = getIt(n)
-        e .. e
-
-proc genBranchLit(c: var TCtx, n: CgNode, t: PType): int =
-  ## Turns the slice-list or single literal of the given `cnkBranch` into
-  ## a constant and returns its index in `c.constant`.
-  ##
-  ## slice-lists are always added as a new constant while single literals
-  ## are reused
-
-  # XXX: slice-list constants (maybe `VmConstant`s in general) should be
-  #      stored in a `BiTable` so that it can be easily detected if they
-  #      already exist
-  assert t.kind in IntegralTypes+{tyString}
-
-  if n.len == 2 and n[0].kind in cnkLiterals:
-    # It's an 'of' branch with a single value
-    result = c.genLiteral(n[0])
+proc capture(c: var TCtx, info: TLineInfo, kind: TSlotKind): Temp =
+  if c.code.len > 0 and c.code[^1].opcode == opcGetLocal:
+    result = Temp(slot: c.code[^1].imm32, isReal: false)
+    c.code.setLen(c.code.len - 1)
+    c.debug.setLen(c.debug.len - 1)
+  elif c.code.len > 0 and c.code[^1].opcode == opcSetLocal:
+    result = Temp(slot: c.code[^1].imm32, isReal: false)
+    patchOpcode(c.code[^1], opcPopLocal)
   else:
-    # It's an 'of' branch with multiple and/or range values
-    var cnst: VmConstant
+    result = Temp(slot: c.getTemp(kind).int32, isReal: true)
+    c.instr(info, opcPopLocal, result.slot)
 
-    template values: untyped =
-      n.kids.toOpenArray(0, n.kids.high - 1) # -1 for the branch body
-
-    case t.kind
-    of IntegralTypes-{tyFloat..tyFloat64}:
-      cnst = VmConstant(kind: cnstSliceListInt)
-      cnst.intSlices.fillSliceList(values):
-        it.intVal
-
-    of tyFloat..tyFloat64:
-      cnst = VmConstant(kind: cnstSliceListFloat)
-      cnst.floatSlices.fillSliceList(values):
-        it.floatVal
-
-    else:
-      unreachable(t.kind)
-
-    result = c.rawGenLiteral(cnst)
-
-proc genBranchLit(c: var TCtx, n: PNode): int =
-  ## Compatibility overload that accepts a ``PNode``. Only branches with
-  ## integer values are supported.
-  if n.len == 2 and n[0].kind != nkRange:
-    toIntCnst(c, n[0].intVal)
+proc getLocal(c: var TCtx, info: TLineInfo, name: int32) =
+  if not(c.prc.pastJoin) and c.code.len > 0 and c.code[^1].opcode == opcPopLocal and c.code[^1].imm32 == name:
+    c.code.setLen(c.code.len - 1)
+    c.debug.setLen(c.debug.len - 1)
+    c.instr(info, opcSetLocal, imm32 name)
   else:
-    var sl = VmConstant(kind: cnstSliceListInt)
-    sl.intSlices.newSeq(n.len - 1)
-    for i, it in sliceIt(n.sons, 0, n.len-2):
-      sl.intSlices[i] =
-        if it.kind == nkRange: it[0].intVal .. it[1].intVal
-        else:                  it.intVal .. it.intVal
+    c.instr(info, opcGetLocal, imm32 name)
 
-    c.rawGenLiteral(sl)
-
-proc unused(c: TCtx; n: CgNode; x: TDest) {.inline.} =
-  if x >= 0:
-    fail(n.info, vmGenDiagNotUnused, PNode(nil))
+proc builtin(c: var TCtx, name: string, n: CgNode) =
+  for i in 1..<n.len:
+    c.operand(n[i])
+  c.instr(n.info, opcCall, imm32 c.builtinMaps[name], imm16 n.len-1)
+proc builtin(c: var TCtx, info: TLineInfo, name: string, num: int) =
+  c.instr(info, opcCall, imm32 c.builtinMaps[name], imm16 num)
 
 proc genCase(c: var TCtx; n: CgNode) =
   let selType = n[0].typ.skipTypes(abstractVarRange)
-  withDest(tmp):
-    c.gen(n[0], tmp)
-
+  c.operand(n[0])
+  let tmp = c.capture(n.info, getSlotKind(n[0].typ))
+  block:
     # iterate of/else branches
     for i in 1..<n.len:
       let branch = n[i]
       if isOfBranch(branch):
+        let
+          exit = branch[^1].label
         if selType.kind == tyString:
           # special handling for string case statements: generate a sequence
           # of comparisons
-          let
-            cond = c.getTemp(slotTempInt)
-            exit = branch[^1].label
 
           for j in 0..<branch.len - 1:
-            let
-              it = branch[j]
-              val = c.genx(it)
+            let it = branch[j]
+            c.getLocal(it.info, tmp.slot)
+            c.operand(it)
             # generate: ``if tmp == label: goto body``
-            c.gABC(it, opcEqStr, cond, tmp, val)
-            c.prc.exits.add (exit, c.xjmp(it, opcTJmp, cond))
-            c.freeTemp(val)
+            c.builtin(it.info, "__builtin_eqStr", 2)
+            c.prc.exits.add (exit, c.xjmp(it, opcBranch, 1))
 
-          c.freeTemp(cond)
         else:
           # branch tmp, codeIdx
           # tjmp   thenLabel
-          let b = genBranchLit(c, branch, selType)
-          c.gABx(branch, opcBranch, tmp, b)
-          c.prc.exits.add (branch[^1].label, c.xjmp(branch, opcTJmp, tmp))
+          for j in 0..<branch.len - 1:
+            let it = branch[j]
+            if it.kind == cnkRange:
+              c.operand(it[0])
+              c.getLocal(it.info, tmp.slot)
+              c.instr(it.info, opcLeInt)
+              c.instr(it.info, opcGetLocal, tmp.slot)
+              # XXX: use a branch instead?
+              c.operand(it[1])
+              c.instr(it.info, opcLeInt)
+              c.instr(it.info, opcBitAnd)
+            else:
+              c.getLocal(it.info, tmp.slot)
+              c.operand(it)
+              c.instr(it.info, opcEqInt)
+            c.prc.exits.add (exit, c.xjmp(it, opcBranch, 1))
 
       else:
         # else stmt:
         c.prc.exits.add (branch[0].label, c.xjmp(branch.lastSon, opcJmp))
+  c.freeTemp(tmp)
 
 proc genType(c: var TCtx; typ: PType; noClosure = false): int =
   ## Returns the ID of `typ`'s corresponding `VmType` as an `int`. The
   ## `VmType` is created first if it doesn't exist already
-  let t = c.getOrCreate(typ, noClosure)
-  # XXX: `getOrCreate` doesn't return the id directly yet. Once it does, the
-  #      linear search below can be removed
-  result = c.typeInfoCache.types.find(t)
-  assert result != -1
-
-  internalAssert(c.config, result <= regBxMax, "")
-
-proc genTypeInfo(c: var TCtx, typ: PType): int =
-  ## Returns the stable index into `TCtx.rtti` where `typ`'s corresponding
-  ## `VmTypeInfo` is located. If it doesn't exist yet, it is created first
-  for i, t in c.rtti.pairs:
-    if sameType(t.nimType, typ): return i
-
-  result = c.rtti.len
-  c.rtti.add:
-    VmTypeInfo(nimType: typ, internal: c.getOrCreate(typ))
-
-  internalAssert(c.config, result <= regBxMax, "")
+  result = c.getOrCreate(typ, noClosure).int
 
 proc genEhCodeAux(c: var TCtx, n: CgNode) =
   ## Emits the EH instruction for a single action of a jump target list.
@@ -1066,251 +848,139 @@ proc genFinally(c: var TCtx, n: CgNode) =
 
   pushBlock(c): BlockInfo(kind: bkFinally, label: n[0].label, start: pc)
 
-  let control = c.getTemp(slotTempInt)
+  let control = c.getTemp(slotInt)
   c.patch(n[0].label) # patch the jumps targeting the finally
-  c.gABC(n, opcFinally, control)
+  c.instr(n.info, opcFinally, imm32 control)
   # the control register is freed at the end of the finally section
 
 proc genRaise(c: var TCtx; n: CgNode) =
   if n[0].kind != cnkEmpty:
-    let dest = c.genx(n[0])
+    c.operand(n[0])
     c.registerEh(n[^1])
-    c.gABI(n, opcRaise, dest, 0, imm=0)
-    c.freeTemp(dest)
+    c.instr(n.info, opcRaise, imm8 0)
   else:
     # reraise
     c.registerEh(n[^1])
-    c.gABI(n, opcRaise, 0, 0, imm=1)
-
-proc writeBackResult(c: var TCtx, info: CgNode) =
-  ## If the result value fits into a register but is not stored in one
-  ## (because it has its address taken, etc.), emits the code for storing it
-  ## back into a register. `info` is only used to provide line information.
-  let typ = c.env[c.prc.body[resultId].typ]
-  if not isEmptyType(typ) and fitsRegister(typ) and not isDirectView(typ) and
-     c.prc[resultId].isIndirect:
-      # a write-back is required. Load the value into temporary register and
-      # then do a register move
-      let
-        tmp = c.getTemp(typ)
-        dest = c.prc[resultId].reg
-      c.genRegLoad(info, typ, tmp, dest)
-      c.gABC(info, opcFastAsgnComplex, dest, tmp)
-      c.freeTemp(tmp)
-
-proc genLit(c: var TCtx; n: CgNode; lit: int; dest: var TDest) =
-  ## `lit` is the index of a constant as returned by `genLiteral`
-  # load the literal into the *register*
-  prepare(c, dest, n.typ)
-  c.gABx(n, opcLdConst, dest, lit)
-
-proc genLit(c: var TCtx; n: CgNode; dest: var TDest) =
-  let lit = genLiteral(c, n)
-  genLit(c, n, lit, dest)
-
-
-proc genProcLit(c: var TCtx, n: CgNode; dest: var TDest) =
-  if dest.isUnset or c.prc.regInfo[dest].kind == slotTempUnknown:
-    # ``prepare`` wouldn't work here, as we need to use the internal type
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABx(n, opcLdNull, dest, c.genType(n.typ, noClosure=true))
-
-  # the ID of the procedure also represents its table index
-  c.gABx(n, opcWrProc, dest, int(n.prc))
-
-proc genCall(c: var TCtx; n: CgNode; dest: var TDest) =
-  var res = dest
-  # an intermediate temporary might be needed
-  if isEmptyType(n.typ):
-    unused(c, n, dest)
-  elif res.isUnset or (n.kind == cnkCheckedCall and not isEmpty(c.prc, res)):
-    # for potentially raising calls, disable in-place construction for the
-    # return value
-    # XXX: this needs to be the responsibility of the MIR phase instead
-    res = noDest
-    prepare(c, res, n, n.typ)
-  else:
-    res = dest # in-place construction is safe
-
-  let
-    fntyp = skipTypes(n[0].typ, abstractInst)
-    operands = numArgs(n) + 1
-    regCount = operands + ord(fntyp.callConv == ccClosure)
-    x = c.prc.getTempRange(regCount, slotTempUnknown)
-
-  # generate the code for the callee:
-  if fntyp.callConv == ccClosure:
-    # unpack the closure (i.e., tuple): the proc goes into the callee
-    # slot, while the environment pointer goes into the last argument
-    # slot
-    if n[0].kind == cnkClosureConstr:
-      # optimization: don't allocate a temporary but place the values into
-      # the respective registers directly
-      # XXX: dead code, but should be restored
-      c.gen(n[0][0], x+0)
-      c.gen(n[0][1], x+operands)
-    else:
-      let
-        tmp = c.genx(n[0])
-        tmp2 = c.getTemp(slotTempComplex)
-      c.gABC(n[0], opcLdObj, x+0, tmp, 0)
-      # use a full assignment in order for the environment to stay alive during
-      # the call
-      c.gABC(n[0], opcLdObj, tmp2, tmp, 1)
-      c.gABC(n[0], opcAsgnComplex, x+operands, tmp2)
-      c.freeTemp(tmp2)
-      c.freeTemp(tmp)
-  else:
-    c.gen(n[0], x+0)
-
-  # varargs need 'opcSetType' for the FFI support:
-  for i in 1..<operands:
-    # skip empty arguments (i.e. arguments to compile-time parameters that
-    # were omitted):
-    if n[i].kind == cnkEmpty:
-      continue
-
-    var r: TRegister = x+i
-    if n[i].typ.skipTypes(abstractInst).kind == tyRef and
-       n[i].kind != cnkNilLit:
-      # ``ref`` values are always stored in VM memory, meaning that we're
-      # getting a handle to it here. Lots of code is written under the
-      # assumption that a ``ref`` is always uses pass-by-value (instead of
-      # pass-by-reference), so a copy is explicitly introduced
-      # TODO: ``ref`` values should use ``rkAddress`` registers and then we
-      #       no longer need the logic here. For the former to work, pseudo
-      #       lifetime-hooks would need to be inserted for ``ref``s used in
-      #       compile-time code, even when ``--gc:none`` is used
-      let tmp = c.genx(n[i])
-      c.gABC(n[i], opcAsgnComplex, r, tmp)
-      c.freeTemp(tmp)
-    elif n[i].kind == cnkConst and i < fntyp.len and
-         fntyp[i].kind == tySink and fntyp[i][0].kind == tyString:
-      # HACK: passing a string literal (lifted into a constant) directly to a
-      #       sink parameter is wrong, since it allows the callee to modify the
-      #       constant data; a copy has to be introduced. This needs to
-      #       eventually be fixed in ``mirgen``, by introducing a intermediate
-      #       temporary for the argument
-      let tmp = c.genx(n[i])
-      c.gABC(n[i], opcAsgnComplex, r, tmp)
-      c.freeTemp(tmp)
-    else:
-      c.gen(n[i], r)
-
-    if i >= fntyp.len:
-      internalAssert(c.config, tfVarargs in fntyp.flags)
-      c.gABx(n, opcSetType, r, c.genType(n[i].typ))
-
-  if n.kind == cnkCheckedCall:
-    c.registerEh(n[^1])
-
-  if res.isUnset:
-    c.gABC(n, opcIndCall, 0, x, operands)
-  else:
-    c.gABC(n, opcIndCallAsgn, res, x, operands)
-
-  if res != dest:
-    if dest.isUnset:
-      dest = res
-    else:
-      # copy the value to the actual destination
-      if fitsRegister(n.typ):
-        c.gABC(n, whichAsgnOpc(n.typ), dest, res)
-      elif isDirectView(n.typ):
-        c.gABC(n, opcFastAsgnComplex, dest ,res)
-      else:
-        c.gABC(n, opcWrLoc, dest, res)
-      c.freeTemp(res)
-
-  c.freeTempRange(x, regCount)
-
-proc genField(c: TCtx; n: CgNode): TRegister =
-  assert n.kind == cnkField
-
-  let s = n.field
-  if s.position > high(typeof(result)):
-    fail(n.info, vmGenDiagTooLargeOffset, sym = s)
-
-  result = s.position
-
-proc genIndex(c: var TCtx; n: CgNode; arr: PType): TRegister =
-  if arr.skipTypes(abstractInst).kind == tyArray and (let x = firstOrd(c.config, arr);
-      x != Zero):
-    let tmp = c.genx(n)
-    # freeing the temporary here means we can produce:  regA = regA - Imm
-    c.freeTemp(tmp)
-    result = c.getTemp(n.typ)
-    c.gABI(n, opcSubImmInt, result, tmp, toInt(x))
-  else:
-    result = c.genx(n)
-
-proc genNarrowUnsigned(c: var TCtx; info: TLineInfo, typ: PType,
-                       dest: TRegister)
-
-proc genRegLoad(c: var TCtx, n: CgNode, typ: PType, dest, src: TRegister) =
-  c.gABC(n, opcNodeToReg, dest, src)
-  genNarrowUnsigned(c, n.info, typ, dest)
-
-proc genRegLoad(c: var TCtx, n: CgNode, dest, src: TRegister) {.inline.} =
-  genRegLoad(c, n, n.typ, dest, src)
-
-proc genFieldCheck(c: var TCtx; n: CgNode)
-proc genSym(c: var TCtx, n: CgNode, dest: var TDest, load = true)
+    c.instr(n.info, opcRaise, imm8 1)
 
 func usesRegister(c: TCtx, s: LocalId): bool =
   ## Returns whether the location identified by `s` is backed by a register
   ## (that is, whether the value is stored in a register directly)
   fitsRegister(c.env[c.prc.body[s].typ]) and not c.prc[s].isIndirect
 
-proc genNew(c: var TCtx; n: CgNode, dest: var TDest) =
-  prepare(c, dest, n, n.typ)
-  c.gABx(n, opcNew, dest,
-         c.genType(n.typ.skipTypes(abstractInst-{tyTypeDesc})))
-  c.freeTemp(dest)
+proc writeBackResult(c: var TCtx, info: TLineInfo) =
+  ## If the result value is stored in a memory location (because it has its
+  ## address taken, etc.), emits the code for storing it back into a
+  ## register.
+  let typ = c.env[c.prc.body[resultId].typ]
+  if not isEmptyType(typ) and fitsRegister(typ):
+    c.getLocal(info, imm32 c.prc[resultId].slot)
+    if not usesRegister(c, resultId):
+      c.load(info, typ)
 
-proc genNewSeq(c: var TCtx; n: CgNode) =
-  let t = n[1].typ.skipTypes(abstractVar)
-  assert t.kind == tySequence
-  let
-    dest = c.genLvalue(n[1]) # ``seq`` argument
-    len = c.genx(n[2])  # length argument
-  c.gABx(n, opcNewSeq, dest, c.genType(t))
-  c.gABx(n, opcNewSeq, len, 0)
-  c.freeTemp(len)
-  c.freeTemp(dest)
+proc genLit(c: var TCtx; n: CgNode) =
+  let lit = genLiteral(c, n)
+  c.instr(n.info, opcLdConst, imm32 lit)
 
-proc genNewSeqOfCap(c: var TCtx; n: CgNode; dest: var TDest) =
-  prepare(c, dest, n, n.typ)
+proc genProcLit(c: var TCtx, n: CgNode) =
+  c.instr(n.info, opcLdImmInt, imm32 c.map[n.prc].toFuncPtr)
 
-  let tmp = c.getTemp(n[1].typ)
-  c.gABx(n, opcLdImmInt, tmp, 0)
-  c.gABx(n, opcNewSeq, dest, c.genType(n.typ))
-  c.gABx(n, opcNewSeq, tmp, 0)
-  c.freeTemp(tmp)
+import compiler/ast/typesrenderer
 
-proc genUnaryABC(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode) =
-  prepare(c, dest, n, n.typ)
-  let tmp = c.genx(n[1])
-  c.gABC(n, opc, dest, tmp)
-  c.freeTemp(tmp)
+proc sizeof(c: TCtx, typ: PType): int =
+  result = getSize(c.config, typ).int
+  assert result >= 0, $typ
 
-proc genUnaryABI(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode; imm: BiggestInt=0) =
-  prepare(c, dest, n, n.typ)
-  let tmp = c.genx(n[1])
-  c.gABI(n, opc, dest, tmp, imm)
-  c.freeTemp(tmp)
+proc genCall(c: var TCtx; n: CgNode; withResultParam = false) =
+  # an intermediate temporary might be needed
+  var num = ord(withResultParam)
+  let fntyp = n[0].typ.skipTypes(IrrelevantTypes)
 
+  for i in 1..<(1 + numArgs(n)):
+    # skip empty arguments (i.e. arguments to compile-time parameters that
+    # were omitted):
+    if n[i].kind != cnkEmpty:
+      inc num
+      c.operand(n[i])
 
-proc genBinaryABC(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode) =
-  prepare(c, dest, n, n.typ)
-  let
-    tmp = c.genx(n[1])
-    tmp2 = c.genx(n[2])
-  c.gABC(n, opc, dest, tmp, tmp2)
-  c.freeTemp(tmp)
-  c.freeTemp(tmp2)
+  # the run-time callee operands come *after* the arguments
+  if fntyp.callConv == ccClosure:
+    # unpack the closure (i.e., tuple)
+    c.operand(n[0])
+    c.dup(n[0].info)
+    c.instr(n[0].info, opcLdInt64, imm32 8) # env
+    c.instr(n[0].info, opcSwap)
+    c.instr(n[0].info, opcLdInt64, imm32 0) # proc pointer
+  elif n[0].kind != cnkProc:
+    c.operand(n[0])
 
-proc genNarrow(c: var TCtx; n: CgNode; dest: TRegister; sNarrow = opcNarrowS) =
+  if n.kind == cnkCheckedCall:
+    c.registerEh(n[^1])
+
+  if n[0].kind == cnkProc:
+    c.instr(n.info, opcCall, imm32 c.map[n[0].prc], imm16 num)
+  elif fntyp.callConv == ccClosure:
+    c.instr(n.info, opcIndCallCl, imm32 c.genType(n[0].typ, noClosure=true), imm16 num)
+  else:
+    c.instr(n.info, opcIndCall, imm32 c.genType(n[0].typ), imm16 num)
+
+proc offsetof(c: TCtx, typ: PType, n: CgNode): int =
+  discard getSize(c.config, typ) # make sure offsets were computed
+  result = n.field.offset
+
+proc offsetof(c: TCtx, typ: PType, i: int): int =
+  let x = c.typeInfoCache.lookup(typ).unsafeGet
+  result = c.types.fields[c.types[x].a.int + i].off.int
+
+proc addImm(c: var TCtx, info: TLineInfo, val: Int128) =
+  # TODO: coalesce with preceding AddImm instructions
+  if val == 0:
+    discard "would be a no-op; do nothing"
+  elif val >= low(int32) and val <= high(int32):
+    c.instr(info, opcAddImm, toInt32(val))
+  else:
+    c.instr(info, opcLdConst, imm32 c.toIntCnst(val))
+    c.instr(info, opcAddInt)
+
+proc genIndex(c: var TCtx; n: CgNode; arr: PType) =
+  c.operand(n)
+  if arr.skipTypes(abstractInst).kind == tyArray and (let x = firstOrd(c.config, arr);
+      x != Zero):
+    c.addImm(n.info, -x)
+
+proc genNarrowUnsigned(c: var TCtx; info: TLineInfo, typ: PType)
+
+proc rawLoad(c: var TCtx, info: TLineInfo, opc: TOpcode) =
+  # if c.code.len > 0 and c.code[^1].opcode == opcAddImm:
+  #   patchOpcode(c.code[^1], opc)
+  # else:
+  # TODO: the above optimization should help quite a bit, but it does the
+  #       opposite! Investigate why
+  c.instr(info, opc)
+
+proc load(c: var TCtx, info: TLineInfo, typ: PType) =
+  let size = getSize(c.config, typ)
+  case typ.skipTypes(IrrelevantTypes).kind
+  of tyFloat32..tyFloat64:
+    if size == 8:
+      c.rawLoad(info, opcLdFlt32)
+    else:
+      c.rawLoad(info, opcLdFlt64)
+  else:
+    case size
+    of 8: c.rawLoad(info, opcLdInt64)
+    of 4: c.rawLoad(info, opcLdInt32)
+    of 2: c.rawLoad(info, opcLdInt16)
+    of 1: c.rawLoad(info, opcLdInt8)
+    else: unreachable()
+
+    if not isUnsigned(typ) and size < 8:
+      # sign-extend to the full register width
+      c.instr(info, opcSignExtend, imm8 size*8)
+
+proc genSym(c: var TCtx, n: CgNode, load = true)
+
+proc genNarrow(c: var TCtx; n: CgNode) =
   ## If required for the type of `n`, emits a narrow/masking instruction for
   ## the value in `dest`. `sNarrow` is the opcode to use for signed integers.
   let
@@ -1318,103 +988,44 @@ proc genNarrow(c: var TCtx; n: CgNode; dest: TRegister; sNarrow = opcNarrowS) =
     size = getSize(c.config, t)
   if size < 8:
     # the value doesn't occupy the full register's range
-    let op =
-      if isUnsigned(t): opcNarrowU
-      else:             sNarrow
-    c.gABC(n, op, dest, TRegister(size*8))
+    if isUnsigned(t):
+      c.instr(n.info, opcMask, imm8 (size*8))
+    else:
+      c.instr(n.info, opcSignExtend, imm8 size*8)
 
-proc genNarrowU(c: var TCtx; n: CgNode; dest: TDest) {.inline.} =
+proc genNarrowU(c: var TCtx; n: CgNode) {.inline.} =
   # always mask the value, even if of signed type
-  genNarrow(c, n, dest, opcNarrowU)
+  let size = getSize(c.config, skipTypes(n.typ, IrrelevantTypes + {tyRange}))
+  if size < 8:
+    c.instr(n.info, opcMask, imm8 (size*8))
 
-proc genNarrowUnsigned(c: var TCtx; info: TLineInfo, typ: PType,
-                       dest: TRegister) =
+proc genNarrowUnsigned(c: var TCtx; info: TLineInfo, typ: PType) =
   ## Only masks the value in `dest` (with ``opcNarrowU``) if `typ` is an
   ## unsigned integer type.
   let t = skipTypes(typ, IrrelevantTypes + {tyRange})
   if isUnsigned(t) and (let size = getSize(c.config, t); size < 8):
-    c.gABC(info, opcNarrowU, dest, TRegister(size * 8))
+    c.instr(info, opcMask, imm8 size * 8)
 
-proc genBinaryABCnarrow(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode) =
-  genBinaryABC(c, n, dest, opc)
-  genNarrow(c, n, dest)
+proc binary(c: var TCtx, info: TLineInfo, op: Opcode, a, b: CgNode) =
+  c.operand(a)
+  c.operand(b)
+  c.instr(info, op)
 
-proc genBinaryABCnarrowU(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode) =
-  genBinaryABC(c, n, dest, opc)
-  genNarrowU(c, n, dest)
+proc binary(c: var TCtx, op: Opcode, e: CgNode) =
+  binary(c, e.info, op, e[1], e[2])
 
-proc genBinarySet(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode) =
-  prepare(c, dest, n, n.typ)
-  let
-    tmp = c.genx(n[1])
-    tmp2 = c.genx(n[2])
-  c.gABC(n, opc, dest, tmp, tmp2)
-  c.freeTemp(tmp)
-  c.freeTemp(tmp2)
-
-proc genBinaryStmt(c: var TCtx; n: CgNode; opc: TOpcode) =
-  let
-    dest = c.genx(n[1])
-    tmp = c.genx(n[2])
-  c.gABC(n, opc, dest, tmp, 0)
-  c.freeTemp(tmp)
-  c.freeTemp(dest)
-
-proc genBinaryStmtVar(c: var TCtx; n: CgNode; opc: TOpcode) =
-  let
-    dest = c.genLvalue(n[1])
-    tmp = c.genx(n[2])
-  c.gABC(n, opc, dest, tmp, 0)
-  c.freeTemp(tmp)
-  c.freeTemp(dest)
-
-proc genParseOp(c: var TCtx; n: CgNode; dest: var TDest,
-                opc: range[opcParseExprToAst..opcParseStmtToAst]) =
-  ## Generates the code for a ``parseExpr``/``parseStmt`` magic call
-  if dest.isUnset:
-    dest = c.getTemp(n.typ)
-
-  # the second parameter is a ``var`` parameter. We want to access the
-  # register directly, so the used addr operation is skipped (if it hasn't
-  # been eliminated by ``transf``)
-  var x = n[2]
-  if x.kind == cnkHiddenAddr:
-    x = x.operand
-
-  let
-    in1 = c.genx(n[1])
-    in2 = c.genx(x)
-
-  c.gABC(n, opc, dest, in1, in2)
-  c.freeTemp(in1)
-  c.freeTemp(in2)
-
-proc genVarargsABC(c: var TCtx; n: CgNode; dest: TRegister; opc: TOpcode) =
-  var x = c.prc.getTempRange(n.len-1, slotTempUnknown)
-  for i in 1..<n.len:
-    var r: TRegister = x+i-1
-    c.gen(n[i], r)
-  c.gABC(n, opc, dest, x, n.len-1)
-  c.freeTempRange(x, n.len-1)
-
-proc isInt8Lit(n: CgNode): bool =
-  ## Returns whether `n` represents an integer value (signed or
-  ## unsigned) that fits into the range of an 8-bit signed integer.
-  if n.kind in {cnkIntLit, cnkUIntLit}:
-    let val = getInt(n)
-    result = val >= low(int8) and val <= high(int8)
-
-proc genAddSubInt(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode) =
-  if n[2].isInt8Lit:
-    let tmp = c.genx(n[1])
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABI(n, succ(opc), dest, tmp, n[2].intVal)
-    c.freeTemp(tmp)
+proc genAddSubInt(c: var TCtx, n: CgNode, opc: Opcode) =
+  if n[2].kind in {cnkIntLit, cnkUIntLit}:
+    c.operand(n[1])
+    var v = getInt(n[2])
+    if opc == opcSubInt:
+      v = -v
+    c.addImm(n.info, v)
   else:
-    genBinaryABC(c, n, dest, opc)
-  c.genNarrow(n, dest)
+    c.binary(opc, n)
+  c.genNarrow(n)
 
-proc genNumberConv(c: var TCtx, info: CgNode, dest, src: TRegister,
+proc genNumberConv(c: var TCtx, info: TLineInfo,
                    desttype, srctype: PType) =
   ## Generates and emits the code for an *unchecked* conversion between two
   ## numeric types.
@@ -1423,338 +1034,164 @@ proc genNumberConv(c: var TCtx, info: CgNode, dest, src: TRegister,
     Signed = {tyInt..tyInt64}
     Unsigned = {tyUInt..tyUInt64, tyChar, tyBool}
 
-  template payload(op: NumericConvKind): uint16 =
-    packedConvDesc(op, desttype.size.int, srctype.size.int)
-
   # things to keep in mind:
-  # - registers storing integer values have no notion of signed vs. unsigned
-  # - registers only store full-width integers and floats
+  # - stack operands have no notion of signed vs. unsigned
+  # - stack operands only store full-width integers and floats
   case desttype.kind
   of Signed:
     case srctype.kind
     of Floats:
-      c.gABC(info, opcNumConv, dest, src, payload(nckFToI))
+      c.instr(info, opcFloatToSInt, imm8 desttype.size)
     of Signed, Unsigned:
-      c.gABC(info, opcFastAsgnComplex, dest, src)
       if desttype.size < srctype.size:
-        c.gABC(info, opcSignExtend, dest, TRegister(desttype.size * 8))
+        c.instr(info, opcSignExtend, imm8 desttype.size * 8)
     else:
       unreachable()
   of Unsigned - {tyBool}:
     case srctype.kind
     of Floats:
-      c.gABC(info, opcNumConv, dest, src, payload(nckFToU))
+      c.instr(info, opcFloatToUint, imm8 desttype.size)
     of Unsigned:
-      c.gABC(info, opcFastAsgnComplex, dest, src)
       if desttype.size < srctype.size:
         # truncate to the new size:
-        c.gABC(info, opcNarrowU, dest, TRegister(desttype.size * 8))
+        c.instr(info, opcMask, imm8 (desttype.size * 8)-1)
     of Signed:
       # similar to the unsigned-to-unsigned case, but a narrow is also required
       # to "drop" the bits not part of the destination's bit range
       # XXX: this behaviour matches that of the C target, but truncating to the
       #      *source size* would make more sense
-      c.gABC(info, opcFastAsgnComplex, dest, src)
       if desttype.size < 8:
         # drop the bits past the destination's size
-        c.gABC(info, opcNarrowU, dest, TRegister(desttype.size * 8))
+        c.instr(info, opcMask, imm8 (desttype.size * 8)-1)
     else:
       unreachable()
   of Floats:
     let op =
       case srctype.kind
-      of Floats:   nckFToF
-      of Signed:   nckIToF
-      of Unsigned: nckUToF
+      of Floats:   missing("float narrow")
+      of Signed:   opcSIntToFloat
+      of Unsigned: opcUIntToFloat
       else:        unreachable()
 
-    c.gABC(info, opcNumConv, dest, src, payload(op))
+    c.instr(info, op, imm8 desttype.size)
   of tyBool:
-    c.gABC(info, opcNumConv, dest, src, payload(nckToB))
+    # compare the source operand against zero and invert
+    case srctype.kind
+    of Floats:
+      c.instr(info, opcLdImmFloat, imm32 0)
+      c.instr(info, opcEqFloat, imm8 1)
+    of Signed, Unsigned:
+      c.instr(info, opcLdImmInt, imm32 0)
+      c.instr(info, opcEqInt, imm8 1)
+    else:
+      unreachable()
+    c.instr(info, opcNot)
   else:
     unreachable()
 
-proc genConv(c: var TCtx; n, arg: CgNode; dest: var TDest) =
+proc genConv(c: var TCtx; n, arg: CgNode) =
   let
     a = skipTypes(n.typ, IrrelevantTypes + {tyRange})
     b = skipTypes(arg.typ, IrrelevantTypes + {tyRange})
   # we're not interested in range types here -- range checks are already
   # handled via ``opcRangeChck``
 
-  if sameLocationType(a, b) or {a.kind, b.kind} == {tyProc} or
-     a.kind == tyPointer:
-    # don't do anything for conversions that don't change the run-time type
-    # and lambda-lifting conversions
-    if fitsRegister(a):
-      gen(c, arg, dest)
-    else:
-      let tmp = genx(c, arg)
-      c.gABC(n, opcWrLoc, dest, tmp)
-      c.freeTemp(tmp)
-  else:
-    # a normal conversion that produces a new value of different type
-    prepare(c, dest, n, n.typ)
-    let tmp = c.genx(arg)
+  c.operand(arg)
+  # don't do anything for conversions that don't change the run-time type
+  if not sameLocationType(a, b):
     case a.kind
     of IntegralTypes:
-      # numeric type conversions don't use ``opcConv````
-      genNumberConv(c, n, dest, tmp, a, b)
-    of ConcreteTypes - IntegralTypes:
-      c.gABx(n, opcConv, dest, c.genTypeInfo(a))
-      c.gABx(n, opcConv, tmp, c.genTypeInfo(b))
+      genNumberConv(c, n.info, a, b)
+    of tyPointer:
+      discard "pointer conversion is a no-op"
     else:
-      unreachable()
+      unreachable(a.kind)
 
-    c.freeTemp(tmp)
+proc genCast(c: var TCtx; n: CgNode) =
+  const Signed = {tyInt..tyInt64, tyBool}
+  const Unsigned = {tyUInt..tyUInt64, tyChar, tyPtr, tyRef, tyPointer}
+  const Floats = {tyFloat..tyFloat64}
+  let src = n.operand.typ.skipTypes(IrrelevantTypes)
+  let dst = n.typ.skipTypes(IrrelevantTypes)
+  c.operand(n.operand)
 
-proc genToStr(c: var TCtx, n, arg: CgNode, dest: var TDest) =
-  # TODO: don't use ``opcConv`` for to-string conversions
-  # don't skip enum types
-  const Skip = IrrelevantTypes - {tyEnum}
-  prepare(c, dest, n, n.typ)
-  let tmp = c.genx(arg)
-  c.gABx(n, opcConv, dest, c.genTypeInfo(n.typ.skipTypes(Skip)))
-  c.gABx(n, opcConv, tmp, c.genTypeInfo(arg.typ.skipTypes(Skip)))
-  c.freeTemp(tmp)
+  if sameLocationType(src, dst):
+    return # nothing to do
 
-proc asgnOpenArray(c: var TCtx, n: CgNode, dest: TRegister) =
-  ## Emits an assignment of `n` to a location (`dest`) holding an
-  ## ``openArray``.
-  let
-    val = genx(c, n)
-    L = c.getTemp(c.graph.getSysType(n.info, tyInt))
-  c.gABC(n, opcLenSeq, L, val) # fetch the length of the input array
-  c.gABC(n, opcSetLenSeq, dest, L) # resize the destination
-  c.gABC(n, opcArrCopy, dest, val, L) # copy the contents
-  c.freeTemp(val)
-
-proc genToSlice(c: var TCtx, n: CgNode, dest: TRegister, reified: bool) =
-  if n.len == 1:
-    if reified:
-      # create a "real" slice. At the moment, this is just a seq
-      asgnOpenArray(c, n[0], dest)
-    elif n[0].kind in LvalueExprKinds:
-      var dest = TDest(dest)
-      genLvalue(c, n[0], dest)
-    else:
-      # creating a full slice from a literal; simply load it into the
-      # destination
-      if isEmpty(c.prc, dest):
-        # HACK: this is just bad. Assigning literals to temporaries at the
-        #       MIR level would make openArray handling quite a bit simpler
-        c.gABx(n, opcLdNull, dest, c.genType(n.typ))
-      gen(c, n[0], dest)
-  else:
-    # not yet supported
-    fail(n.info, vmGenDiagCodeGenUnhandledMagic, mSlice)
-
-proc genObjConv(c: var TCtx, n: CgNode, dest: var TDest) =
-  prepare(c, dest, n.typ)
-  let
-    tmp = genx(c, n.operand)
-    desttyp = n.typ.skipTypes(IrrelevantTypes)
-
-  case desttyp.kind
-  of tyRef, tyObject:
-    c.gABC(n, opcObjConv, dest, tmp)
-    c.gABx(n, opcObjConv, 0, c.genType(desttyp))
-  of tyPtr:
-    c.gABC(n, opcFastAsgnComplex, dest, tmp) # register copy
-    c.gABx(n, opcSetType, dest, c.genType(desttyp)) # set the new type
-  else:
-    unreachable()
-
-  c.freeTemp(tmp)
-
-proc genCard(c: var TCtx; n: CgNode; dest: var TDest) =
-  let tmp = c.genx(n[1])
-  if dest.isUnset: dest = c.getTemp(n.typ)
-  c.gABC(n, opcCard, dest, tmp)
-  c.freeTemp(tmp)
-
-func fitsRegisterConsiderView(t: PType): bool =
-  ## Returns whether a value of type `t` fits into a register, also
-  ## considering view-types that map to pointers.
-  # XXX: introduce a ``mapType`` (similar to the one used by the other code
-  #      generators) and base the "fits register" queries on that
-  let t = t.skipTypes(IrrelevantTypes)
-  fitsRegister(t) or
-    # is it a direct single-location view?:
-    t.kind in {tyVar, tyLent} and t.base.kind != tyOpenArray
-
-template needsRegLoad(): untyped =
-  mixin load
-  load and fitsRegisterConsiderView(n.typ)
-
-proc genCast(c: var TCtx, n, arg: CgNode, dest: var TDest) =
-  let
-    a = skipTypes(n.typ, IrrelevantTypes + {tyRange})
-    b = skipTypes(arg.typ, IrrelevantTypes + {tyRange})
-
-  if sameLocationType(a, b):
-    # treat the cast as a no-op if there's no change in run-time type
-    gen(c, arg, dest)
-  else:
-    # not supported yet
-    raiseVmGenError:
-      VmGenDiag(
-        kind: vmGenDiagCannotCast,
-        location: n.info,
-        instLoc: instLoc(-1),
-        typeMismatch: VmTypeMismatch(actualType: arg.typ, formalType: n.typ))
-
-proc genCastIntFloat(c: var TCtx; n: CgNode; dest: var TDest) =
-  const allowedIntegers = {tyInt..tyInt64, tyUInt..tyUInt64, tyChar}
-  var signedIntegers = {tyInt..tyInt64}
-  var unsignedIntegers = {tyUInt..tyUInt64, tyChar}
-  let src = n.operand.typ.skipTypes(abstractRange)#.kind
-  let dst = n.typ.skipTypes(abstractRange)#.kind
-  let srcSize = getSize(c.config, src)
   let dstSize = getSize(c.config, dst)
-  if src.kind in allowedIntegers and dst.kind in allowedIntegers:
-    let tmp = c.genx(n.operand)
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABC(n, opcAsgnInt, dest, tmp)
-    if dstSize != sizeof(BiggestInt): # don't do anything on biggest int types
-      if dst.kind in signedIntegers: # we need to do sign extensions
-        if dstSize <= srcSize:
-          # Sign extension can be omitted when the size increases.
-          c.gABC(n, opcSignExtend, dest, TRegister(dstSize*8))
-      elif dst.kind in unsignedIntegers:
-        if src.kind in signedIntegers or dstSize < srcSize:
-          # Cast from signed to unsigned always needs narrowing. Cast
-          # from unsigned to unsigned only needs narrowing when target
-          # is smaller than source.
-          c.gABC(n, opcNarrowU, dest, TRegister(dstSize*8))
-    c.freeTemp(tmp)
-  elif srcSize == dstSize and src.kind in allowedIntegers and
-                           dst.kind in {tyFloat, tyFloat32, tyFloat64}:
-    let tmp = c.genx(n.operand)
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    if dst.kind == tyFloat32:
-      c.gABC(n, opcCastIntToFloat32, dest, tmp)
-    else:
-      c.gABC(n, opcCastIntToFloat64, dest, tmp)
-    c.freeTemp(tmp)
 
-  elif srcSize == dstSize and src.kind in {tyFloat, tyFloat32, tyFloat64} and
-                           dst.kind in allowedIntegers:
-    let tmp = c.genx(n.operand)
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    if src.kind == tyFloat32:
-      c.gABC(n, opcCastFloatToInt32, dest, tmp)
-      if dst.kind in unsignedIntegers:
-        # integers are sign extended by default.
-        # since there is no opcCastFloatToUInt32, narrowing should do the trick.
-        c.gABC(n, opcNarrowU, dest, TRegister(32))
+  case dst.kind
+  of Signed:
+    case src.kind
+    of Signed: discard "ignore"
+    of Unsigned:
+      if dstSize < sizeof(BiggestInt):
+        c.instr(n.info, opcSignExtend, imm32 dstSize * 8)
+    of Floats:
+      if dstSize == 8:
+        c.instr(n.info, opcReinterpI64)
+      else:
+        c.instr(n.info, opcReinterpI32)
+        c.instr(n.info, opcSignExtend, imm8 32)
     else:
-      c.gABC(n, opcCastFloatToInt64, dest, tmp)
-      # narrowing for 64 bits not needed (no extended sign bits available).
-    c.freeTemp(tmp)
-  elif src.kind in PtrLikeKinds + {tyRef} and dst.kind == tyInt:
-    let tmp = c.genx(n.operand)
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    var imm: BiggestInt = if src.kind in PtrLikeKinds: 1 else: 2
-    c.gABI(n, opcCastPtrToInt, dest, tmp, imm)
-    c.freeTemp(tmp)
-  elif src.kind in PtrLikeKinds + {tyInt} and dst.kind in PtrLikeKinds:
-    let tmp = c.genx(n.operand)
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABC(n, opcCastIntToPtr, dest, tmp)
-    c.gABx(n, opcSetType, dest, c.genType(dst))
-    c.freeTemp(tmp)
-  elif src.kind == tyNil and dst.kind in NilableTypes:
-    # supports casting nil literals to NilableTypes in VM
-    # see #16024
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    let opcode = if fitsRegister(dst): opcLdNullReg else: opcReset
-    c.gABx(n, opcode, dest, c.genType(dst))
-  elif dst.kind == tyProc and dst.callConv != ccClosure and
-       n.operand.kind == cnkProc:
-    # casting a procedure literal to another type. This is the same as just
-    # loading the literal
-    genProcLit(c, n.operand, dest)
+      # load from the memory address
+      c.load(n.info, n.typ)
+  of Unsigned:
+    case src.kind
+    of Signed, Unsigned:
+      if dstSize < 8:
+        # mask out the upper bits
+        c.instr(n.info, opcMask, imm8 dstSize*8)
+    of Floats:
+      if dstSize == 8:
+        c.instr(n.info, opcReinterpI64)
+      else:
+        c.instr(n.info, opcReinterpI32)
+    else:
+      # load from the memory address
+      c.load(n.info, n.typ)
+  of Floats:
+    case src.kind
+    of Signed, Unsigned:
+      if dstSize < 8:
+        # mask out the upper bits
+        c.instr(n.info, opcMask, imm8 dstSize*8)
+    of Floats:
+      discard "illegal; ignore"
+    else:
+      # load from the memory address
+      c.load(n.info, n.typ)
   else:
-    # todo: support cast from tyInt to tyRef
-    raiseVmGenError:
-      VmGenDiag(
-        kind: vmGenDiagCannotCast,
-        location: n.info,
-        instLoc: instLoc(),
-        typeMismatch: VmTypeMismatch(actualType: dst, formalType: src))
+    # cast between complex types is a memcopy. To be safe, use the smaller size
+    c.instr(n.info, opcLdImmInt, imm32 min(c.sizeof(n.typ), c.sizeof(n.operand.typ)))
+    c.instr(n.info, opcMemCopy)
 
-proc genDataToAst(c: var TCtx, n: CgNode, dest: TRegister) =
-  ## Generates and emits the bytecode for evaluating the expression `n` and
-  ## deserializing the result to ``NimNode`` AST
-  let tmp = c.genx(n)
-  var typLit = TDest(-1)
-  c.genTypeLit(n, n.typ, typLit)
-  c.gABC(n, opcDataToAst, dest, tmp, typLit)
-  c.freeTemp(typLit)
-  c.freeTemp(tmp)
 
-proc genVoidABC(c: var TCtx, n: CgNode, dest: TDest, opcode: TOpcode) =
-  unused(c, n, dest)
-  var
-    tmp1 = c.genx(n[1])
-    tmp2 = c.genx(n[2])
-    tmp3 = c.genx(n[3])
-  c.gABC(n, opcode, tmp1, tmp2, tmp3)
-  c.freeTemp(tmp1)
-  c.freeTemp(tmp2)
-  c.freeTemp(tmp3)
-
-proc genVoidBC(c: var TCtx, n: CgNode, dest: TDest, opcode: TOpcode) =
-  ## Special convention used by some macrocache-related ops
-  unused(c, n, dest)
-  var
-    tmp1 = c.genx(n[1])
-    tmp2 = c.genx(n[2])
-  c.gABC(n, opcode, 0, tmp1, tmp2)
-  c.freeTemp(tmp1)
-  c.freeTemp(tmp2)
-
-proc loadInt(c: var TCtx, n: CgNode, dest: TRegister, val: Int128) =
+proc loadInt(c: var TCtx, info: TLineInfo, val: Int128) =
   ## Loads the integer `val` into `dest`, choosing the most efficient way to
   ## do so.
-  if val in regBxMin-1..regBxMax:
+  if val in low(int32)..high(int32):
     # can be loaded as an immediate
-    c.gABx(n, opcLdImmInt, dest, toInt(val))
+    c.instr(info, opcLdImmInt, imm32 toInt(val))
   else:
     # requires a constant
-    c.gABx(n, opcLdConst, dest, c.toIntCnst(val))
+    c.instr(info, opcLdConst, imm32 c.toIntCnst(val))
 
-proc genSetElem(c: var TCtx, n: CgNode, first: Int128): TRegister =
-  result = c.getTemp(n.typ)
-
+proc genSetElem(c: var TCtx, n: CgNode, first: Int128) =
   if first != 0:
     if n.kind in {cnkIntLit, cnkUIntLit}:
-      # a literal value. Since sem makes sure sets cannot store elements
-      # with an adjusted value of >= 2^16, we know that the result of the
-      # subtraction fits into the encodable range for ABX
-      c.gABx(n, opcLdImmInt, result, toInt(getInt(n) - first))
+      c.loadInt(n.info, getInt(n) - first)
     else:
-      gen(c, n, result)
-      if first notin -127..127:
-        # too large for the ABI encoding; we need to load a constant
-        let
-          typ = skipTypes(n.typ, IrrelevantTypes + {tyRange})
-          tmp = c.getTemp(typ)
-          opc =
-            if isUnsigned(typ): opcSubu
-            else:               opcSubInt
-        c.loadInt(n, tmp, first)
-        c.gABC(n, opc, result, result, tmp)
-        c.freeTemp(tmp)
-      elif first > 0:
-        c.gABI(n, opcSubImmInt, result, result, toInt(first))
-      else:
-        c.gABI(n, opcAddImmInt, result, result, toInt(-first))
+      c.operand(n)
+      # XXX: inefficient bytecode, but this should be handled by the MIR
+      #      anyway
+      c.loadInt(n.info, first)
+      c.instr(n.info, opcSubInt)
 
   else:
-    gen(c, n, result)
+    c.operand(n)
 
-proc genSetElem(c: var TCtx, n: CgNode, typ: PType): TRegister {.inline.} =
+proc genSetElem(c: var TCtx, n: CgNode, typ: PType) {.inline.} =
   ## `typ` is the type to derive the lower bound from
   let t = typ.skipTypes(abstractInst)
   assert t.kind == tySet
@@ -1766,486 +1203,357 @@ proc genSetElem(c: var TCtx, n: CgNode, typ: PType): TRegister {.inline.} =
   genSetElem(c, n, first)
 
 func fitsRegister(t: PType): bool =
-  let st = t.skipTypes(IrrelevantTypes + {tyRange})
-  st.kind in { tyBool, tyInt..tyUInt64, tyChar, tyPtr, tyPointer} or
-    (st.sym != nil and st.sym.magic == mPNimrodNode) # NimNode goes into register too
+  getSlotKind(t) != slotAddress
 
-proc genMagic(c: var TCtx; n: CgNode; dest: var TDest; m: TMagic) =
+proc unary(c: var TCtx, op: Opcode, n: CgNode) =
+  c.operand(n[1])
+  c.instr(n.info, op)
+
+proc binaryArithOverflow(c: var TCtx, op: Opcode, n: CgNode) =
+  c.operand(n[1])
+  c.operand(n[2])
+  c.instr(n.info, op)
+  c.prc.overflows.add c.xjmp(n, opcBranch, 1)
+
+proc binarySetOp(c: var TCtx, op: Opcode, n: CgNode) =
+  c.operand(n[1])
+  c.operand(n[2])
+  c.instr(n.info, op, imm32 c.sizeof(n[1].typ))
+
+proc binaryNarrowU(c: var TCtx, op: Opcode, n: CgNode) =
+  c.binary(op, n)
+  c.genNarrowUnsigned(n.info, n.typ)
+
+proc genMagic(c: var TCtx; n: CgNode; m: TMagic) =
   case m
   of mSubI:
-    c.genAddSubInt(n, dest, opcSubInt)
+    c.genAddSubInt(n, opcSubInt)
   of mAddI:
-    c.genAddSubInt(n, dest, opcAddInt)
-  of mOrd, mChr: c.gen(n[1], dest)
+    c.genAddSubInt(n, opcAddInt)
+  of mOrd, mChr:
+    c.operand(n[1])
   of mArrToSeq:
-    prepare(c, dest, n, n.typ)
-
-    let temp = c.genx(n[1])
-    let L = c.getTemp(c.graph.getSysType(n.info, tyInt))
-    c.gABC(n, opcLenSeq, L, temp)
-
-    c.gABC(n, opcSetLenSeq, dest, L)
-    c.gABC(n, opcArrCopy, dest, temp, L)
-    c.freeTemp(temp)
-    c.freeTemp(L)
-  of mIsolate:
-    genCall(c, n, dest)
-  of mNew:
-    c.genNew(n, dest)
-  of mNewSeq:
-    unused(c, n, dest)
-    c.genNewSeq(n)
-  of mNewSeqOfCap: c.genNewSeqOfCap(n, dest)
-  of mNewString:
-    genUnaryABC(c, n, dest, opcNewStr)
-    # XXX buggy
-  of mNewStringOfCap:
-    # we ignore the 'cap' argument and translate it as 'newString(0)'.
-    # eval n[1] for possible side effects:
-    prepare(c, dest, n, n.typ)
-    c.freeTemp(c.genx(n[1]))
-    var tmp = c.getTemp(n[1].typ)
-    c.gABx(n, opcLdImmInt, tmp, 0)
-    c.gABC(n, opcNewStr, dest, tmp)
-    c.freeTemp(tmp)
-    # XXX buggy
+    c.builtin("arrToSeq", n)
   of mLengthOpenArray, mLengthArray, mLengthSeq:
-    genUnaryABI(c, n, dest, opcLenSeq)
+    c.operand(n[1])
+    # the length is stored in the first field; load it
+    c.rawLoad(n.info, opcLdInt64)
   of mLengthStr:
     let t = n[1].typ.skipTypes(abstractInst)
     case t.kind
-    of tyString:  genUnaryABI(c, n, dest, opcLenStr)
-    of tyCstring: genUnaryABI(c, n, dest, opcLenCstring)
-    else:         unreachable(t.kind)
-  of mIncl, mExcl:
-    unused(c, n, dest)
-    let
-      d = c.genLvalue(n[1])
-      tmp = c.genSetElem(n[2], n[1].typ)
-    c.gABC(n, if m == mIncl: opcIncl else: opcExcl, d, tmp)
-    c.freeTemp(d)
-    c.freeTemp(tmp)
-  of mCard: genCard(c, n, dest)
-  of mMulI: genBinaryABCnarrow(c, n, dest, opcMulInt)
-  of mDivI: genBinaryABCnarrow(c, n, dest, opcDivInt)
-  of mModI: genBinaryABCnarrow(c, n, dest, opcModInt)
-  of mAddF64: genBinaryABC(c, n, dest, opcAddFloat)
-  of mSubF64: genBinaryABC(c, n, dest, opcSubFloat)
-  of mMulF64: genBinaryABC(c, n, dest, opcMulFloat)
-  of mDivF64: genBinaryABC(c, n, dest, opcDivFloat)
+    of tyString:
+      c.operand(n[1])
+      # the length is stored in the first field; load it
+      c.rawLoad(n.info, opcLdInt64)
+    of tyCstring:
+      c.builtin("lenCString", n)
+    else:
+      unreachable(t.kind)
+  of mIncl:
+    c.operand(n[1])
+    c.operand(n[2])
+    c.instr(n.info, opcIncl, imm32 c.sizeof(n[1].typ))
+  of mExcl:
+    c.operand(n[1])
+    c.operand(n[2])
+    c.instr(n.info, opcExcl, imm32 c.sizeof(n[1].typ))
+  of mCard:
+    c.operand(n[1])
+    c.loadInt(n.info, getSize(c.config, n[1].typ).toInt128)
+    c.builtin(n.info, "__card", 2)
+  of mMulI: c.binaryArithOverflow(opcMulChck, n)
+  of mDivI: c.binaryArithOverflow(opcDivChck, n)
+  of mModI: c.binaryArithOverflow(opcModChck, n)
+  of mAddF64: c.binary(opcAddFloat, n)
+  of mSubF64: c.binary(opcSubFloat, n)
+  of mMulF64: c.binary(opcMulFloat, n)
+  of mDivF64: c.binary(opcDivFloat, n)
   of mShrI:
     # modified: genBinaryABC(c, n, dest, opcShrInt)
     # narrowU is applied to the left operandthe idea here is to narrow the left operand
-    let tmp = c.genx(n[1])
-    c.genNarrowU(n, tmp)
-    let tmp2 = c.genx(n[2])
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABC(n, opcShrInt, dest, tmp, tmp2)
-    c.freeTemp(tmp)
-    c.freeTemp(tmp2)
+    c.operand(n[1])
+    c.genNarrowU(n)
+    c.operand(n[2])
+    c.instr(n.info, opcShr)
   of mShlI:
-    genBinaryABC(c, n, dest, opcShlInt)
-    genNarrow(c, n, dest, opcSignExtend)
-  of mAshrI: genBinaryABC(c, n, dest, opcAshrInt)
-  of mBitandI: genBinaryABC(c, n, dest, opcBitandInt)
-  of mBitorI: genBinaryABC(c, n, dest, opcBitorInt)
-  of mBitxorI: genBinaryABC(c, n, dest, opcBitxorInt)
-  of mAddU: genBinaryABCnarrowU(c, n, dest, opcAddu)
-  of mSubU: genBinaryABCnarrowU(c, n, dest, opcSubu)
-  of mMulU: genBinaryABCnarrowU(c, n, dest, opcMulu)
-  of mDivU: genBinaryABCnarrowU(c, n, dest, opcDivu)
-  of mModU: genBinaryABCnarrowU(c, n, dest, opcModu)
+    c.binary(opcShl, n)
+    genNarrow(c, n)
+  of mAshrI: c.binary(opcAshr, n)
+  of mBitandI: c.binary(opcBitAnd, n)
+  of mBitorI: c.binary(opcBitOr, n)
+  of mBitxorI: c.binary(opcBitXor, n)
+  of mAddU: c.binaryNarrowU(opcAddInt, n)
+  of mSubU: c.binaryNarrowU(opcSubInt, n)
+  of mMulU: c.binaryNarrowU(opcMulInt, n)
+  of mDivU: c.binaryNarrowU(opcDivU, n)
+  of mModU: c.binaryNarrowU(opcModU, n)
   of mEqI, mEqB, mEqEnum, mEqCh:
-    genBinaryABC(c, n, dest, opcEqInt)
+    c.binary(opcEqInt, n)
   of mLeI, mLeEnum, mLeCh, mLeB:
-    genBinaryABC(c, n, dest, opcLeInt)
+    c.binary(opcLeInt, n)
   of mLtI, mLtEnum, mLtCh, mLtB:
-    genBinaryABC(c, n, dest, opcLtInt)
-  of mEqF64: genBinaryABC(c, n, dest, opcEqFloat)
-  of mLeF64: genBinaryABC(c, n, dest, opcLeFloat)
-  of mLtF64: genBinaryABC(c, n, dest, opcLtFloat)
-  of mLePtr, mLeU: genBinaryABC(c, n, dest, opcLeu)
-  of mLtPtr, mLtU: genBinaryABC(c, n, dest, opcLtu)
+    c.binary(opcLtInt, n)
+  of mEqF64: c.binary(opcEqFloat, n)
+  of mLeF64: c.binary(opcLeFloat, n)
+  of mLtF64: c.binary(opcLtFloat, n)
+  of mLePtr, mLeU: c.binary(opcLeu, n)
+  of mLtPtr, mLtU: c.binary(opcLtu, n)
   of mEqRef:
-    genBinaryABC(c, n, dest, opcEqRef)
+    c.binary(opcEqInt, n)
   of mEqProc:
     # XXX: lower this as a MIR pass
     if skipTypes(n[1].typ, abstractInst).callConv == ccClosure:
-      prepare(c, dest, n.typ)
-      # compare both tuple elements:
-      let
-        a = c.genx(n[1])
-        b = c.genx(n[2])
-        fieldA = c.getTemp(slotTempComplex)
-        fieldB = c.getTemp(slotTempComplex)
-
-      # load the prc fields:
-      c.gABC(n, opcLdObj, fieldA, a, 0)
-      c.gABC(n, opcLdObj, fieldB, b, 0)
-      # ``dest = fieldA == fieldB``
-      c.gABC(n, opcEqRef, dest, fieldA, fieldB)
-      # ``if not dest: goto end``
-      let jmp = c.xjmp(n, opcFJmp, dest)
-      # load the env fields:
-      c.gABC(n, opcLdObj, fieldA, a, 1)
-      c.gABC(n, opcLdObj, fieldB, b, 1)
-      # ``dest = fieldA == fieldB``
-      c.gABC(n, opcEqRef, dest, fieldA, fieldB)
-      c.patch(jmp)
-
-      c.freeTemp(fieldB)
-      c.freeTemp(fieldA)
-      c.freeTemp(b)
-      c.freeTemp(a)
+      c.builtin("cmpClosure", n)
     else:
-      genBinaryABC(c, n, dest, opcEqRef)
-  of mXor: genBinaryABC(c, n, dest, opcXor)
-  of mNot: genUnaryABC(c, n, dest, opcNot)
+      c.binary(opcEqInt, n)
+  of mXor:
+    # TODO: really?
+    c.binary(opcBitXor, n)
+  of mNot:
+    c.unary(opcNot, n)
   of mUnaryMinusI, mUnaryMinusI64:
-    genUnaryABC(c, n, dest, opcUnaryMinusInt)
-    genNarrow(c, n, dest)
-  of mUnaryPlusI, mUnaryPlusF64: gen(c, n[1], dest)
+    # emit the overflow check
+    c.operand(n[1])
+    c.dup(n[1].info)
+    c.loadInt(n[1].info, c.config.firstOrd(n[1].typ))
+    c.instr(n[1].info, opcEqInt)
+    c.prc.overflows.add c.xjmp(n[1], opcBranch, imm8 1)
+    c.instr(n.info, opcNegInt)
   of mBitnotI:
-    genUnaryABC(c, n, dest, opcBitnotInt)
-    genNarrowUnsigned(c, n.info, n.typ, dest)
-  of mCharToStr, mBoolToStr, mIntToStr, mInt64ToStr, mFloatToStr, mStrToStr,
-     mEnumToStr:
-    genToStr(c, n, n[1], dest)
-  of mCStrToStr, mStrToCStr:
+    c.unary(opcBitNot, n)
+    c.genNarrowUnsigned(n.info, n.typ)
+  of mCharToStr:
+    c.operand(n[1])
+    c.builtin(n.info, "__charToStr", 2)
+  of mCStrToStr, mStrToCStr, mStrToStr:
     let val = n[1]
     if val.kind in LvalueExprKinds:
       # loading the handle into dest is wrong, the value needs to be
       # copied
-      let tmp = genLvalue(c, val)
-      c.gABC(n, opcWrLoc, dest, tmp)
-      c.freeTemp(tmp)
+      c.genLvalue(val)
     else:
-      gen(c, val, dest)
-  of mEqStr, mEqCString: genBinaryABC(c, n, dest, opcEqStr)
-  of mLeStr: genBinaryABC(c, n, dest, opcLeStr)
-  of mLtStr: genBinaryABC(c, n, dest, opcLtStr)
-  of mEqSet: genBinarySet(c, n, dest, opcEqSet)
-  of mLeSet: genBinarySet(c, n, dest, opcLeSet)
-  of mLtSet: genBinarySet(c, n, dest, opcLtSet)
-  of mMulSet: genBinarySet(c, n, dest, opcMulSet)
-  of mPlusSet: genBinarySet(c, n, dest, opcPlusSet)
-  of mMinusSet: genBinarySet(c, n, dest, opcMinusSet)
+      c.operand(val)
+    c.instr(n.info, opcCopy, imm32 c.genType(n.typ))
+  of mEqStr, mEqCString: c.builtin("__builtin_eqStr", n)
+  of mLeStr: c.builtin("leStr", n)
+  of mLtStr: c.builtin("ltStr", n)
+  of mEqSet: c.binarySetOp(opcEqSet, n)
+  of mLeSet: c.binarySetOp(opcLeSet, n)
+  of mLtSet: c.binarySetOp(opcLtSet, n)
+  of mMulSet: c.binarySetOp(opcMulSet, n)
+  of mPlusSet: c.binarySetOp(opcPlusSet, n)
+  of mMinusSet: c.binarySetOp(opcMinusSet, n)
   of mConStrStr:
-    # we need to assign to a temporary first, as the operands might alias
-    # with the destination
-    # TODO: the "use temporary if result aliases with arguments" transformation
-    #       needs to happen as a MIR pass instead
-    let tmp = c.getFullTemp(n, n.typ)
-    genVarargsABC(c, n, tmp, opcConcatStr)
-    if dest.isUnset:
-      dest = tmp
-    else:
-      c.gABC(n, opcWrLoc, dest, tmp)
-      c.freeTemp(tmp)
+    c.instr(n.info, opcStackAlloc, imm32 c.genType(n.typ))
+    let tmp = c.getTemp(slotAddress)
+    c.instr(n.info, opcPopLocal, imm32 tmp)
+    for i in 1..<n.len:
+      c.getLocal(n.info, imm32 tmp)
+      c.operand(n[i])
+      if n[i].typ.kind == tyChar:
+        c.builtin(n.info, "__builtin_appendStrChar", 2)
+      else:
+        c.builtin(n.info, "__builtin_appendStrStr", 2)
+    c.getLocal(n.info, imm32 tmp)
+    c.instr(n.info, opcCopy, imm32 c.genType(n.typ))
+    c.freeTemp(tmp)
   of mInSet:
-    let
-      tmp = c.genx(n[1])
-      tmp2 = c.genSetElem(n[2], n[1].typ)
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABC(n, opcContainsSet, dest, tmp, tmp2)
-    c.freeTemp(tmp)
-    c.freeTemp(tmp2)
-  of mRepr:
-    prepare(c, dest, n, n.typ)
-    let tmp = c.genx(n[1])
-    c.gABx(n, opcRepr, dest, c.genTypeInfo(n[1].typ))
-    c.gABC(n, opcRepr, dest, tmp)
-    c.freeTemp(tmp)
-  of mExit:
-    unused(c, n, dest)
-    var tmp = c.genx(n[1])
-    c.gABC(n, opcQuit, tmp)
-    c.freeTemp(tmp)
-  of mSetLengthStr, mSetLengthSeq:
-    unused(c, n, dest)
-    var d = c.genLvalue(n[1])
-    var tmp = c.genx(n[2])
-    c.gABC(n, if m == mSetLengthStr: opcSetLenStr else: opcSetLenSeq, d, tmp)
-    c.freeTemp(tmp)
-    c.freeTemp(d)
+    c.operand(n[1])
+    c.genSetElem(n[2], n[1].typ)
+    c.instr(n.info, opcInSet, imm32 c.sizeof(n[1].typ))
   of mIsNil:
     # XXX: lower this earlier
+    c.operand(n[1])
     if skipTypes(n[1].typ, abstractInst).callConv == ccClosure:
-      # test wether the procedure address is nil
-      prepare(c, dest, n.typ)
-      let
-        tmp = c.genx(n[1])
-        tmp2 = c.getTemp(slotTempComplex)
-      c.gABC(n, opcLdObj, tmp2, tmp, 0) # load the field handle
-      c.gABC(n, opcIsNil, dest, tmp2)
-      c.freeTemp(tmp2)
-      c.freeTemp(tmp)
-    else:
-      genUnaryABC(c, n, dest, opcIsNil)
+      # load the procedure address first
+      c.rawLoad(n.info, opcLdInt64)
+    c.instr(n.info, opcLdImmInt, imm32 0)
+    c.instr(n.info, opcEqInt)
   of mParseBiggestFloat:
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    var
-      tmp1 = c.genx(n[1])
-      tmp2 = c.genx(n[2])
-      tmp3 = c.genx(n[3])
-    c.gABC(n, opcParseFloat, dest, tmp1, tmp2)
-    c.gABC(n, opcParseFloat, tmp3)
-    c.freeTemp(tmp1)
-    c.freeTemp(tmp2)
-    c.freeTemp(tmp3)
+    missing("parseBiggestFloat")
   of mDefault:
-    if fitsRegister(n.typ):
-      prepare(c, dest, n.typ)
-      c.gABx(n, opcLdNullReg, dest, c.genType(n.typ))
+    case getSlotKind(n.typ)
+    of slotInt:
+      c.instr(n.info, opcLdImmInt, imm32 0)
+    of slotFloat:
+      c.instr(n.info, opcLdImmFloat, imm32 0)
+    elif true:#needsDestroy(n.typ):
+      # the destination operand was already loaded
+      c.instr(n.info, opcReset, imm32 c.genType(n.typ))
     else:
-      assert dest != noDest
-      c.gABx(n, opcReset, dest, c.genType(n.typ))
-  of mOf:
-    if dest.isUnset: dest = c.getTemp(n.typ)
+      c.loadInt(n.info, toInt128 getSize(c.config, n.typ))
+      c.instr(n.info, opcMemClear)
 
+  of mOf:
     let t1 = n[1].typ.skipTypes(abstractRange)
     if t1.kind != tyRef:
       # XXX: the spec for `of` with non-ref types is missing, so we simply
       #      treat it as an `is` for now. If it's decided that this is the
       #      correct behaviour, the `of` should be eliminated in `sem` instead
       #      of down here
-      c.gABx(n, opcLdImmInt, dest, ord(sameType(t1, n[2].typ)))
+      c.instr(n.info, opcLdImmInt, imm32 ord(sameType(t1, n[2].typ)))
     else:
-      var tmp = c.genx(n[1])
-      var idx = c.getTemp(getSysType(c.graph, n.info, tyInt))
       let typ = n[2].typ.skipTypes(abstractPtrs)
-      c.gABx(n, opcLdImmInt, idx, c.genType(typ))
-      c.gABC(n, opcOf, dest, tmp, idx)
-      c.freeTemp(tmp)
-      c.freeTemp(idx)
+      c.operand(n[1])
+      c.instr(n.info, opcLdImmInt, imm32 c.genType(typ))
+      c.builtin(n.info, "of", 2)
   of mHigh:
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    let tmp = c.genx(n[1])
     case n[1].typ.skipTypes(abstractVar-{tyTypeDesc}).kind:
-    of tyString: c.gABI(n, opcLenStr, dest, tmp, 1)
-    of tyCstring: c.gABI(n, opcLenCstring, dest, tmp, 1)
-    else: c.gABI(n, opcLenSeq, dest, tmp, 1)
-    c.freeTemp(tmp)
-  of mEcho:
-    unused(c, n, dest)
-    let
-      numArgs = numArgs(n)-1 # the extra type argument is ignored
-      x = c.prc.getTempRange(numArgs, slotTempUnknown)
-    for i in 0..<numArgs:
-      var r: TRegister = x+i
-      c.gen(n[i + 2], r)
-    c.gABC(n, opcEcho, x, numArgs)
-    c.freeTempRange(x, numArgs)
-  of mAppendStrCh:
-    unused(c, n, dest)
-    genBinaryStmtVar(c, n, opcAddStrCh)
-  of mAppendStrStr:
-    unused(c, n, dest)
-    genBinaryStmtVar(c, n, opcAddStrStr)
-  of mAppendSeqElem:
-    unused(c, n, dest)
-    genBinaryStmtVar(c, n, opcAddSeqElem)
-  of mParseExprToAst:
-    genParseOp(c, n, dest, opcParseExprToAst)
-  of mParseStmtToAst:
-    genParseOp(c, n, dest, opcParseStmtToAst)
-  of mTypeTrait:
-    prepare(c, dest, n, n.typ)
-    let tmp = c.genx(n[1])
-    c.gABx(n, opcNSetType, tmp, c.genTypeInfo(n[1].typ))
-    c.gABC(n, opcTypeTrait, dest, tmp)
-    c.freeTemp(tmp)
-  of mNLen: genUnaryABI(c, n, dest, opcLenSeq, nimNodeFlag)
-  of mGetImpl: genUnaryABC(c, n, dest, opcGetImpl)
-  of mGetImplTransf: genUnaryABC(c, n, dest, opcGetImplTransf)
-  of mSymOwner: genUnaryABC(c, n, dest, opcSymOwner)
-  of mSymIsInstantiationOf: genBinaryABC(c, n, dest, opcSymIsInstantiationOf)
-  of mNChild: genBinaryABC(c, n, dest, opcNChild)
-  of mNSetChild: genVoidABC(c, n, dest, opcNSetChild)
-  of mNDel: genVoidABC(c, n, dest, opcNDel)
-  of mNAdd: genBinaryABC(c, n, dest, opcNAdd)
-  of mNAddMultiple: genBinaryABC(c, n, dest, opcNAddMultiple)
-  of mNKind: genUnaryABC(c, n, dest, opcNKind)
-  of mNSymKind: genUnaryABC(c, n, dest, opcNSymKind)
-
-  of mNccValue: genUnaryABC(c, n, dest, opcNccValue)
-  of mNccInc: genVoidBC(c, n, dest, opcNccInc)
-  of mNcsAdd: genVoidBC(c, n, dest, opcNcsAdd)
-  of mNcsIncl: genVoidBC(c, n, dest, opcNcsIncl)
-  of mNcsLen: genUnaryABC(c, n, dest, opcNcsLen)
-  of mNcsAt: genBinaryABC(c, n, dest, opcNcsAt)
-  of mNctPut: genVoidABC(c, n, dest, opcNctPut)
-  of mNctLen: genUnaryABC(c, n, dest, opcNctLen)
-  of mNctGet: genBinaryABC(c, n, dest, opcNctGet)
-  of mNctHasNext: genBinaryABC(c, n, dest, opcNctHasNext)
-  of mNctNext: genBinaryABC(c, n, dest, opcNctNext)
-  of mNIntVal: genUnaryABC(c, n, dest, opcNIntVal)
-  of mNFloatVal: genUnaryABC(c, n, dest, opcNFloatVal)
-  of mNGetType:
-    let tmp = c.genx(n[1])
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    let rc = case c.env.procedures[n[0].prc].name.s:
-      of "getType":     0
-      of "typeKind":    1
-      of "getTypeInst": 2
-      of "getTypeImpl": 3
-      else: unreachable()
-    c.gABC(n, opcNGetType, dest, tmp, rc)
-    c.freeTemp(tmp)
-    #genUnaryABC(c, n, dest, opcNGetType)
-  of mNSizeOf:
-    let imm = case c.env.procedures[n[0].prc].name.s:
-      of "getSize":   0
-      of "getAlign":  1
-      of "getOffset": 2
-      else: unreachable()
-    c.genUnaryABI(n, dest, opcNGetSize, imm)
-  of mNStrVal: genUnaryABC(c, n, dest, opcNStrVal)
-  of mNSigHash: genUnaryABC(c, n , dest, opcNSigHash)
-  of mNSetIntVal:
-    unused(c, n, dest)
-    genBinaryStmt(c, n, opcNSetIntVal)
-  of mNSetFloatVal:
-    unused(c, n, dest)
-    genBinaryStmt(c, n, opcNSetFloatVal)
-  of mNSetStrVal:
-    unused(c, n, dest)
-    genBinaryStmt(c, n, opcNSetStrVal)
-  of mNNewNimNode: genBinaryABC(c, n, dest, opcNNewNimNode)
-  of mNCopyNimNode: genUnaryABC(c, n, dest, opcNCopyNimNode)
-  of mNCopyNimTree: genUnaryABC(c, n, dest, opcNCopyNimTree)
-  of mStrToIdent: genUnaryABC(c, n, dest, opcStrToIdent)
-  of mEqIdent: genBinaryABC(c, n, dest, opcEqIdent)
-  of mEqNimrodNode: genBinaryABC(c, n, dest, opcEqNimNode)
-  of mSameNodeType: genBinaryABC(c, n, dest, opcSameNodeType)
-  of mNLineInfo:
-    let name = c.env[n[0].prc].name
-    case name.s
-    of "getFile": genUnaryABI(c, n, dest, opcNGetLineInfo, 0)
-    of "getLine": genUnaryABI(c, n, dest, opcNGetLineInfo, 1)
-    of "getColumn": genUnaryABI(c, n, dest, opcNGetLineInfo, 2)
-    of "copyLineInfo":
-      internalAssert(c.config, n.len == 3, "Line info expects tuple with three elements")
-      unused(c, n, dest)
-      genBinaryStmt(c, n, opcNSetLineInfo)
+    of tyCstring:
+      c.builtin("lenCString", n)
     else:
-      internalAssert(
-        c.config, false, "Unexpected mNLineInfo symbol name - " & name.s)
-  of mNHint, mNWarning, mNError:
-    unused(c, n, dest)
-    c.genCall(n, dest)
-  of mNCallSite:
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    c.gABC(n, opcCallSite, dest)
-  of mNGenSym: genBinaryABC(c, n, dest, opcGenSym)
-  of mMinI, mMaxI, mAbsI, mDotDot:
-    c.genCall(n, dest)
+      c.operand(n[1])
+      c.rawLoad(n.info, opcLdInt64)
+    c.instr(n.info, opcAddImm, imm32(-1))
+  of mEcho:
+    for i in 2..<n.len-1:
+      c.operand(n[i])
+    c.instr(n.info, opcYield, imm32 (numArgs(n)-1), imm8 0)
   of mExpandToAst:
-    # only transformed ``getAst`` calls that expand templates reach here
-    prepare(c, dest, n.typ)
-
-    let
-      call = n
-      numArgs = call.len - 1
-      x = c.prc.getTempRange(numArgs, slotTempUnknown)
-
-    # pass the template symbol as the first argument
-    var callee = TDest(x)
-    c.genLit(call[1], c.toNodeCnst(call[1].astLit), callee)
-    # XXX: don't create a new symbol node here; in ``transformExpandToAst``,
-    #      emit an ``nkNimNodeLit`` for the callee instead
-
-    # the arguments to the template are used as arguments to the
-    # `ExpandToAst` operation
-    for i in 1..<numArgs:
-      let it = call[i + 1]
-      var d = TDest(x+i)
-      # small optimization: don't use ``DataToAst` if the argument is
-      # already a NimNode
-      if it.typ.isNimNode():
-        c.gen(it, d)
-      else:
-        # evaluate the argument and deserialize the result to ``NimNode``
-        # AST
-        c.genDataToAst(it, d)
-
-    c.gABC(n, opcExpandToAst, dest, x, numArgs)
-    c.freeTempRange(x, numArgs)
+    let call = n
+    let numArgs = numArgs(call)
+    for i in 0..<numArgs:
+      c.operand(n[1 + i])
+    # XXX: getAst cannot have a valid signature (since it accepts an arbitrary
+    #      amount of arguments), so the validation pass is guaranteed to
+    #      fail...
+    #      `transf` should create an array construction instead. While very
+    #      inefficient, in terms of VM resources, it's the cleanest solution,
+    #      not requiring the introduction of variable-argument procedures or
+    #      syscall shenanigans
+    c.instr(n.info, opcCall, imm32 c.map[n[0].prc], imm16 numArgs)
   of mSizeOf, mAlignOf, mOffsetOf:
     fail(n.info, vmGenDiagMissingImportcCompleteStruct, m)
 
   of mRunnableExamples:
     discard "just ignore any call to runnableExamples"
   of mDestroy, mTrace: discard "ignore calls to the default destructor"
-  of mNodeId:
-    c.genUnaryABC(n, dest, opcNodeId)
   of mFinished:
     # XXX: the implementation is a hack -- it makes a lot of implicit
     #      assumptions and is thus very brittle. However, don't attempt to
     #      fix it here; implement the lowering of the ``mFinished`` magic as a
     #      MIR pass that is used for all backends
-    prepare(c, dest, n.typ)
-    let
-      tmp = c.genx(n[1]) # the operand
-      env = c.getTemp(n[1].typ) # XXX: wrong type
-      state = c.getTemp(n.typ)  # XXX: also wrong
-      imm = c.getTemp(n.typ)    # XXX: this one too
-
-    # load the env reference and dereference it:
-    c.gABC(n, opcLdObj, env, tmp, 1)
-    c.gABC(n, opcLdDeref, env, env)
-
-    # load the state value into a register. The :state field is always
-    # located at position 0
-    c.gABC(n, opcLdObj, state, env, 0)
-    c.gABC(n, opcNodeToReg, state, state)
-
-    c.gABx(n, opcLdImmInt, imm, 0)        # load 0
-    c.gABC(n, opcLtInt, dest, state, imm) # compare
-
-    c.freeTemp(imm)
-    c.freeTemp(state)
-    c.freeTemp(env)
-    c.freeTemp(tmp)
+    c.operand(n[1])
+    c.instr(n.info, opcLdInt64, imm32 8)
+    c.instr(n.info, opcLdInt64, imm32 0)
+    c.instr(n.info, opcLdImmInt, imm32 0)
+    c.instr(n.info, opcEqInt)
   of mChckRange:
-    gen(c, n[1], dest)
-    let
-      tmp1 = c.genx(n[2])
-      tmp2 = c.genx(n[3])
-    c.gABC(n, opcRangeChck, dest, tmp1, tmp2)
-    c.freeTemp(tmp1)
-    c.freeTemp(tmp2)
+    c.operand(n[1])
+    let tmp = c.capture(n.info, slotInt)
+    c.getLocal(n.info, tmp.slot)
+    c.operand(n[2])
+    c.instr(n.info, opcLtInt)
+    block:
+      let jmp = c.xjmp(n, opcBranch)
+      c.instr(n.info, opcRaise)
+      c.patch(jmp)
+    c.operand(n[3])
+    c.instr(n.info, opcGetLocal, tmp.slot)
+    c.instr(n.info, opcLtInt)
+    block:
+      let jmp = c.xjmp(n, opcBranch)
+      c.instr(n.info, opcRaise)
+      c.patch(jmp)
+    c.instr(n.info, opcGetLocal, tmp.slot)
+    c.freeTemp(tmp)
   of mChckNaN:
     discard "implementation is missing"
   of mChckIndex:
-    let
-      arr = c.genx(n[1])
-      idx = c.genIndex(n[2], n[1].typ)
-    c.gABC(n, opcIndexChck, 0, arr, idx)
-    c.freeTemp(idx)
-    c.freeTemp(arr)
-  of mChckField:
-    genFieldCheck(c, n)
+    case n[1].typ.skipTypes(IrrelevantTypes + {tyVar}).kind
+    of tyString, tyCstring, tySequence:
+      c.operand(n[1])
+      c.rawLoad(n.info, opcLdInt64)
+    of tyOpenArray, tyVarargs:
+      c.operand(n[1])
+      c.rawLoad(n.info, opcLdInt64)
+    of tyArray:
+      c.loadInt(n[1].info, lengthOrd(c.config, n[1].typ))
+    else:
+      unreachable(n[1].typ.skipTypes(IrrelevantTypes).kind)
+
+    c.genIndex(n[2], n[1].typ)
+    c.instr(n.info, opcLeu)
+    let jmp = c.xjmp(n, opcBranch)
+    c.instr(n.info, opcRaise) # TODO: incorrect
+    c.patch(jmp)
   of mChckObj:
-    let obj = c.genx(n[1])
-    c.gABx(n, opcObjChck, obj, c.genType(n[2].typ))
-    c.freeTemp(obj)
+    echo "missing object check"
+  of mChckField:
+    c.operand(n[1])
+    c.genSetElem(n[2], n[1].typ)
+    c.instr(n.info, opcInSet, imm32 c.sizeof(n[1].typ))
+    let jmp = c.xjmp(n, opcBranch, imm8 (1-n[3].intVal))
+    # TODO: implement this properly
+    c.instr(n.info, opcRaise)
+    c.patch(jmp)
+  of mChckBounds:
+    echo "missing: bound check"
+  of MagicsToKeep - mExpandToAst:
+    c.genCall(n)
+  of mAppendStrStr:
+    c.operand(n[1])
+    c.operand(n[2])
+    c.builtin(n.info, "__builtin_appendStrStr", 2)
+  of mAppendStrCh:
+    c.operand(n[1])
+    c.operand(n[2])
+    c.builtin(n.info, "__builtin_appendStrChar", 2)
+  of mAppendSeqElem:
+    c.operand(n[1])
+    c.loadInt(n.info, toInt128 c.genType(n[2].typ))
+    c.builtin(n.info, "__prepareSeqAdd", 2)
+    # copy the value
+    # XXX: could move
+    c.operand(n[2])
+    if fitsRegister(n[2].typ):
+      c.instr(n.info, writeInstr(n[2].typ))
+    elif vtfDataOnly in c.types[VmTypeId c.genType(n[2].typ)].flags:
+      c.loadInt(n.info, toInt128 c.sizeof(n[2].typ))
+      c.instr(n.info, opcMemCopy)
+    else:
+      # manual move implementation
+      let tmp = c.capture(n.info, slotAddress)
+      c.getLocal(n.info, tmp.slot)
+      c.loadInt(n.info, toInt128 c.sizeof(n[2].typ))
+      c.instr(n.info, opcMemCopy)
+      # clear the source
+      c.getLocal(n.info, tmp.slot)
+      c.loadInt(n.info, toInt128 c.sizeof(n[2].typ))
+      c.instr(n.info, opcMemClear)
+      c.freeTemp(tmp)
+
+
+  of mNewSeq:
+    c.operand(n[1])
+    c.operand(n[2])
+    c.instr(n.info, opcLdImmInt, imm32 c.genType(n[1].typ))
+    c.builtin(n.info, "__newseq", 3)
+  of mNewString:
+    # the destination is on the operand stack already
+    c.operand(n[1])
+    c.builtin(n.info, "__newstr", 2)
+  of mNew:
+    c.instr(n.info, opcLdImmInt, imm32 c.types[VmTypeId c.genType(n.typ)].b)
+    c.builtin(n.info, "__newobj", 1)
+  of mNewStringOfCap, mNewSeqOfCap:
+    c.operand(n[1])
+    c.drop(n[1].info)
+    c.instr(n.info, opcReset, imm32 c.genType(n.typ))
+    # TODO: implement properly
+  of mSetLengthStr:
+    c.builtin("__builtin_strSetLen", n)
+  of mUnaryPlusF64:
+    # XXX: huh, why does it reach here?
+    c.operand(n[1])
   else:
+    echo "missing magic: ", m
     # mGCref, mGCunref, mFinished, etc.
     fail(n.info, vmGenDiagCodeGenUnhandledMagic, m)
 
-proc genDeref(c: var TCtx, n: CgNode, dest: var TDest; load = true) =
-    let tmp = c.genx(n.operand)
-    if dest.isUnset: dest = c.getTemp(n.typ)
-    gABC(c, n, opcLdDeref, dest, tmp)
-
-    if needsRegLoad():
-      c.genRegLoad(n, dest, dest)
-    c.freeTemp(tmp)
-
-func setSlot(p: var BProc; v: LocalId): TRegister {.discardable.} =
-  result = getFreeRegister(p, slotFixedVar, start = 1)
-  p[v].reg = result
+func setSlot(c: var TCtx; v: LocalId): LocalIndex {.discardable.} =
+  result = c.getTemp(c.env.types[c.prc.body[v].typ])
+  c.prc[v].slot = result
 
 func cannotEval(c: TCtx; n: CgNode) {.noinline, noreturn.} =
   # best-effort translation to ``PNode`` for improved error messages
@@ -2264,111 +1572,7 @@ proc importcCondVar*(s: PSym): bool {.inline.} =
   if sfImportc in s.flags:
     return s.kind in {skVar, skLet, skConst}
 
-proc genDiscrVal(c: var TCtx, discr, n: CgNode, oty: PType): TRegister =
-  ## Generate the code for preparing and loading the discriminator value
-  ## as expected by the execution engine
-
-  let oty = oty.skipTypes(abstractPtrs)
-  assert oty.kind == tyObject
-
-  let discrTyp = block:
-    let (o, idx) =
-      getFieldAndOwner(
-        c.getOrCreate(oty),
-        fpos(discr.field.position))
-    o.fieldAt(idx).typ
-
-  let recCase = findRecCase(oty, discr.field)
-  assert recCase != nil
-
-  if n.kind in {cnkIntLit, cnkUIntLit}:
-    # Discriminator value is known at compile-time
-
-    let b = findMatchingBranch(recCase, getInt(n))
-    assert b != -1 # no matching branch; should have been caught already
-
-    assert n.intVal <= (1 shl discrTyp.numBits) - 1
-    let v = bitor(b shl discrTyp.numBits, int(n.intVal))
-
-    result = c.getTemp(n.typ)
-    var tmp = TDest(result)
-    c.genLit(n, c.toIntCnst(v), tmp)
-  else:
-    result = c.getTemp(discr.typ)
-
-    var endings: seq[TPosition] = @[]
-    let bIReg = c.getTemp(discr.typ)
-    let tmp = c.getTemp(discr.typ)
-    c.gen(n, tmp)
-    # branch tmp, codeIdx
-    # tjmp   target
-
-    # iterate of/else branches and emit the dispatcher:
-    for i, branch in branches(recCase):
-      case branch.kind
-      of nkElse:
-        endings.add c.xjmp(n, opcJmp)
-      of nkOfBranch:
-        let b = genBranchLit(c, branch)
-        c.gABx(n, opcBranch, tmp, b)
-        endings.add c.xjmp(n, opcTJmp)
-      else:
-        unreachable()
-
-    # emit the bodies:
-    for i, branch in branches(recCase):
-      c.patch(endings[i])
-      c.gABx(n, opcLdImmInt, bIReg, i)
-      endings[i] = c.xjmp(n, opcJmp) # jump past the other branches
-
-    for endPos in endings: c.patch(endPos)
-
-    let tmp2 = c.getTemp(discr.typ)
-
-    c.gABx(n, opcLdImmInt, tmp2, discrTyp.numBits)
-    c.gABC(n, opcShlInt, result, bIReg, tmp2)
-    c.gABC(n, opcAsgnInt, tmp2, result)
-    c.gABC(n, opcBitorInt, result, tmp2, tmp)
-
-    c.freeTemp(tmp)
-    c.freeTemp(tmp2)
-    c.freeTemp(bIReg)
-
-proc putIntoLoc(c: var TCtx, e: CgNode, dest: TDest, idx: TRegister, wr, ld: TOpcode)
-
-proc genFieldAsgn(c: var TCtx, obj: TRegister; le, ri: CgNode) =
-  c.config.internalAssert(le.kind == cnkFieldAccess)
-
-  let idx = c.genField(le[1])
-  let s = le[1].field
-
-  if sfDiscriminant notin s.flags:
-    putIntoLoc(c, ri, obj, idx, opcWrObj, opcLdObj)
-  else:
-    # Can't use `s.owner.typ` since it may be a `tyGenericBody`
-    let tmp = c.genDiscrVal(le[1], ri, le[0].typ)
-    c.gABC(le, opcSetDisc, obj, idx, tmp)
-    c.freeTemp(tmp)
-
-func isPtrView(n: CgNode): bool =
-  ## Analyses whether the expression `n` evaluates to a direct view that is
-  ## represented via an address value instead of a handle. The former is the
-  ## case for both globals that are direct views, and for direct views stored
-  ## in compound types
-  case n.kind
-  of cnkConst, cnkGlobal:
-    true
-  of cnkLocal:
-    false
-  of cnkFieldAccess, cnkArrayAccess, cnkTupleAccess:
-    true
-  of cnkHiddenAddr, cnkCall, cnkCheckedCall:
-    false
-  else:
-    unreachable(n.kind)
-
-proc putIntoLoc(c: var TCtx, e: CgNode, dest: TDest, idx: TRegister,
-                wr, ld: TOpcode) =
+proc putIntoLoc(c: var TCtx, e: CgNode, move: bool) =
   ## Generates and emits the code for assigning expression `e` to a memory
   ## location. `dest` and `idx` represent the destination location, with `wr`
   ## being the opcode for writing something to the location and `ld` the opcode
@@ -2376,197 +1580,126 @@ proc putIntoLoc(c: var TCtx, e: CgNode, dest: TDest, idx: TRegister,
   ##
   ## Converting single-location views (``var`` and ``lent``) to pointer values
   ## is taken care of here, as well as handling `openArray` conversions.
-  template write(reg: TRegister) =
-    if wr == opcWrLoc:
-      # `idx` is unused
-      c.gABC(e, opcWrLoc, dest, reg)
-    else:
-      c.gABC(e, wr, dest, idx, reg)
 
-  template write(routine: untyped) =
-    if wr == opcWrLoc:
-      routine(c, e, dest)
-    else:
-      # dereference the destination first
-      let tmp = c.getTemp(slotTempComplex)
-      c.gABC(e, ld, tmp, dest, idx)
-      routine(c, e, tmp)
-      c.freeTemp(tmp)
-
-  if isLocView(e.typ) and not isPtrView(e):
-    # turn the handle into an address, as views are stored as pointer values
-    # in-memory
-    let
-      tmp = genx(c, e)
-      tmp2 = c.getTemp(e.typ)
-    c.gABC(e, opcAddr, tmp2, tmp)
-    write(tmp2)
-    c.freeTemp(tmp2)
-    c.freeTemp(tmp)
-  elif fitsRegisterConsiderView(e.typ):
-    let tmp = genx(c, e)
-    write(tmp)
-    c.freeTemp(tmp)
-  elif classifyBackendView(e.typ) == bvcSequence:
-    if e.kind == cnkToSlice:
-      genToSlice(c, e, dest, reified=true)
-    else:
-      # the value must be converted to the fixed openArray
-      # representation first
-      write(asgnOpenArray)
+  if fitsRegister(e.typ):
+    c.operand(e)
+    c.instr(e.info, writeInstr(e.typ))
   elif e.kind in LvalueExprKinds:
     # the source value is stored in an in-memory location
-    let tmp = genLvalue(c, e)
-    write(tmp)
-    c.freeTemp(tmp)
+    c.genLvalue(e)
+    if move:
+      c.loadInt(e.info, toInt128 c.sizeof(e.typ))
+      c.instr(e.info, opcMemCopy)
+    else:
+      c.instr(e.info, opcCopy, imm32 c.genType(e.typ))
+  elif e.kind in {cnkCall, cnkCheckedCall} and e[0].kind != cnkMagic:
+    # TODO: spawn a temporary for checked calls
+    c.genCall(e, withResultParam = true)
+    # c.instr(e.info, opcCopy, imm32 c.genType(e.typ))
   else:
-    # some rvalue expression where the value doesn't fit into a register;
-    # load the expression directly into the location
-    write(gen)
+    c.gen(e)
 
-proc genAsgnToLocal(c: var TCtx, le, ri: CgNode) =
+proc genAsgnToLocal(c: var TCtx, le, ri: CgNode, move: bool) =
   ## Generates and emits and assignment to a local variable. Local variables
   ## differ from other location in that their value can be stored directly
   ## in a register (although it doesn't have to).
-  let dest = c.prc[le.local].reg
-  if isLocView(le.typ):
-    if isPtrView(ri):
-      # dereference first (i.e., turn the address into a handle)
-      let tmp = genx(c, ri)
-      c.gABC(le, opcLdDeref, dest, tmp)
-      c.freeTemp(tmp)
-    else:
-      # load the handle directly into the register:
-      gen(c, ri, dest)
-  elif classifyBackendView(le.typ) == bvcSequence:
-    # ``openArray``s are not reified when stored in locals
-    if ri.kind == cnkToSlice:
-      genToSlice(c, ri, dest, reified=false)
-    else:
-      gen(c, ri, dest)
-  elif usesRegister(c, le.local):
-    gen(c, ri, dest)
+  let dest = c.prc[le.local].slot
+  if usesRegister(c, le.local):
+    c.operand(ri)
+    c.instr(le.info, opcPopLocal, imm32 dest)
   elif fitsRegister(le.typ):
     # the local is stored in-memory, a temporary register is needed
-    let tmp = genx(c, ri)
-    c.gABC(le, opcWrLoc, dest, tmp)
-    c.freeTemp(tmp)
+    c.getLocal(le.info, imm32 dest)
+    c.operand(ri)
+    c.instr(le.info, writeInstr(ri.typ))
   elif ri.kind in LvalueExprKinds:
-    let tmp = genLvalue(c, ri)
-    c.gABC(le, opcWrLoc, dest, tmp)
-    c.freeTemp(tmp)
+    c.getLocal(le.info, imm32 dest)
+    c.genLvalue(ri)
+    if move:
+      c.loadInt(le.info, toInt128 c.sizeof(le.typ))
+      c.instr(le.info, opcMemCopy)
+    else:
+      c.instr(le.info, opcCopy, imm32 c.genType(le.typ))
+  elif ri.kind in {cnkCheckedCall, cnkCall} and ri[0].kind != cnkMagic:
+    c.getLocal(le.info, imm32 dest)
+    c.genCall(ri, withResultParam=true)
   else:
-    gen(c, ri, dest)
+    c.getLocal(le.info, imm32 dest)
+    gen(c, ri)
 
-proc genDerefView(c: var TCtx, n: CgNode, dest: var TDest; load = true) =
-  ## Generates and emits the code for a view dereference, where `n` is the
-  ## expression that evaluates to a view. `load` indicates whether the
-  ## *handle* of the underlying location or the value stored in it should be
-  ## put into `dest`.
-  let
-    isPtr = isPtrView(n)
-    needsLoad = load and fitsRegister(n.typ.skipTypes(abstractVar))
-
-  if isPtr or needsLoad:
-    # we need to process the operand further, and thus need a temporary
-    prepare(c, dest, n.typ) # XXX: the passed type is incorrect
-    let tmp = c.genx(n)
-    var src = tmp
-
-    if isPtr:
-      # the operand is view stored as a pointer; turn it into a handle first
-      # by dereferencing it
-      c.gABC(n, opcLdDeref, dest, tmp)
-      src = dest # the handle is now in `dest`
-
-    if needsLoad:
-      # load the value into `dest`
-      c.genRegLoad(n, dest, src)
-
-    c.freeTemp(tmp)
+proc hasUnsafe(e: CgNode): bool =
+  case e.kind
+  of cnkDeref:
+    true
+  of cnkDerefView:
+    false
+  of cnkTupleAccess, cnkArrayAccess, cnkFieldAccess:
+    # TODO: treat sequence/string access as unsafe? The payload could have
+    #       become corrupt
+    hasUnsafe(e[0])
+  of cnkLvalueConv, cnkObjDownConv, cnkObjUpConv:
+    hasUnsafe(e.operand)
+  of cnkGlobal, cnkLocal:
+    false
   else:
-    # no processing required; load the handle directly into `dest`
-    c.gen(n, dest)
+    unreachable(e.kind)
 
-proc genAsgn(c: var TCtx; le, ri: CgNode; requiresCopy: bool) =
+proc check(c: var TCtx, info: TLineInfo, typ: PType) =
+  # type checks are only a convenience feature. They're not necessary for safe
+  # operation of the VM
+  c.instr(info, opcCheck, imm32 c.genType(typ))
+
+proc genAsgn(c: var TCtx; le, ri: CgNode, move: bool) =
   case le.kind
   of cnkArrayAccess:
-    let
-      typ = le[0].typ.skipTypes(abstractVar).kind
-      dest = c.genx(le[0])
-      idx = c.genIndex(le[1], le[0].typ)
-
+    let typ = le[0].typ.skipTypes(abstractVar).kind
     case typ
-    of tyString, tyCstring:
+    of tyString, tyCstring, tySequence:
       # the source value always fits into a register, so the `ld`
       # opcode doesn't matter
-      putIntoLoc(c, ri, dest, idx, opcWrStrIdx, opcRet)
-    else:
-      putIntoLoc(c, ri, dest, idx, opcWrArr, opcLdArr)
-
-    c.freeTemp(idx)
-    c.freeTemp(dest)
-  of cnkTupleAccess:
-    let dest = c.genx(le[0])
-    putIntoLoc(c, ri, dest, le[1].intVal.TRegister, opcWrObj, opcLdObj)
-    c.freeTemp(dest)
-  of cnkFieldAccess:
-    let dest = c.genx(le[0])
-    c.genFieldAsgn(dest, le, ri)
-    # c.freeTemp(idx) # BUGFIX: idx is an immediate (field position), not a register
-    c.freeTemp(dest)
-  of cnkDerefView:
-    # an assignment to a view's underlying location
-    if isPtrView(le.operand):
-      let dest = c.genx(le.operand)
-      putIntoLoc(c, ri, dest, 0, opcWrDeref, opcLdDeref)
-      c.freeTemp(dest)
-    else:
-      var dest = noDest
-      genDerefView(c, le.operand, dest, load=false)
-      putIntoLoc(c, ri, dest, 0, opcWrLoc, opcWrLoc)
-      c.freeTemp(dest)
-  of cnkDeref:
-    let dest = c.genx(le.operand)
-    putIntoLoc(c, ri, dest, 0, opcWrDeref, opcLdDeref)
-    c.freeTemp(dest)
-  of cnkObjDownConv, cnkObjUpConv:
-    # assignment to an lvalue-converted object, ref, or ptr
-    case le.typ.skipTypes(IrrelevantTypes).kind
-    of tyPtr:
-      # not supported yet. ``vmgen`` first needs some architectural changes
-      cannotEval(c, le)
-    of tyRef, tyObject:
-      var dest = TDest(-1)
-      genObjConv(c, le, dest)
-      putIntoLoc(c, ri, dest, 0, opcWrLoc, opcWrLoc)
-      c.freeTemp(dest)
+      c.operand(le[0])
+      c.instr(le.info, opcLdInt32, imm32 8)
+      # skip the capacity
+      c.instr(le.info, opcAddImm, imm32 8)
+    of tyOpenArray, tyVarargs:
+      c.operand(le[0])
+      c.instr(le.info, opcLdInt64, imm32 8)
+    of tyArray, tyUncheckedArray:
+      c.genLvalue(le[0])
     else:
       unreachable()
-  of cnkLvalueConv:
-    # these conversions don't result in a lvalue of different run-time type, so
-    # they're skipped
-    genAsgn(c, le.operand, ri, requiresCopy)
+
+    c.genIndex(le[1], le[0].typ)
+    c.instr(le.info, opcOffset, imm32 c.sizeof(le.typ))
+    if hasUnsafe(le):
+      c.check(le.info, ri.typ)
+    putIntoLoc(c, ri, move)
+  of cnkTupleAccess, cnkFieldAccess:
+    c.genLvalue(le)
+    if hasUnsafe(le):
+      c.check(le.info, ri.typ)
+    putIntoLoc(c, ri, move)
+  of cnkDeref, cnkDerefView:
+    # an assignment to a view's underlying location
+    c.genLvalue(le.operand)
+    if hasUnsafe(le):
+      c.check(le.info, ri.typ)
+    c.putIntoLoc(ri, move)
+  of cnkLvalueConv, cnkObjDownConv, cnkObjUpConv:
+    genAsgn(c, le.operand, ri, move)
   of cnkGlobal:
-    var dest = noDest
-    c.genSym(le, dest, load=false)
-    putIntoLoc(c, ri, dest, 0, opcWrLoc, opcWrLoc)
-    c.freeTemp(dest)
+    c.instr(le.info, opcGetGlobal, imm32 le.global)
+    putIntoLoc(c, ri, move)
   of cnkLocal:
-    genAsgnToLocal(c, le, ri)
+    genAsgnToLocal(c, le, ri, move)
   else:
     unreachable(le.kind)
 
-proc genTypeLit(c: var TCtx; info: CgNode, t: PType; dest: var TDest) =
-  var n = newNode(nkType)
-  n.typ = t
-  genLit(c, info, toNodeCnst(c, n), dest)
-
-proc importcCond*(c: TCtx; s: PSym): bool {.inline.} =
+proc importcCond*(g: ModuleGraph; s: PSym): bool {.inline.} =
   ## return true to importc `s`, false to execute its body instead (refs #8405)
   if sfImportc in s.flags:
     if s.kind in routineKinds:
-      return getBody(c.graph, s).kind == nkEmpty
+      return getBody(g, s).kind == nkEmpty
 
 proc useGlobal(c: var TCtx, n: CgNode): int =
     ## Resolves the global identified by symbol node `n` to the ID that
@@ -2574,28 +1707,22 @@ proc useGlobal(c: var TCtx, n: CgNode): int =
     ## it's an importc'ed variable, for example), an error is raised.
     let s = c.env[n.global]
 
-    if importcCondVar(s) or c.importcCond(s):
+    if importcCondVar(s) or c.graph.importcCond(s):
       # Using importc'ed symbols on the left or right side of an expression is
       # not allowed
       fail(n.info, vmGenDiagCannotImportc, sym = s)
 
     int n.global
 
-proc genSym(c: var TCtx; n: CgNode; dest: var TDest; load = true) =
+proc genSym(c: var TCtx; n: CgNode; load = true) =
   ## Generates and emits the code for loading either the value or handle of
   ## the location named by symbol or local node `n` into the `dest` register.
   case n.kind
   of cnkConst:
-    prepare(c, dest, n.typ)
-
     let pos = int c.env.dataFor(n.cnst)
+    c.instr(n.info, opcGetGlobal, imm32 pos, imm8 1)
     if load and fitsRegister(n.typ):
-      let cc = c.getTemp(n.typ)
-      c.gABx(n, opcLdCmplxConst, cc, pos)
-      c.genRegLoad(n, dest, cc)
-      c.freeTemp(cc)
-    else:
-      c.gABx(n, opcLdCmplxConst, dest, pos)
+      c.load(n.info, n.typ)
 
     discard genType(c, n.typ) # make sure the type exists
     # somewhat hack-y, but the orchestrator later queries the type of the data
@@ -2604,217 +1731,18 @@ proc genSym(c: var TCtx; n: CgNode; dest: var TDest; load = true) =
   of cnkGlobal:
     # a global location
     let pos = useGlobal(c, n)
-    if dest.isUnset:
-      dest = c.getTemp(n.typ)
+    c.instr(n.info, opcGetGlobal, imm32 pos)
 
-    if load and (isLocView(n.typ) or fitsRegister(n.typ)):
-      let cc = c.getTemp(n.typ)
-      c.gABx(n, opcLdGlobal, cc, pos)
-      c.genRegLoad(n, dest, cc)
-      c.freeTemp(cc)
-    else:
-      c.gABx(n, opcLdGlobal, dest, pos)
+    if load and fitsRegister(n.typ):
+      c.load(n.info, n.typ)
   of cnkLocal:
-      let local = c.prc[n.local].reg
-      internalAssert(c.config, c.prc.regInfo[local].kind < slotSomeTemp)
-      if usesRegister(c, n.local) or not load or not fitsRegister(n.typ):
-        if dest.isUnset:
-          dest = local
-        else:
-          # despite the name, ``opcFastAsgnComplex`` currently performs a
-          # register copy, which is exactly what we need here
-          c.gABC(n, opcFastAsgnComplex, dest, local)
-      else:
-        prepare(c, dest, n.typ)
-        c.genRegLoad(n, dest, local)
+    c.getLocal(n.info, imm32 c.prc[n.local].slot)
+    if not usesRegister(c, n.local) and fitsRegister(n.typ) and load:
+      c.load(n.info, n.typ)
   else:
     unreachable()
 
-proc genSymAddr(c: var TCtx, n: CgNode, dest: var TDest) =
-  ## Generates and emits the code for taking the address of the location
-  ## identified by the symbol or local node `n`.
-  assert dest != noDest
-  case n.kind
-  of cnkConst:
-    let
-      pos = int c.env.dataFor(n.cnst)
-      tmp = c.getTemp(slotTempComplex)
-    c.gABx(n, opcLdCmplxConst, tmp, pos)
-    c.gABC(n, opcAddr, dest, tmp)
-    c.freeTemp(tmp)
-    discard genType(c, n.typ) # make sure the type exists
-  of cnkGlobal:
-    let
-      pos = useGlobal(c, n)
-      tmp = c.getTemp(slotTempComplex)
-    c.gABx(n, opcLdGlobal, tmp, pos)
-    c.gABC(n, opcAddr, dest, tmp)
-    c.freeTemp(tmp)
-  of cnkLocal:
-    let local = c.prc[n.local].reg
-    c.gABC(n, opcAddr, dest, local)
-  else:
-    unreachable()
-
-proc genArrAccessOpcode(c: var TCtx; n: CgNode; dest: var TDest; opc: TOpcode; load = true) =
-  let
-    a = c.genx(n[0])
-    b = c.genIndex(n[1], n[0].typ)
-
-  prepare(c, dest, n.typ)
-  if opc in {opcLdArrAddr, opcLdStrIdx}:
-    # the result is already stored in a register; no special handling
-    # required
-    c.gABC(n, opc, dest, a, b)
-  elif needsRegLoad():
-    var cc = c.getTemp(n.typ)
-    c.gABC(n, opc, cc, a, b)
-    c.genRegLoad(n, dest, cc)
-    c.freeTemp(cc)
-  else:
-    c.gABC(n, opc, dest, a, b)
-  c.freeTemp(a)
-  c.freeTemp(b)
-
-proc genFieldAccessAux(c: var TCtx; n: CgNode; a, b: TRegister, dest: var TDest; load = true) =
-  ## Emits the code for loading either the value or handle of an
-  ## ``object``/``tuple`` field into the `dest` register. The `a` register
-  ## holds the handle to the object location, while `b` is an immedate value
-  ## representing the position of the accessed field.
-  prepare(c, dest, n.typ)
-  if needsRegLoad():
-    var cc = c.getTemp(n.typ)
-    c.gABC(n, opcLdObj, cc, a, b)
-    c.genRegLoad(n, dest, cc)
-    c.freeTemp(cc)
-  else:
-    c.gABC(n, opcLdObj, dest, a, b)
-
-proc genFieldAccess(c: var TCtx; n: CgNode; pos: int, dest: var TDest;
-                    load = true) =
-  ## Generates and emits the code for the record-like access `n`. The handle
-  ## value is written to the `dest` register.
-  assert n.kind in {cnkFieldAccess, cnkTupleAccess}
-  let a = c.genx(n[0])
-  genFieldAccessAux(c, n, a, pos, dest, load)
-  c.freeTemp(a)
-
-proc genFieldAddr(c: var TCtx, n, obj: CgNode, fieldPos: int, dest: TDest) =
-  let obj = c.genx(obj)
-  c.gABC(n, opcLdObjAddr, dest, obj, fieldPos)
-  c.freeTemp(obj)
-
-proc genFieldCheck(c: var TCtx; n: CgNode) =
-  let negCheck = n[3].intVal == 1
-  # load the set
-  let setLit = c.genx(n[1])
-  # load the value
-  let discVal = c.genx(n[2])
-  # check if the value is contained in the supplied set
-  var rs = c.getTemp(getSysType(c.graph, n.info, tyBool))
-  c.gABC(n, opcContainsSet, rs, setLit, discVal)
-  c.freeTemp(setLit)
-  # If the check fails let the user know
-  let lab1 = c.xjmp(n, if negCheck: opcFJmp else: opcTJmp, rs)
-  c.freeTemp(rs)
-  var discrStrReg = c.getFullTemp(n, getSysType(c.graph, n.info, tyString))
-  let msgReg = c.genx(n[4])
-  # repr for discriminator value
-  c.gABx(n, opcRepr, discrStrReg, c.genTypeInfo(n[2].typ))
-  c.gABC(n, opcRepr, discrStrReg, discVal)
-  c.gABC(n, opcInvalidField, msgReg, discrStrReg)
-  c.freeTemp(discVal)
-  c.freeTemp(msgReg)
-  c.freeTemp(discrStrReg)
-  c.patch(lab1)
-
-proc genArrAccess(c: var TCtx; n: CgNode; dest: var TDest; load = true) =
-  case n[0].typ.skipTypes(abstractVar).kind
-  of tyString, tyCstring:
-    if load:
-      # no need to pass `load`; the result of a string access is always
-      # stored in a register
-      genArrAccessOpcode(c, n, dest, opcLdStrIdx)
-    else:
-      # use the ``opcLdArr`` operation to get a handle to the ``char``
-      # location
-      genArrAccessOpcode(c, n, dest, opcLdArr, load=false)
-  of tyArray, tySequence, tyOpenArray, tyVarargs, tyUncheckedArray:
-    genArrAccessOpcode(c, n, dest, opcLdArr, load)
-  else:
-    unreachable()
-
-proc genArrayAddr(c: var TCtx, n: CgNode, dest: var TDest) =
-  ## Generates the code for loading the address of a bracket expression (i.e.
-  ## ``addr x[0]``)
-  assert not dest.isUnset
-  case n[0].typ.skipTypes(abstractInst).kind
-  of tyString, tyCstring, tyArray, tySequence, tyOpenArray, tyVarargs:
-    genArrAccessOpcode(c, n, dest, opcLdArrAddr)
-  else:
-    unreachable()
-
-proc genAddr(c: var TCtx, src, n: CgNode, dest: var TDest) =
-  ## Generates and emits the code for taking the address of lvalue expression
-  ## `n`. `src` provides the type information of the destination, plus the line
-  ## information to use.
-  case n.kind
-  of cnkConst, cnkGlobal, cnkLocal:
-    prepare(c, dest, src.typ)
-    genSymAddr(c, n, dest)
-  of cnkFieldAccess:
-    prepare(c, dest, src.typ)
-    genFieldAddr(c, n, n[0], genField(c, n[1]), dest)
-  of cnkArrayAccess:
-    prepare(c, dest, src.typ)
-    genArrayAddr(c, n, dest)
-  of cnkTupleAccess:
-    prepare(c, dest, src.typ)
-    genFieldAddr(c, n, n[0], n[1].intVal.TRegister, dest)
-  of cnkDerefView:
-    # taking the address of a view's or ``var`` parameter's underlying
-    # location
-    assert isLocView(n.operand.typ)
-    if isPtrView(n.operand):
-      # the view is stored as an address; treat the deref as a no-op
-      genLvalue(c, n.operand, dest)
-    else:
-      prepare(c, dest, src.typ)
-      let tmp = genx(c, n.operand) # skip the deref
-      c.gABC(src, opcAddr, dest, tmp)
-      c.freeTemp(tmp)
-  of cnkDeref:
-    prepare(c, dest, src.typ)
-    # after transformation (i.e. ``transf``), the only ``addr(deref(x))``
-    # sequences left are those that can't be collapsed, and since a ``ptr``
-    # is not interchangeable with ``ref`` we need the deref
-    var tmp = noDest
-    genDeref(c, n, tmp, load=false)
-    c.gABC(src, opcAddr, dest, tmp)
-    c.freeTemp(tmp)
-  of cnkLvalueConv:
-    # an l-value conversion. Take the address of the source expression
-    genAddr(c, src, n.operand, dest)
-  of cnkObjDownConv, cnkObjUpConv:
-    case n.typ.skipTypes(IrrelevantTypes).kind
-    of tyPtr:
-      # not supported at this time
-      cannotEval(c, src)
-    of tyRef, tyObject:
-      # the operations produce a new handle (to the same location, but with
-      # a different type), so we must not skip them
-      prepare(c, dest, src.typ)
-      var tmp = noDest
-      # perform the conversion and then take the address of the result
-      genObjConv(c, n, tmp)
-      c.gABC(src, opcAddr, dest, tmp)
-      c.freeTemp(tmp)
-    else:
-      unreachable()
-  else:
-    unreachable(n.kind)
-
-proc genLvalue(c: var TCtx, n: CgNode, dest: var TDest) =
+proc genLvalue(c: var TCtx, n: CgNode) =
   ## Generates and emits the code for computing the handle of the location
   ## named by l-value expression `n`. If the expression names a location that
   ## is stored in a VM memory cell, `dest` will always store a handle --
@@ -2824,35 +1752,43 @@ proc genLvalue(c: var TCtx, n: CgNode, dest: var TDest) =
   ## its value instead of a handle.
   case n.kind
   of cnkConst, cnkGlobal, cnkLocal:
-    c.genSym(n, dest, load=false)
+    genSym(c, n, load=false)
   of cnkFieldAccess:
-    genFieldAccess(c, n, genField(c, n[1]), dest, load=false)
+    c.genLvalue(n[0])
+    c.addImm(n.info, toInt128 c.offsetof(n[0].typ, n[1]))
   of cnkArrayAccess:
-    genArrAccess(c, n, dest, load=false)
+    case n[0].typ.skipTypes(abstractVar).kind
+    of tySequence, tyString, tyCstring:
+      c.genLvalue(n[0])
+      c.instr(n.info, opcLdInt64, imm32 8)
+      c.instr(n.info, opcAddImm, imm32 8)
+    of tyOpenArray, tyVarargs:
+      c.genLvalue(n[0])
+      c.instr(n.info, opcLdInt64, imm32 8)
+    of tyArray, tyUncheckedArray:
+      c.genLvalue(n[0])
+    else:
+      unreachable()
+
+    c.genIndex(n[1], n[0].typ)
+    # TODO: n sometimes has a lent/var type for forvars, figure out why
+    c.instr(n.info, opcOffset, imm32 c.sizeof(elemType(n[0].typ.skipTypes(abstractVar))))
   of cnkTupleAccess:
-    genFieldAccess(c, n, n[1].intVal.int, dest, load=false)
+    c.genLvalue(n[0])
+    c.addImm(n.info, toInt128 c.offsetof(n[0].typ, n[1].intVal.int))
   of cnkLvalueConv:
     # lvalue conversion reaching here are only for distinct or tuple type
     # conversions, which are irrelevant to the VM
-    genLvalue(c, n.operand, dest)
+    genLvalue(c, n.operand)
   of cnkObjDownConv, cnkObjUpConv:
     # these conversions are *not* no-ops, as they produce a handle of different
     # type
-    gen(c, n, dest)
+    c.operand(n)
   of cnkDerefView:
-    assert isLocView(n.operand.typ)
-    if isPtrView(n.operand):
-      # we want a handle (``rkHandle``), but the input view uses a pointer
-      # (``rkAddress``) internally. Turn it into a handle by dereferencing it
-      prepare(c, dest, n.operand.typ)
-      let tmp = c.genx(n.operand)
-      c.gABC(n, opcLdDeref, dest, tmp)
-      c.freeTemp(tmp)
-    else:
-      # the operand is a handle already; treat the deref as a no-op
-      genLvalue(c, n.operand, dest)
+    # simply load as a value
+    c.operand(n.operand)
   of cnkDeref:
-    genDeref(c, n, dest, load=false)
+    c.operand(n.operand)
   else:
     unreachable(n.kind)
 
@@ -2864,215 +1800,275 @@ proc genDef(c: var TCtx; a: CgNode) =
           if a[1].kind == cnkEmpty:
             # no initializer; only setup the register (and memory location,
             # if used)
-            let reg = setSlot(c.prc, s)
-            let opc = if usesRegister(c, s): opcLdNullReg
-                      else: opcLdNull
-
-            c.gABx(a, opc, reg, c.genType(typ))
+            let reg = setSlot(c, s)
+            if not usesRegister(c, s):
+              # TODO: don't clear. Locals that require a default value should
+              #       have an non-empty def
+              c.instr(a.info, opcStackAlloc, imm32 c.genType(typ), imm8 1) # clear
+              c.instr(a.info, opcPopLocal, imm32 reg)
           else:
-            let reg = setSlot(c.prc, s)
+            let reg = setSlot(c, s)
             # temporarily set the slot kind to something signaling that
             # initialization is in progress:
-            c.prc.regInfo[reg].kind = slotNoValue
-            # XXX: checking for views here is wrong but necessary
-            if not usesRegister(c, s) and not isDirectView(typ):
-              # only setup a memory location if the local uses one
-              c.gABx(a, opcLdNull, reg, c.genType(typ))
+            var prev = slotUninit
+            swap(prev, c.prc.regInfo[reg].kind)
+            if not usesRegister(c, s):
+              # XXX: clearing is unnecessary if the construction initializes
+              #      everything
+              c.instr(a.info, opcStackAlloc, imm32 c.genType(typ), imm8 1) # clear
+              c.instr(a.info, opcPopLocal, imm32 reg)
 
-            # views and locals backed by registers don't need explicit
-            # initialization logic here -- the assignment takes care of that
-            genAsgnToLocal(c, a[0], a[1])
-            c.prc.regInfo[reg].kind = slotFixedVar
+            genAsgnToLocal(c, a[0], a[1], move=false)
+            swap(prev, c.prc.regInfo[reg].kind)
 
-proc genArrayConstr(c: var TCtx, n: CgNode, dest: TRegister) =
-  let intType = getSysType(c.graph, n.info, tyInt)
-  let seqType = n.typ.skipTypes(abstractVar-{tyTypeDesc})
-  if seqType.kind == tySequence:
-    var tmp = c.getTemp(intType)
-    c.gABx(n, opcLdImmInt, tmp, n.len)
-    c.gABx(n, opcNewSeq, dest, c.genType(seqType))
-    c.gABx(n, opcNewSeq, tmp, 0)
-    c.freeTemp(tmp)
+proc genArrayConstr(c: var TCtx, n: CgNode) =
+  if n.typ.skipTypes(abstractInst).kind == tySequence:
+    c.dup(n.info)
+    c.instr(n.info, opcLdImmInt, imm32 n.len)
+    c.instr(n.info, opcLdImmInt, imm32 c.genType(n.typ))
+    c.builtin(n.info, "__newseq", 3)
+    # load the payload
+    c.instr(n.info, opcLdInt64, imm32 8)
+    c.instr(n.info, opcAddImm, imm32 8) # skip the capacity
 
-  if n.len > 0:
-    var tmp = getTemp(c, intType)
-    c.gABx(n, opcLdNullReg, tmp, c.genType(intType))
-    for x in n:
-      putIntoLoc(c, x, dest, tmp, opcWrArr, opcLdArr)
-      c.gABI(n, opcAddImmInt, tmp, tmp, 1)
-    c.freeTemp(tmp)
+  for x in n:
+    c.dup(n.info) # duplicate the pointer
+    putIntoLoc(c, x, move=false)
+    # advance the pointer by one element
+    c.addImm(x.info, toInt128 c.sizeof(x.typ))
 
-proc genSetConstr(c: var TCtx, n: CgNode, dest: TRegister) =
-  if not isEmpty(c.prc, dest):
+  c.drop(n.info)
+
+proc genSetConstr(c: var TCtx, n: CgNode) =
+  let tmp = c.capture(n.info, slotAddress)
+  if true:#not isEmpty(c.prc, dest):
     # zero the destination
-    c.gABx(n, opcReset, dest, c.genType(n.typ))
+    c.getLocal(n.info, tmp.slot)
+    c.instr(n.info, opcLdImmInt, imm32 c.sizeof(n.typ))
+    c.instr(n.info, opcMemClear)
 
   # XXX: since `first` stays the same across the loop, we could invert
   #      the loop around `genSetElem`'s logic...
   let first = firstOrd(c.config, n.typ.skipTypes(abstractInst))
-  for x in n:
+  let size = c.sizeof(n.typ)
+  for x in n.items:
+    c.instr(x.info, opcGetLocal, tmp.slot)
     if x.kind == cnkRange:
-      let a = c.genSetElem(x[0], first)
-      let b = c.genSetElem(x[1], first)
-      c.gABC(n, opcInclRange, dest, a, b)
-      c.freeTemp(b)
-      c.freeTemp(a)
+      c.genSetElem(x[0], first)
+      c.genSetElem(x[1], first)
+      c.instr(n.info, opcInclRange, imm32 size)
     else:
-      let a = c.genSetElem(x, first)
-      c.gABC(n, opcIncl, dest, a)
-      c.freeTemp(a)
+      c.genSetElem(x, first)
+      c.instr(n.info, opcIncl, imm32 size)
 
-proc genObjConstr(c: var TCtx, n: CgNode, dest: TRegister) =
+  c.freeTemp(tmp)
+
+proc genObjConstr(c: var TCtx, n: CgNode) =
   let t = n.typ.skipTypes(abstractRange-{tyTypeDesc})
-  var obj: TRegister
-  if t.kind == tyRef:
-    obj = c.getTemp(slotTempComplex) # holds the dereferenced location
-    c.gABx(n, opcNew, dest, c.genType(t))
-    c.gABC(n, opcLdDeref, obj, dest)
+  let tmp = c.getTemp(slotAddress)
+  if t.kind == tyObject:#not isEmpty(c.prc, obj):
+    # reset the destination first, the construction might not initialize all
+    # fields
+    c.instr(n.info, opcSetLocal, imm32 tmp)
+    c.instr(n.info, opcReset, imm32 c.genType(n.typ))
   else:
-    obj = dest
-    if not isEmpty(c.prc, obj):
-      # reset the destination first, the construction might not initialize all
-      # fields
-      c.gABx(n, opcReset, obj, c.genType(t))
+    c.instr(n.info, opcLdImmInt, imm32 c.types[VmTypeId c.genType(t)].b)
+    c.builtin(n.info, "__newobj", 1)
+    c.instr(n.info, opcPopLocal, imm32 tmp)
 
   for it in n.items:
     assert it.kind == cnkBinding and it[0].kind == cnkField
-    let idx = genField(c, it[0])
-    if sfDiscriminant notin it[0].field.flags:
-      putIntoLoc(c, it[1], obj, idx, opcWrObj, opcLdObj)
-    else:
-      let tmp = c.genDiscrVal(it[0], it[1], n.typ)
-      c.gABC(it[1], opcSetDisc, obj, idx, tmp)
-      c.freeTemp(tmp)
+    c.instr(n.info, opcGetLocal, imm32 tmp)
+    c.addImm(it.info, toInt128 c.offsetof(t, it[0]))
+    putIntoLoc(c, it[1], move=false)
 
-  if t.kind == tyRef:
-    c.freeTemp(obj)
-
-proc genTupleConstr(c: var TCtx, n: CgNode, dest: TRegister) =
-  for i, it in n.pairs:
-    putIntoLoc(c, it, dest, i.TRegister, opcWrObj, opcLdObj)
-
-proc genClosureConstr(c: var TCtx, n: CgNode, dest: TRegister) =
-  let tmp = c.genx(n[0])
-  c.gABC(n, opcWrObj, dest, 0, tmp)
+  if t.kind != tyObject:
+    c.instr(n.info, opcGetLocal, imm32 tmp)
   c.freeTemp(tmp)
 
-  let typ = c.typeInfoCache.types.find(c.typeInfoCache.rootRef)
-  # the type of the environment value is wrong, the VM expects
-  # the value to be of ``RootRef`` type. We're correcting this
-  # here by emitting a conversion
-  if n[1].kind == cnkNilLit:
-    let tmp = c.getTemp(slotTempComplex)
-    c.gABC(n[1], opcLdObj, tmp, dest, 1)
-    c.gABx(n[1], opcReset, tmp, typ)
-    c.freeTemp(tmp)
-  else:
-    let
-      envTmp = c.genx(n[1])
-      tmp2 = c.getTemp(slotTempComplex)
-    c.gABC(n[1], opcObjConv, tmp2, envTmp)
-    c.gABx(n[1], opcObjConv, 0, typ)
-    c.gABC(n[1], opcWrObj, dest, 1, tmp2)
-    c.freeTemp(tmp2)
-    c.freeTemp(envTmp)
+proc genTupleConstr(c: var TCtx, n: CgNode) =
+  let tmp = c.capture(n.info, slotAddress)
+  for i, it in n.pairs:
+    c.getLocal(it.info, tmp.slot)
+    c.addImm(it.info, toInt128 c.offsetof(n.typ, i))
+    putIntoLoc(c, it, move=false)
+  c.freeTemp(tmp)
 
-proc binaryArith(c: var TCtx, e, x, y: CgNode, dest: var TDest,
+proc genClosureConstr(c: var TCtx, n: CgNode) =
+  c.dup(n.info)
+  c.operand(n[0])
+  c.instr(n.info, opcWrInt64, imm32 0)
+
+  c.operand(n[1])
+  c.instr(n.info, opcWrInt64, imm32 8)
+
+proc binaryArith(c: var TCtx, e, x, y: CgNode,
                  intOp, floatOp: TOpcode) =
   ## Emits the instruction sequence for the binary operation `e` with opcode
   ## `op`. `x` and `y` are the operand expressions.
-  prepare(c, dest, e.typ)
-  let
-    a = c.genx(x)
-    b = c.genx(y)
-  c.gABC(e, pick(e, intOp, floatOp), dest, a, b)
-  c.freeTemp(a)
-  c.freeTemp(b)
+  c.binary(e.info, pick(e, intOp, floatOp), x, y)
 
-proc gen(c: var TCtx; n: CgNode; dest: var TDest) =
+proc gen(c: var TCtx; n: CgNode) =
   when defined(nimCompilerStacktraceHints):
     frameMsg c.config, n
 
   case n.kind
   of cnkProc:
-    let s = c.env.procedures[n.prc]
-    if importcCond(c, s) and lookup(c.callbackKeys, s) == -1:
-      fail(n.info, vmGenDiagCannotImportc, sym = s)
-
-    genProcLit(c, n, dest)
+    genProcLit(c, n)
   of cnkConst, cnkGlobal, cnkLocal:
-    genSym(c, n, dest)
+    genSym(c, n)
   of cnkCall, cnkCheckedCall:
     let magic = getMagic(c.env, n)
     if magic != mNone:
-      genMagic(c, n, dest, magic)
+      genMagic(c, n, magic)
     else:
-      genCall(c, n, dest)
-      clearDest(c, n, dest)
+      genCall(c, n)
   of cnkNeg:
-    prepare(c, dest, n.typ)
-    let a = c.genx(n[0])
-    c.gABC(n, pick(n, opcUnaryMinusInt, opcUnaryMinusFloat), dest, a)
-    c.freeTemp(a)
-  of cnkAdd: binaryArith(c, n, n[0], n[1], dest, opcAddu, opcAddFloat)
-  of cnkSub: binaryArith(c, n, n[0], n[1], dest, opcSubu, opcSubFloat)
-  of cnkMul: binaryArith(c, n, n[0], n[1], dest, opcMulu, opcMulFloat)
-  of cnkDiv: binaryArith(c, n, n[0], n[1], dest, opcDivInt, opcDivFloat)
-  of cnkModI: binaryArith(c, n, n[0], n[1], dest, opcModInt, opcModInt)
+    c.operand(n[0])
+    c.instr(n.info, pick(n, opcNegInt, opcNegFloat))
+  of cnkAdd: binaryArith(c, n, n[0], n[1], opcAddInt, opcAddFloat)
+  of cnkSub: binaryArith(c, n, n[0], n[1], opcSubInt, opcSubFloat)
+  of cnkMul: binaryArith(c, n, n[0], n[1], opcMulInt, opcMulFloat)
+  of cnkDiv: binaryArith(c, n, n[0], n[1], opcDivInt, opcDivFloat)
+  of cnkModI: binaryArith(c, n, n[0], n[1], opcModInt, opcModInt)
   of cnkIntLit, cnkUIntLit:
-    prepare(c, dest, n.typ)
-    c.loadInt(n, dest, getInt(n))
-  of cnkFloatLit, cnkStrLit: genLit(c, n, dest)
+    c.loadInt(n.info, getInt(n))
+  of cnkFloatLit, cnkStrLit: genLit(c, n)
   of cnkNilLit:
-    let t = n.typ.skipTypes(abstractInst)
-    internalAssert(c.config,
-        t.kind in {tyPtr, tyRef, tyPointer, tyNil, tyProc, tyCstring},
-        n.info,
-        $t.kind)
-
-    if fitsRegister(t):
-      prepare(c, dest, t)
-      c.gABx(n, opcLdNullReg, dest, c.genType(n.typ))
-    elif dest.isUnset or c.prc.regInfo[dest].kind == slotTempUnknown:
-      prepare(c, dest, n, t)
-    elif not isEmpty(c.prc, dest):
+    if fitsRegister(n.typ):
+      c.instr(n.info, opcLdImmInt, imm32 0)
+    else:
       # assigning the nil literal is identical with resetting the
       # location
-      c.gABx(n, opcReset, dest, c.genType(n.typ))
+      c.instr(n.info, opcLdImmInt, imm32 c.sizeof(n.typ))
+      c.instr(n.info, opcMemClear) # TODO: use reset where necessary
   of cnkAstLit:
-    # the VM does not copy the tree when loading a ``PNode`` constant (which
-    # is correct). ``NimNode``s not marked with `nfSem` can be freely modified
-    # inside macros, so in order to prevent mutations of the AST part of the
-    # constant, we perform a defensive tree copy before assigning the literal
-    # to the destination
-    if dest.isUnset:
-      dest = c.getTemp(n.typ)
+    # turn into an integer value, the ``loadNimNode`` call it's passed to
+    # will load the actual node
+    c.loadInt(n.info, toInt128 ord(n.astLit))
+  of cnkFieldAccess:
+    if fitsRegister(n.typ):
+      c.genLvalue(n)
+      c.load(n.info, n.typ)
+    else:
+      c.genLvalue(n)
+  of cnkArrayAccess:
+    if fitsRegister(n.typ):
+      case n[0].typ.skipTypes(abstractVar).kind
+      of tySequence, tyString, tyCstring:
+        c.genLvalue(n[0])
+        c.instr(n.info, opcLdInt64, imm32 8)
+        c.instr(n.info, opcAddImm, imm32 8)
+      of tyOpenArray, tyVarargs:
+        c.genLvalue(n[0])
+        c.instr(n.info, opcLdInt64, imm32 8)
+      of tyArray, tyUncheckedArray:
+        c.genLvalue(n[0])
+      else:
+        unreachable()
+      c.genIndex(n[1], n[0].typ)
+      c.instr(n.info, opcOffset, imm32 c.sizeof(n.typ))
+      c.load(n.info, n.typ)
+    else:
+      c.genLvalue(n)
+  of cnkTupleAccess:
+    if fitsRegister(n.typ):
+      c.genLvalue(n)
+      c.load(n.info, n.typ)
+    else:
+      c.genLvalue(n)
+  of cnkToSlice:
+    case n[0].typ.skipTypes(abstractVar).kind
+    of tyArray:
+      c.dup(n.info)
+      # FIXME: multi evaluation, in case expressions are forwarded
+      if n.len == 3:
+        c.operand(n[2])
+        c.operand(n[1])
+        c.instr(n.info, opcSubInt)
+        c.instr(n.info, opcAddImm, imm32 1)
+      else:
+        c.loadInt(n.info, c.config.lengthOrd(n[0].typ))
+      c.instr(n.info, opcWrInt64)
+      c.genLvalue(n[0])
+      if n.len == 3:
+        c.operand(n[2])
+        c.instr(n.info, opcOffset, imm32 c.sizeof(elemType(n[0].typ)))
+      c.instr(n.info, opcWrInt64, imm32 8)
+    of tySequence, tyString:
+      c.dup(n.info)
+      c.genLvalue(n[0])
+      let tmp = c.capture(n.info, slotAddress)
+      if n.len == 3:
+        c.operand(n[2])
+        c.operand(n[1])
+        c.instr(n.info, opcSubInt)
+        c.instr(n.info, opcAddImm, imm32 1)
+      else:
+        c.getLocal(n.info, tmp.slot)
+        c.rawLoad(n.info, opcLdInt64)
+      c.instr(n.info, opcWrInt64)
+      c.instr(n.info, opcGetLocal, tmp.slot)
+      # ignore whether the pointer is nil or not
+      c.instr(n.info, opcLdInt64, imm32 8)
+      c.instr(n.info, opcAddImm, imm32 8) # skip to the first element
+      if n.len == 3:
+        c.operand(n[1])
+        c.instr(n.info, opcOffset, imm32 c.sizeof(elemType(n[0].typ)))
+      c.instr(n.info, opcWrInt64, imm32 8)
+      c.freeTemp(tmp)
+    of tyOpenArray, tyVarargs:
+      if n.len == 1:
+        c.operand(n[0])
+        c.instr(n.info, opcCopy, imm32 c.genType(n.typ))
+      else:
+        missing("openArray-subslice")
+    else:
+      missing("openarray support")
 
-    var tmp: TDest = c.getTemp(n.typ)
-    c.genLit(n, c.toNodeCnst(n.astLit), tmp)
-    c.gABC(n, opcNCopyNimTree, dest, tmp)
-    freeTemp(c, tmp)
-  of cnkAsgn, cnkFastAsgn:
-    unused(c, n, dest)
-    genAsgn(c, n[0], n[1], n.kind == cnkAsgn)
-  of cnkFieldAccess: genFieldAccess(c, n, genField(c, n[1]), dest)
-  of cnkArrayAccess: genArrAccess(c, n, dest)
-  of cnkTupleAccess: genFieldAccess(c, n, n[1].intVal.int, dest)
-  of cnkDeref: genDeref(c, n, dest)
-  of cnkAddr: genAddr(c, n, n.operand, dest)
-  of cnkDerefView:
-    assert isLocView(n.operand.typ)
-    # a view indirection
-    genDerefView(c, n.operand, dest)
+  of cnkDeref, cnkDerefView:
+    c.operand(n.operand)
+    if fitsRegister(n.typ):
+      c.load(n.info, n.typ)
+  of cnkAddr:
+    c.genLvalue(n.operand)
   of cnkHiddenAddr:
-    assert isLocView(n.typ)
-    # load the source operand as a handle
-    genLvalue(c, n.operand, dest)
+    c.genLvalue(n.operand)
+    if hasUnsafe(n.operand):
+      # typecheck the source handle
+      c.check(n.info, n.operand.typ)
+  of cnkHiddenConv, cnkConv:
+    genConv(c, n, n.operand)
+  of cnkLvalueConv:
+    gen(c, n.operand)
+  of cnkObjDownConv, cnkObjUpConv:
+    c.genLvalue(n.operand)
+  of cnkEmpty:
+    discard
+  of cnkArrayConstr: genArrayConstr(c, n)
+  of cnkSetConstr: genSetConstr(c, n)
+  of cnkObjConstr: genObjConstr(c, n)
+  of cnkTupleConstr: genTupleConstr(c, n)
+  of cnkClosureConstr: genClosureConstr(c, n)
+  of cnkCast:
+    genCast(c, n)
+  else:
+    unreachable(n.kind)
+
+proc genStmt(c: var TCtx, n: CgNode) =
+  case n.kind
+  of cnkCall, cnkCheckedCall:
+    let magic = getMagic(c.env, n)
+    if magic != mNone:
+      genMagic(c, n, magic)
+    else:
+      genCall(c, n)
+  of cnkAsgn, cnkFastAsgn:
+    # XXX: we can never safely move at the moment
+    genAsgn(c, n[0], n[1], move = false)
   of cnkIfStmt:
-    unused(c, n, dest)
     genIf(c, n)
   of cnkCaseStmt:
-    unused(c, n, dest)
     genCase(c, n)
   of cnkRaiseStmt:
     genRaise(c, n)
@@ -3081,19 +2077,18 @@ proc gen(c: var TCtx; n: CgNode; dest: var TDest) =
   of cnkStmtList:
     # XXX: supported for a transition period (``cgir.merge`` creates nested
     #      statement lists)
-    unused(c, n, dest)
-    for x in n: gen(c, x)
+    for x in n: genStmt(c, x)
   of cnkVoidStmt:
-    unused(c, n, dest)
     gen(c, n[0])
+    c.drop(n.info)
   of cnkContinueStmt:
     # marks the end of a finally section
     let
       blk {.cursor.} = c.prc.blocks[^1]
       control = c.controlReg(blk)
     # patch the ``opcFinally`` instruction:
-    c.patch(blk.start)
-    c.gABx(n, opcFinallyEnd, control, 0)
+    # c.patch(blk.start)
+    c.instr(n.info, opcFinallyEnd, imm32 control)
     # now free the control register
     c.freeTemp(control)
     popBlock(c)
@@ -3103,6 +2098,7 @@ proc gen(c: var TCtx; n: CgNode; dest: var TDest) =
     # loops count as blocks too
     pushBlock(c):
       BlockInfo(kind: bkBlock, label: n[0].label, start: c.genLabel())
+    c.prc.pastJoin = true # prevent instruction merging
   of cnkLoopStmt:
     c.jmpBack(n, c.prc.blocks[^1].start)
     popBlock(c)
@@ -3114,43 +2110,21 @@ proc gen(c: var TCtx; n: CgNode; dest: var TDest) =
     if c.prc.blocks[^1].kind == bkBlock:
       c.patch(c.prc.blocks[^1].start)
     popBlock(c)
-  of cnkHiddenConv, cnkConv:
-    genConv(c, n, n.operand, dest)
-  of cnkLvalueConv:
-    gen(c, n.operand, dest)
-  of cnkObjDownConv, cnkObjUpConv:
-    genObjConv(c, n, dest)
   of cnkDef:
-    unused(c, n, dest)
     genDef(c, n)
-  of cnkEmpty:
-    unused(c, n, dest)
-  of cnkArrayConstr: genArrayConstr(c, n, dest)
-  of cnkSetConstr: genSetConstr(c, n, dest)
-  of cnkObjConstr: genObjConstr(c, n, dest)
-  of cnkTupleConstr: genTupleConstr(c, n, dest)
-  of cnkClosureConstr: genClosureConstr(c, n, dest)
-  of cnkCast:
-    if allowCast in c.features:
-      genCast(c, n, n.operand, dest)
-    else:
-      genCastIntFloat(c, n, dest)
-  of cnkType:
-    genTypeLit(c, n, n.typ, dest)
   of cnkAsmStmt, cnkEmitStmt:
-    unused(c, n, dest)
+    discard
   of cnkInvalid, cnkMagic, cnkRange, cnkBranch,
      cnkBinding, cnkLabel, cnkField, cnkToSlice,
      cnkResume, cnkTargetList, cnkLeave:
+    unreachable(n.kind)
+  else:
     unreachable(n.kind)
 
 proc initProc(c: TCtx, owner: PSym, body: sink Body): BProc =
   ## `owner` is the procedure the body belongs to, or nil, if its something
   ## standalone.
   result = BProc(sym: owner, body: body)
-  result.bestEffort =
-    if owner != nil: owner.info
-    else:            c.module.info
   result.locals.synchronize(result.body.locals)
 
   # analyse what locals require indirections:
@@ -3161,20 +2135,21 @@ proc genStmt*(c: var TCtx; body: sink Body): Result[int, VmGenDiag] =
   let n = c.prc.body.code
 
   try:
-    let eh = genSetEh(c, n.info)
-    c.gen(n)
-    c.patchSetEh(eh)
+    setupEh(c)
+    c.genStmt(n)
   except VmGenError as e:
     return typeof(result).err(move e.diag)
 
-  if c.prc.body[resultId].typ != VoidType:
-    # the body has a result, emit a return
-    c.gABC(n, opcRet, c.prc[resultId].reg)
+  if c.prc.body[resultId].typ != mirtypes.VoidType:
+    # the body has a result, emit a return. Always do this, even if the
+    # local is an address
+    c.getLocal(n.info, imm32 c.prc[resultId].slot)
+    c.instr(n.info, opcRet)
 
   result = typeof(result).ok(c.prc.regInfo.len)
 
 
-proc genParams(prc: var BProc; signature: PType) =
+proc genParams(env: MirEnv, prc: var BProc; signature: PType) =
   ## Allocates the registers for the parameters and associates them with the
   ## corresponding locs.
   let
@@ -3185,23 +2160,15 @@ proc genParams(prc: var BProc; signature: PType) =
   prc.regInfo.newSeq(params.len + ord(isClosure))
 
   for i, it in prc.regInfo.mpairs:
-    it = RegInfo(inUse: true, kind: slotFixedVar)
-    prc[LocalId i].reg = i
+    it = RegInfo(inUse: true, kind: getSlotKind(env.types[prc.body[LocalId i].typ]))
+    prc[LocalId i].slot = LocalIndex i
 
 proc finalJumpTarget(c: var TCtx; pc, diff: int) =
-  internalAssert(
-    c.config,
-    regBxMin < diff and diff < regBxMax,
-    "Jump target is not in range of min/max registers - $1 < $2 < $3 failed" % [
-      $regBxMin, $diff, $regBxMax])
-
   let oldInstr = c.code[pc]
   # opcode and regA stay the same:
-  c.code[pc] = ((
-    oldInstr.TInstrType and
-    ((regOMask shl regOShift) or (regAMask shl regAShift))).TInstrType or
-                TInstrType(diff+wordExcess) shl regBxShift).TInstr
+  missing("patch")
 
+#[
 proc optimizeJumps(c: var TCtx; start: int) =
   const maxIterations = 10
   for i in start..<c.code.len:
@@ -3242,19 +2209,18 @@ proc optimizeJumps(c: var TCtx; start: int) =
       elif d != i + c.code[i].jmpDiff:
         c.finalJumpTarget(i, d - i)
     else: discard
+]#
 
-proc transitionToLocation(c: var TCtx, info: CgNode, typ: PType, reg: TRegister) =
+proc transitionToLocation(c: var TCtx, info: TLineInfo, typ: PType, loc: int32) =
   ## Transitions the register `reg`, which is expected to store a value of
   ## type `typ` directly, to store an owning handle to a location instead.
   ## The location is initialized with the original value. `info` is only used
   ## for providing line information.
   assert fitsRegister(typ)
-  let tmp = c.getTemp(typ)
-  # make a temporary copy of the register:
-  c.gABC(info, opcFastAsgnComplex, tmp, reg)
-  c.gABx(info, opcLdNull, reg, c.genType(typ)) # allocate a location
-  c.gABC(info, opcWrLoc, reg, tmp) # write the orignal value
-  c.freeTemp(tmp)
+  c.instr(info, opcStackAlloc, imm32 c.genType(typ))
+  c.instr(info, opcSetLocal, imm32 loc)
+  c.instr(info, opcSwap)
+  c.instr(info, writeInstr(typ))
 
 proc prepareParameters(c: var TCtx, info: CgNode) =
   ## Prepares immutable parameters backed by registers for having their address
@@ -3262,34 +2228,30 @@ proc prepareParameters(c: var TCtx, info: CgNode) =
   ## to a VM memory location at the start of the procedure.
   let typ = c.prc.sym.routineSignature # the procedure's type
 
-  template setupParam(c: var TCtx, typ: PType, loc: LocalLoc) =
-    if fitsRegister(typ) and loc.isIndirect:
-      transitionToLocation(c, info, typ, loc.reg)
+  if ccClosure == typ.callConv:
+    c.instr(info.info, opcPopLocal, imm32 c.prc[LocalId(typ.len)].slot)
 
-  if typ.n.len > 1: # does it have more than zero parameters?
-    # if getReturnType(c.prc.sym).skipTypes(abstractInst).kind == tyLent:
-    #   # the first parameter of a procedure returning an immutable view (i.e.
-    #   # ``lent T``) is special: the argument is always passed by handle, even
-    #   # if the value would fit into a register. To communicate this to the rest
-    #   # of the code-generator, the parameter is marked as not being backed by a
-    #   # register
-    #   c.prc.addressTaken.incl(typ.n[1].sym.id)
-    # else:
-    # XXX: the above is correct, but the expection that to-be-borrowed-from
-    #      parameters use pass-by-handle isn't met yet. For now, what this
-    #      means is that ``proc borrow(x: int): lent int`` won't work
-    setupParam(c, typ[1], c.prc[LocalId(1)])
+  # commit the stack operands to locals. They're stored in reverse
+  for i in countdown(typ.len-1, 1):
+    if typ[i].kind != tyStatic:
+      if fitsRegister(typ[i]) and c.prc[LocalId(i)].isIndirect:
+        transitionToLocation(c, info.info, typ[i], imm32 i)
+      else:
+        c.instr(info.info, opcPopLocal, imm32 i)
 
-  # setup the remaining parameters:
-  for i in 2..<typ.n.len:
-    setupParam(c, typ[i], c.prc[LocalId(i)])
+  if not typ[0].isEmptyType() and not fitsRegister(typ[0]):
+    # the result address is passed as a parameter
+    c.instr(info.info, opcPopLocal, imm32 c.prc[resultId].slot)
 
 proc genProcBody(c: var TCtx): int =
     let
       s    = c.prc.sym
       body = c.prc.body.code
+      info = body.info
 
-    genParams(c.prc, s.routineSignature)
+    genParams(c.env, c.prc, s.routineSignature)
+
+    prepareParameters(c, body)
 
     # setup the result register, if necessary. Watch out for macros! Their
     # result register is setup at the start of macro evaluation
@@ -3298,46 +2260,29 @@ proc genProcBody(c: var TCtx): int =
     let rt = c.env[c.prc.body[resultId].typ]
     if not isEmptyType(rt) and fitsRegister(rt):
       # initialize the register holding the result
-      if s.kind == skMacro:
-        if c.prc[resultId].isIndirect:
-          # the result variable for macros is currently initialized from outside
-          # the VM, so we can't use ``opcLdNull`` here
-          transitionToLocation(c, body, rt, c.prc[resultId].reg)
-      else:
-        let opcode =
-          if c.prc[resultId].isIndirect:
-            # the result variable has its address taken or a reference/view
-            # to it created -> we need a VM memory location. In order for this
-            # to be opaque to the callsite, a write-back is injected before
-            # returns
-            opcLdNull
-          else:
-            opcLdNullReg
+      if not usesRegister(c, resultId):
+        c.instr(info, opcStackAlloc, imm32 c.sizeof(rt))
+        c.instr(info, opcPopLocal, imm32 c.prc[resultId].slot)
 
-        # only setup a location/register if the procedure's result is not a view:
-        if not isDirectView(rt):
-          gABx(c, body, opcode, c.prc[resultId].reg, c.genType(rt))
 
-    elif not isEmptyType(rt) and not isDirectView(rt):
+    elif not isEmptyType(rt):
       # reset the result variable
+      c.getLocal(info, imm32 0)
       # XXX: inserting the reset needs to happen via a MIR pass
-      c.gABx(body, opcReset, c.prc[resultId].reg, c.genType(rt))
+      c.instr(info, opcLdImmInt, imm32 c.sizeof(rt))
+      c.instr(info, opcMemClear) # TODO: use reset where necessary
 
-    prepareParameters(c, body)
-    if s.routineSignature.callConv == ccClosure:
-      # convert the environment reference to the expected type, the caller
-      # may pass it as a super type
-      let env = TRegister(s.routineSignature.n.len)
-      c.gABC(body, opcObjConv, env, env)
-      c.gABx(body, opcObjConv, 0, c.genType(c.env[c.prc.body[LocalId env].typ]))
-
-    let eh = genSetEh(c, body.info)
-    gen(c, body)
-    c.patchSetEh(eh)
+    setupEh(c)
+    genStmt(c, body)
 
     # generate the final 'return' statement:
-    writeBackResult(c, body)
-    c.gABC(body, opcRet)
+    writeBackResult(c, info)
+    c.instr(info, opcRet)
+
+    if c.prc.overflows.len > 0:
+      for it in c.prc.overflows:
+        c.patch(it)
+      c.instr(info, opcRaise)
 
     result = c.prc.regInfo.len
 
@@ -3349,15 +2294,23 @@ proc genProc*(c: var TCtx; s: PSym, body: sink Body): VmGenResult =
     procStart = c.xjmp(body.code, opcJmp, 0)
 
   c.prc = initProc(c, s, body)
-
   let regCount = tryOrReturn:
     c.genProcBody()
 
   c.patch(procStart)
-  c.optimizeJumps(start)
+  # c.optimizeJumps(start)
+
+  var locs = newSeq[AtomKind](regCount)
+  for i in 0..<locs.len:
+    locs[i] = case c.prc.regInfo[i].kind
+      of slotAddress: akInt
+      of slotInt:     akInt
+      of slotRef:     akForeign
+      of slotFloat:   akFloat
+      of slotUninit: unreachable()
 
   result = VmGenResult.ok:
-    (start: start, regCount: regCount)
+    (start: start, locals: locs)
 
 func vmGenDiagToAstDiagVmGenError*(diag: VmGenDiag): AstDiagVmGenError {.inline.} =
   let kind =

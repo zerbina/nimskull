@@ -41,7 +41,8 @@ import
     options,
   ],
   compiler/utils/[
-    pathutils
+    pathutils,
+    idioms
   ]
 
 from compiler/vm/vmlegacy import legacyReportsVmTracer
@@ -51,12 +52,12 @@ from compiler/vm/vmjit import registerCallback, initJit
 from std/strutils import cmpIgnoreStyle, contains
 
 proc setupVM*(module: PSym; cache: IdentCache; scriptName: string;
-              graph: ModuleGraph; idgen: IdGenerator): TCtx =
+              graph: ModuleGraph; idgen: IdGenerator): PDelayedVm =
   # For Nimble we need to export 'setupVM'.
-  result = initCtx(module, cache, graph, idgen, legacyReportsVmTracer)
   # for backwards compatibility, allow meta expressions in nimscript (this
   # matches the previous behaviour)
-  result.flags = {cgfAllowMeta}
+  result = PDelayedVm(flags: {cgfAllowMeta}, mode: emRepl)
+  #[
   result.mode = emRepl
   for op in basicOps():
     result.registerCallback(op.pattern, op.prc)
@@ -189,6 +190,8 @@ proc setupVM*(module: PSym; cache: IdentCache; scriptName: string;
     guardEffect:
       setResult(a, "")
       setResult(a, stdin.readAll())
+  ]#
+  missing("scripting")
 
 proc runNimScript*(cache: IdentCache; scriptName: AbsoluteFile;
                    freshDefines=true; conf: ConfigRef, stream: PLLStream) =
@@ -224,8 +227,9 @@ proc runNimScript*(cache: IdentCache; scriptName: AbsoluteFile;
   # - the ``vmopsDanger`` option has no effect on callbacks registered
   #  during `setupVM`
   # - NimScript has access to the macro/compile-time APIs
-  registerAdditionalOps(vm, disallowDanger)
-  graph.vm = PVmCtx(context: vm)
+  # registerAdditionalOps(vm, disallowDanger)
+  missing("ops")
+  graph.vm = vm
 
   graph.compileSystemModule()
   discard graph.processModule(m, idgen, stream)

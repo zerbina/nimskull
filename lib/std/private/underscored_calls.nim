@@ -15,7 +15,8 @@ import std/macros
 proc underscoredCall(n, arg0: NimNode): NimNode =
   proc underscorePos(n: NimNode): int =
     for i in 1 ..< n.len:
-      if n[i].eqIdent("_"): return i
+      if n[i].kind in {nnkIdent, nnkSym} and n[i].eqIdent("_"):
+        return i
     return 0
 
   if n.kind in nnkCallKinds:

@@ -399,7 +399,7 @@ proc genAsmOrEmitStmt(p: BProc, t: CgNode, isAsmStmt=false): Rope =
     of cnkStrLit:
       res.add(getString(p, it))
     of cnkAstLit:
-        let sym = it.astLit.sym
+        let sym = p.module.g.env[it.astLit].sym
         # special support for raw field symbols
         discard getTypeDesc(p.module, skipTypes(sym.typ, abstractPtrs))
         p.config.internalAssert(sym.locId != 0, it.info):

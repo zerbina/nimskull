@@ -771,13 +771,17 @@ proc getConstExpr(m: PSym, n: PNode; idgen: IdGenerator; g: ModuleGraph): PNode 
     result = copyNode(n)
     result.add a
     result.add b
-  #of nkObjConstr:
-  #  result = copyTree(n)
-  #  for i in 1..<n.len:
-  #    var a = getConstExpr(m, n[i][1])
-  #    if a == nil: return nil
-  #    result[i][1] = a
-  #  incl(result.flags, nfAllConst)
+  of nkObjConstr:
+    result = shallowCopy(n)
+    for i in 1..<n.len:
+      var a = getConstExpr(m, n[i][1], idgen, g)
+      if a == nil: return nil
+      result[i] = shallowCopy(n[i])
+      result[i][0] = n[i][0]
+      result[i][1] = a
+
+    result[0] = n[0]
+    incl(result.flags, nfAllConst)
   of nkTupleConstr:
     # tuple constructor
     result = copyNode(n)

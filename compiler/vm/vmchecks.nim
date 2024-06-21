@@ -10,122 +10,68 @@
 ## disciminator(s) there.
 
 import
+  std/options,
   compiler/utils/[
     idioms
   ],
   compiler/vm/[
     vmdef,
-    vmtypes
+    vmtypes,
+    vmalloc,
+    vmobjects
   ]
 
-from compiler/vm/vmobjects import variantFieldIndices
+when defined(release):
+  {.push checks: off.}
 
-iterator fields(p: VmMemoryRegion, t: PVmType): FieldIndex =
-  ## Iterates and yields the indices of all active fields in the object at the
-  ## given location
-  if t.branches.len == 0:
-    for i in 0..<t.objFields.len:
-      yield FieldIndex(i)
-  else:
-    for i in variantFieldIndices(p, t, 0):
-      yield i
-
-
-func searchInObject(h: VmMemoryRegion, otyp, t: PVmType, o: int): AccessViolationReason
-func testLocationType(locType: PVmType, t: PVmType): AccessViolationReason
-
-func searchInArray(h: VmMemoryRegion, etyp: PVmType, t: PVmType, len, stride, o: int): AccessViolationReason =
-  let i = o /% stride
-  assert i < len
-
-  if o == i * stride:
-    testLocationType(etyp, t)
-  else:
-    case etyp.kind
-    of realAtomKinds:
-      avrNoLocation
-    of akObject:
-      searchInObject(h.subView(i*stride), etyp, t, o - (i*stride))
-    of akArray:
-      searchInArray(h.subView(i*stride), etyp.elementType, t, etyp.elementCount, etyp.elementStride, o - (i*stride))
-
-func searchInObject(h: VmMemoryRegion, otyp, t: PVmType, o: int): AccessViolationReason =
-  assert uint(o) < otyp.sizeInBytes
-  assert otyp.kind == akObject
-  for i in fields(h, otyp):
-    let f = otyp.fieldAt(i)
-    if f.offset == o:
-      return testLocationType(f.typ, t)
-    elif o < f.offset + int(f.typ.sizeInBytes):
-      case f.typ.kind
-      of akObject:
-        return searchInObject(h.subView(f.offset), f.typ, t, o - f.offset)
-      of akArray:
-        return searchInArray(h.subView(f.offset), f.typ.elementType, t, f.typ.elementCount, f.typ.elementStride, o - f.offset)
-      else:
-        return avrNoLocation
-
-
-func testLocationType(locType: PVmType, t: PVmType): AccessViolationReason =
-  result = avrNoError
-  if locType == t:
-    return # common case
-
-  var it {.cursor.} = locType
-  while it != t:
-    case it.kind
-    of akObject:
-      if it.objFields.len > 0:
-        it = it.objFields[0].typ
-      else:
-        return avrTypeMismatch
-    of akArray:
-      if it.elementCount > 0:
-        it = it.elementType
-      else:
-        return avrTypeMismatch
-    of akRef, akPtr:
-      # special rule: a location of type ``ref|ptr T`` can be accessed via a
-      # handle with type ``ref|ptr X``, where `X` is either a super- or sub-type
-      # of `T`
-      if getTypeRel(t, it) != vtrUnrelated:
-        break
-      else:
-        return avrTypeMismatch
+proc typecheck*(types: VmTypeEnv, typ: VmTypeId, p: HostPointer, offset: uint, expect: VmTypeId): bool =
+  # same ID == same type
+  if offset == 0 and expect == typ:
+    false # valid
+  elif types[typ].kind == akRecord:
+    # TODO: improve
+    for _, f in fields(types, typ):
+      if f.off <= offset and f.off + types[f.typ].size > offset:
+        return typecheck(types, f.typ, p + f.off, offset - f.off, expect)
+    true # not part of the record
+  elif types[typ].kind == akArray:
+    let (count, elem) = types.unpackArray(typ)
+    if count * types[elem].size > offset:
+      let bias = (offset div types[elem].size) * types[elem].size
+      typecheck(types, elem, p + bias, offset - bias, expect)
     else:
-      return avrTypeMismatch
-
-
-func checkValid(p: VmMemPointer, typ: PVmType, cell: VmCell): AccessViolationReason =
-  ## Tests whether `p` points to a valid memory location inside `cell` that is
-  ## accesible as type `typ`, and returns either a success or the reason for
-  ## why an access through `p` would be illegal.
-  if p.rawPointer == cell.p:
-    # `p` points to the start of the cell -- the most simple case. We only
-    # need to perform a type comparison
-    result = testLocationType(cell.typ, typ)
-  elif p.rawPointer > cell.p:
-    # `p` is an interior pointer
-    let off = cast[int](p) - cast[int](cell.p)
-    if off >= cell.sizeInBytes:
-      # `p` doesn't point inside the cell
-      result = avrOutOfBounds
-    elif typ != nil:
-      # the cell stores either a single- or a contiguous sequence of locations
-      let stride = cell.typ.alignedSize.int
-      result = searchInArray(toOpenArray(cell.p, 0, int(cell.sizeInBytes-1)), cell.typ, typ, cell.count, stride, off)
+      true
+  elif types[typ].kind == akUnion:
+    # select the active branch based on the discriminator
+    let sel = types.fields[types[typ].a].typ
+    let x = p.readUInt(types[sel].size.int)
+    let branch = selectBranch(x, types, typ)
+    if branch >= 0:
+      # select the active branch and continue
+      typecheck(types, types.fieldAt(typ, 1 + branch), p, offset, expect)
     else:
-      # untyped memory; not yet supported
-      unreachable()
+      true # the discriminator value is corrupt
   else:
-    # `p` points to before the cell -- this is likely a use-after-free issue
-    result = avrOutOfBounds
+    true # location
 
-func checkValid*(al: VmAllocator, h: LocHandle): AccessViolationReason =
-  ## Tests and returns whether the handle `h` is valid. That is, whether it
-  ## points to a valid memory cell and location and whether the handle's type
-  ## is compatible with that of the location.
-  if h.cell != -1:
-    checkValid(h.p, h.typ, al.cells[h.cell])
+proc getType*(types: VmTypeEnv, typ: VmTypeId, p: HostPointer, offset: uint, closest: var uint): Option[VmTypeId] =
+  # XXX: for testing only
+  if types[typ].kind == akRecord:
+    echo "step: ", types[typ], " id: ", typ.int
+    for _, f in fields(types, typ):
+      if f.off <= offset and f.off + types[f.typ].size > offset:
+        echo "step into: ", offset, " field: ", f.off
+        return getType(types, f.typ, p + f.off, offset - f.off, closest)
+    echo "no 1"
+    none VmTypeId # not part of the record
+  elif types[typ].kind == akArray:
+    echo "step: ", types[typ]
+    let (count, elem) = types.unpackArray(typ)
+    if count * types[elem].size > offset:
+      let bias = (offset div types[elem].size) * types[elem].size
+      getType(types, elem, p + bias, offset - bias, closest)
+    else:
+      none VmTypeId
   else:
-    avrOutOfBounds
+    closest = offset
+    some typ # found a non-aggregate type

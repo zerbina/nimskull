@@ -2746,14 +2746,14 @@ proc reportBody*(conf: ConfigRef, r: DebugReport): string =
 
   of rdbgVmExecTraceFull:
     let exec = r.vmgenExecFull
-    result.addf(
-      "PC:$1 $2 $3 $4 $5",
-      $exec.pc,
-      $exec.opc.toStr,
-      tern(exec.ra == rkNone, "", $exec.ra),
-      tern(exec.rb == rkNone, "", $exec.rb),
-      tern(exec.rc == rkNone, "", $exec.rc)
-    )
+    # result.addf(
+    #   "PC:$1 $2 $3 $4 $5",
+    #   $exec.pc,
+    #   $exec.opc.toStr,
+    #   tern(exec.ra == rkNone, "", $exec.ra),
+    #   tern(exec.rb == rkNone, "", $exec.rb),
+    #   tern(exec.rc == rkNone, "", $exec.rc)
+    # )
 
 proc reportFull*(conf: ConfigRef, r: DebugReport): string =
   assertKind r

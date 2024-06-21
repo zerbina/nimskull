@@ -180,7 +180,7 @@ type
       intVal*: BiggestInt
     of cnkFloatLit:   floatVal*: BiggestFloat
     of cnkStrLit:     strVal*: StringId
-    of cnkAstLit:     astLit*: PNode
+    of cnkAstLit:     astLit*: AstId
     of cnkField:      field*: PSym
     of cnkProc:       prc*: ProcedureId
     of cnkConst:      cnst*: ConstId

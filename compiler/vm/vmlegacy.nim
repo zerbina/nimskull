@@ -6,6 +6,8 @@
 
 import compiler/vm/vmdef
 
+import compiler/utils/idioms
+
 import std/options as std_options
 
 from compiler/ast/ast_types import TMagic, SemTypeMismatch
@@ -79,7 +81,9 @@ func vmGenDiagToLegacyVmReport*(diag: VmGenDiag): VMReport {.inline.} =
 func vmGenDiagToLegacyReport*(diag: VmGenDiag): Report {.inline.} =
   result = Report(category: repVM, vmReport: vmGenDiagToLegacyVmReport(diag))
 
-proc legacyReportsVmTracer*(c: TCtx, t: VmExecTrace) =
+proc legacyReportsVmTracer*(c: TCtx, pc: PrgCtr) =
+  missing("tracer")
+  #[
   case t.kind
   of vmTraceMin:
     c.config.localReport(DebugReport(
@@ -99,3 +103,4 @@ proc legacyReportsVmTracer*(c: TCtx, t: VmExecTrace) =
           rb: t.rb,
           rc: t.rc
       )))
+  ]#

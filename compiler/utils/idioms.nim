@@ -57,3 +57,8 @@ template unreachable*(msg: string) =
 template unreachable*(e: enum) =
   ## More efficient than using ``unreachable($e)``
   unreachableImpl(e, instantiationInfo(-1))
+
+
+template missing*(msg: static string) =
+  {.warning: "Unimplemented: " & msg.}
+  unreachableImpl(msg, instantiationInfo(-1))

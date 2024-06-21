@@ -9,7 +9,9 @@ proc distinctBase(T: typedesc, recursive: static bool = true): typedesc {.magic:
 proc rangeBase(T: typedesc): typedesc {.magic: "TypeTrait".}
   ## imported from typetraits
 
-proc repr*(x: NimNode): string {.magic: "Repr", noSideEffect.}
+proc renderTree(x: NimNode): string {.magic: "Repr", noSideEffect.}
+template repr*(x: NimNode): string =
+  renderTree(x)
 
 proc repr*(x: int): string =
   ## Same as $x

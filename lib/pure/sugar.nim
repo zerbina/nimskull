@@ -316,6 +316,7 @@ proc trans(n, res, bracketExpr: NimNode): (NimNode, NimNode, NimNode) {.since: (
     result[0] = getAst(adder(res, n[0][0], n[0][1]))
   of nnkCurly:
     result[2] = n[0]
+    result[1] = newEmptyNode()
     if bracketExpr.len == 0:
       bracketExpr.add(ident"initHashSet")
     if bracketExpr.len == 1:
@@ -324,6 +325,7 @@ proc trans(n, res, bracketExpr: NimNode): (NimNode, NimNode, NimNode) {.since: (
     result[0] = getAst(adder(res, n[0]))
   else:
     result[2] = n
+    result[1] = newEmptyNode()
     if bracketExpr.len == 0:
       bracketExpr.add(bindSym"newSeq")
     if bracketExpr.len == 1:

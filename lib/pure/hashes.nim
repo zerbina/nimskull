@@ -355,18 +355,6 @@ proc murmurHash(x: openArray[byte]): Hash =
   h1 = h1 xor (h1 shr 16)
   return cast[Hash](h1)
 
-proc hashVmImpl(x: cstring, sPos, ePos: int): Hash =
-  doAssert false, "implementation override in compiler/vmops.nim"
-
-proc hashVmImpl(x: string, sPos, ePos: int): Hash =
-  doAssert false, "implementation override in compiler/vmops.nim"
-
-proc hashVmImplChar(x: openArray[char], sPos, ePos: int): Hash =
-  doAssert false, "implementation override in compiler/vmops.nim"
-
-proc hashVmImplByte(x: openArray[byte], sPos, ePos: int): Hash =
-  doAssert false, "implementation override in compiler/vmops.nim"
-
 proc hash*(x: string): Hash =
   ## Efficient hashing of strings.
   ##
@@ -382,10 +370,12 @@ proc hash*(x: string): Hash =
       result = result !& ord(c)
     result = !$result
   else:
+    result = murmurHash(toOpenArrayByte(x, 0, high(x)))
     when nimvm:
-      result = hashVmImpl(x, 0, high(x))
+      when defined(js):
+        result = Hash(cast[uint32](result))
     else:
-      result = murmurHash(toOpenArrayByte(x, 0, high(x)))
+      discard
 
 proc hash*(x: cstring): Hash =
   ## Efficient hashing of null-terminated strings.
@@ -402,14 +392,16 @@ proc hash*(x: cstring): Hash =
       inc i
     result = !$result
   else:
-    when nimvm:
-      hashVmImpl(x, 0, high(x))
+    when not defined(js) and defined(nimToOpenArrayCString):
+      result = murmurHash(toOpenArrayByte(x, 0, x.high))
     else:
-      when not defined(js) and defined(nimToOpenArrayCString):
-        murmurHash(toOpenArrayByte(x, 0, x.high))
-      else:
-        let xx = $x
-        murmurHash(toOpenArrayByte(xx, 0, high(xx)))
+      let xx = $x
+      result = murmurHash(toOpenArrayByte(xx, 0, high(xx)))
+    when nimvm:
+      when defined(js):
+        result = Hash(cast[uint32](result))
+    else:
+      discard
 
 proc hash*(sBuf: string, sPos, ePos: int): Hash =
   ## Efficient hashing of a string buffer, from starting

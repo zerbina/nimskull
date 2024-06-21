@@ -3049,3 +3049,10 @@ when defined(nimDebugUtils):
 
 proc `not`*[T: ref or ptr](a: typedesc[T], b: typeof(nil)): typedesc {.magic: "TypeTrait", noSideEffect.}
   ## Constructs a `not nil` type.
+
+proc loadNimNode(id: uint): NimNode {.compilerproc.} =
+  ## Internal procedure used during compile-time execution for loading literal
+  ## AST.
+
+proc dataToNimNode(x: pointer): NimNode {.compilerproc.} =
+  ## Internal procedure for deserializing arbitrary data to NimNode AST.

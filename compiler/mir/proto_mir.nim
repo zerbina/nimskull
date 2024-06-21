@@ -66,6 +66,7 @@ type
     pirChckRange
     pirStringToCString
     pirCStringToString
+    pirLoadNimNode
     pirComplex ## a complex expression, such as an if-expression
 
     pirStmtList # usually skipped
@@ -205,7 +206,7 @@ func classify*(e: seq[ProtoItem], i: int): ExprKind =
       OwnedRvalue
     else:
       Rvalue
-  of pirRefConstr, pirSeqConstr:
+  of pirRefConstr, pirSeqConstr, pirLoadNimNode:
     OwnedRvalue
   of pirCast:
     Rvalue
@@ -229,7 +230,7 @@ func isPure(e: seq[ProtoItem], n: int): bool =
   of pirParam:
     # sink parameters are mutable and thus not pure
     e[n].typ.kind != tySink
-  of pirConst, pirLiteral, pirProc, pirConstExpr:
+  of pirConst, pirLiteral, pirProc, pirConstExpr, pirLoadNimNode:
     true
   of pirLocal, pirGlobal:
     # let bindings are pure, but only if they don't have a destructor (in
@@ -597,8 +598,10 @@ proc exprToPmir(c: TranslateCtx, result: var seq[ProtoItem], n: PNode, sink: boo
     result.add ProtoItem(orig: n, typ: n.typ, kind: k, field: val)
 
   case n.kind
-  of nkLiterals, nkNimNodeLit:
+  of nkLiterals:
     node pirLiteral
+  of nkNimNodeLit:
+    node pirLoadNimNode
   of nkLambdaKinds:
     node pirProc, sym, n[namePos].sym
   of nkSym:

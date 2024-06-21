@@ -193,9 +193,6 @@ proc translate*(t: MirTree, env: MirEnv): CgNode =
     of mnkStrLit:
       CgNode(kind: cnkStrLit, info: unknownLineInfo, typ: typ,
              strVal: n.strVal)
-    of mnkAstLit:
-      CgNode(kind: cnkAstLit, info: unknownLineInfo, typ: typ,
-             astLit: env[n.ast])
     of mnkProcVal:
       CgNode(kind: cnkProc, info: unknownLineInfo, prc: n.prc, typ: typ)
     of AllNodeKinds - ConstrTreeNodes + {mnkField, mnkBinding}:

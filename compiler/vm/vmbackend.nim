@@ -51,7 +51,8 @@ import
     vmlegacy,
     vmobjects,
     vmops,
-    vmtypegen
+    vmtypegen,
+    vmtypes
   ],
   experimental/[
     results
@@ -77,9 +78,10 @@ type
     graph: ModuleGraph
 
     # link tables:
-    globals: OrdinalSeq[GlobalId, PVmType]
-    functions: OrdinalSeq[ProcedureId, FuncTableEntry]
+    globals: OrdinalSeq[GlobalId, VmTypeId]
+    functions: OrdinalSeq[ProcedureId, ProcEntry]
     # no extra data is needed for constants
+    callbackKeys: Patterns
 
     gen: CodeGenCtx ## code generator state
 
@@ -108,8 +110,13 @@ proc registerCallbacks(callbackKeys: var Patterns) =
   # Used by some tests
   cb "stdlib.system.getOccupiedMem"
 
-proc initProcEntry(c: var GenCtx, prc: PSym): FuncTableEntry {.inline.} =
-  initProcEntry(c.gen.callbackKeys, c.graph.config, c.gen.typeInfoCache, prc)
+proc initProcEntry(c: var GenCtx, prc: PSym): ProcEntry {.inline.} =
+  let typ = c.gen.getOrCreate(prc.typ, noClosure=true)
+  result = initProcEntry(prc, typ)
+  let idx = lookup(c.callbackKeys, prc)
+  if idx != -1:
+    result.kind = ckCallback
+    result.start = idx
 
 proc registerProc(c: var GenCtx, prc: ProcedureId) =
   ## Adds an empty function-table entry for `prc` and registers `prc` in the
@@ -144,7 +151,7 @@ proc declareGlobal(c: var GenCtx, sym: PSym) =
     # we silently ignore imported globals here and let ``vmgen`` raise an
     # error when one is accessed. A global must still be registered,
     # otherwise `GlobalId` would go out of sync
-    discard c.globals.add(c.gen.typeInfoCache.emptyType)
+    discard c.globals.add(vmtypes.VoidType)
 
 proc prepare(c: var GenCtx, n: MirNode) =
   ## Responds to the discovery of entity `n`. This means registering it with
@@ -172,7 +179,6 @@ proc processEvent(c: var GenCtx, mlist: ModuleList, discovery: var DiscoveryData
                   partial: var PartialTbl, evt: sink BackendEvent) =
   ## The orchestrator's event processor.
   let idgen = mlist[evt.module].idgen
-  c.gen.module = mlist[evt.module].sym
 
   case evt.kind
   of bekDiscovered:
@@ -231,7 +237,7 @@ proc generateCodeForMain(c: var GenCtx, config: BackendConfig,
   fillProcEntry(c.functions[id], generateCodeForProc(c.gen, idgen, prc, body))
 
   result = id
-
+#[
 proc storeData(enc: var PackedEncoder, dst: var PackedEnv,
                config: ConfigRef,
                consts: seq[(PVmType, DataId)], env: MirEnv) =
@@ -254,6 +260,7 @@ func storeExtra(enc: var PackedEncoder, dst: var PackedEnv,
   #       have to perform a manual copy instead of a move here
   mapList(dst.callbacks, callbacks, c):
     c.string
+]#
 
 proc generateCode*(g: ModuleGraph, mlist: sink ModuleList) =
   ## The backend's entry point. Orchestrates code generation and linking. If
@@ -268,12 +275,12 @@ proc generateCode*(g: ModuleGraph, mlist: sink ModuleList) =
   var c =
     GenCtx(graph: g, gen: initCodeGen(g))
 
-  c.gen.typeInfoCache.init()
-  c.gen.typeInfoCache.initRootRef(g.config, g.getCompilerProc("RootObj").typ)
+  let root = c.gen.getOrCreate(g.getCompilerProc("RootObj").typ)
+  c.gen.types.initRootRef(c.gen.typeInfoCache, g.config, root)
 
   # register the extra ops so that code generation isn't performed for the
   # corresponding procs:
-  registerCallbacks(c.gen.callbackKeys)
+  registerCallbacks(c.callbackKeys)
 
   # generate code for all alive routines:
   var discovery: DiscoveryData
@@ -281,30 +288,27 @@ proc generateCode*(g: ModuleGraph, mlist: sink ModuleList) =
 
   let entryPoint = generateCodeForMain(c, bconf, mlist)
 
-  c.gen.gABC(unknownLineInfo, opcEof)
-
   # ----- code generation is finished
 
   # set up a VM execution environment and fill it with the artifacts produced
   # by the of code generator:
   var env: TCtx
-  env.config = c.gen.config # currently needed by the packer
   env.code = move c.gen.code
   env.debug = move c.gen.debug
   env.ehTable = move c.gen.ehTable
   env.ehCode = move c.gen.ehCode
-  env.functions = move base(c.functions)
+  env.procs = move base(c.functions)
   env.constants = move c.gen.constants
-  env.rtti = move c.gen.rtti
 
   # produce a list with the type of each constant:
-  var consts = newSeq[(PVmType, DataId)](c.gen.env.data.len)
+  var consts = newSeq[(VmTypeId, DataId)](c.gen.env.data.len)
   for i, data in c.gen.env.data.pairs:
-    let typ = c.gen.typeInfoCache.lookup(conf, c.gen.env[data[0].typ])
+    let typ = c.gen.typeInfoCache.lookup(c.gen.env[data[0].typ])
     consts[ord(i)] = (get(typ), i)
 
-  env.typeInfoCache = move c.gen.typeInfoCache
+  missing("vmbackend")
 
+  #[
   # pack the data and write it to the ouput file:
   var
     enc: PackedEncoder
@@ -323,3 +327,4 @@ proc generateCode*(g: ModuleGraph, mlist: sink ModuleList) =
                             outFilename: conf.absOutFile.string,
                             failureMsg: $err)
     conf.globalReport(rep)
+  ]#

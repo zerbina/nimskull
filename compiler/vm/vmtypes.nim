@@ -3,13 +3,63 @@
 
 import
   compiler/utils/[
-    idioms
-  ],
-  compiler/vm/[
-    vmdef
+    idioms,
+    containers
   ]
 
-from std/bitops import bitand
+type
+  VmTypeId* = #[distinct]# uint32
+    ## The unique ID of a `VmType`. Implementation-wise, it's an index into
+    ## `TypeInfoCache.types`
+
+  AtomKind* = enum
+    akVoid
+    akInt, akFloat
+    akPtr, akRef, akProc
+    akSet
+
+    akString, akSeq
+
+    akForeign
+
+    akRecord, akUnion
+    akArray
+    akFlexArray ## flexible array
+
+  VmTypeFlag* = enum
+    vtfDataOnly
+
+  VmType* = object
+    ## Run-time type information (=RTTI). Flat in-memory representation so
+    ## that it's easily serializable.
+    kind*: AtomKind
+    flags*: set[VmTypeFlag]
+    align*: uint8
+    size*: uint32 # 4GB per statically-sized location should be plenty enough
+    a*: uint32 ## meaning depends on the kind
+    b*: uint32 ## meaning depends on the kind
+
+  Field* = object
+    off*: uint32
+    typ*: VmTypeId
+
+  Selector* = object
+    isRange*: bool
+    branch*: uint32
+    val*: uint64
+
+  VmTypeEnv* = object
+    ## Flat and data-oriented for the purpose of being easy to serialize and
+    ## fast to operate on. Arrays-of-structs based storage.
+    types*: Store[VmTypeId, VmType]
+    fields*: seq[Field]
+      ## meaning depends on the viewer, but generally stores record field
+      ## information
+    selectors*: seq[Selector]
+      ## discriminator description table. Provides the information for mapping
+      ## discriminator values to a branch index
+
+const VoidType* = VmTypeId(0)
 
 type VmTypeRel* = enum
   vtrUnrelated
@@ -17,117 +67,46 @@ type VmTypeRel* = enum
   vtrSub
   vtrSuper
 
+template `[]`*(e: VmTypeEnv, id: VmTypeId): VmType =
+  e.types[id]
 
-func elemType*(typ: PVmType): PVmType =
-  case typ.kind
-  of akSeq:
-    typ.seqElemType
-  of akArray:
-    typ.elementType
-  else:
-    unreachable(typ.kind)
+iterator fields*(e: VmTypeEnv, id: VmTypeId): (int, Field) =
+  var i = e.types[id].a
+  let fin = e.types[id].b
+  while i < fin:
+    yield (int(i - e.types[id].a), e.fields[i])
+    inc i
 
-func alignedSize*(t: PVmType): uint {.inline.} =
-  let
-    s = t.sizeInBytes
-    a = 1'u shl t.alignment
-  bitand(s + (a - 1), not (a - 1))
+iterator parameters*(e: VmTypeEnv, id: VmTypeId): (int, VmTypeId) =
+  var i = e.types[id].a + 1
+  let fin = e.types[id].b
+  while i < fin:
+    yield (int(i - e.types[id].a), e.fields[i].typ)
+    inc i
 
-template decodeStart(t: PVmType): int =
-  ## Decodes the first field's position from `relFieldStart`
-  let r = t.relFieldStart.int
-  assert r > 0
-  r - 1
-
-func totalFieldCount*(t: PVmType): int =
-  ## The total number of 'real' fields (this excludes the base fields)
-  result = t.objFields.len
-  if t.relFieldStart > 0:
-    result += t.decodeStart - 1 # -1 for the base field
+proc param*(e: VmTypeEnv, id: VmTypeId, i: Natural): VmTypeId =
+  e.fields[e.types[id].a + 1 + uint32(i)].typ
 
 
-func toFieldPos*(t: PVmType, i: FieldIndex): FieldPosition =
-  if t.relFieldStart == 0:
-    FieldPosition(i)
-  else:
-    FieldPosition(int(i) + t.decodeStart - 1) # -1 for the base field
+proc returnType*(e: VmTypeEnv, id: VmTypeId): VmTypeId =
+  e.fields[e.types[id].a].typ
 
-func toFieldIndex*(t: PVmType, p: FieldPosition): FieldIndex =
-  let (offset, start) =
-    if t.relFieldStart == 0:
-      (0, 0)
-    else:
-      (1, t.decodeStart)
-  let r = p.int - start + offset
-  assert r < t.objFields.len, "field with given position is not part of the type"
-  FieldIndex(r)
+proc fieldAt*(e: VmTypeEnv, id: VmTypeId, i: int): VmTypeId =
+  e.fields[e.types[id].a + uint32(i)].typ
 
-func getFieldAndOwner*(t: PVmType, p: FieldPosition): (PVmType, FieldIndex) {.inline.} =
-  var t = t
-  while int(p) < int(t.relFieldStart) - 1:
-    t = t.objFields[0].typ
-  let adjusted =
-    if t.relFieldStart == 0:
-      FieldIndex(p)
-    else:
-      FieldIndex(int(p) - t.decodeStart + 1) # +1 due to the base field
-  (t, adjusted)
+proc branch*(e: VmTypeEnv, id: VmTypeId, i: Natural): VmTypeId =
+  e.fields[e.types[id].a + 2 + uint32(i)].typ
 
-func findDiscrBranchEntry*(t: PVmType, idx: FieldIndex): uint32 =
-  ## Returns the branch-entry index for the discriminator with the given field
-  ## index
-  assert t.fieldAt(idx).typ.kind == akDiscriminator
+proc unpackArray*(e: VmTypeEnv, id: VmTypeId): tuple[len: uint32, elem: VmTypeId] =
+  let f = e.fields[e.types[id].a]
+  result = (f.off, f.typ)
 
-  while result.int <% t.branches.len:
-    let b = t.branches[result]
-    if b.kind == blekStart and b.field == idx:
-      break
-    inc result
+func len*(t: VmType): int {.inline.} =
+  int(t.b - t.a)
 
-  assert result.int < t.branches.len
+template elem*(typ: VmType): VmTypeId =
+  typ.a.VmTypeId
 
-# XXX: how object inheritance information is stored it's likely going to change
-func objTypeRel*(a, b: PVmType, swapped: bool): VmTypeRel =
-  var a = a
-  while a.relFieldStart >= b.relFieldStart:
-    a = a.objFields[0].typ
-    if a == b:
-      return if swapped: vtrSuper else: vtrSub
-
-  result = vtrUnrelated
-
-func getTypeRel*(a, b: PVmType): VmTypeRel =
-  ## Computes the relation between `a` and `b`, namely, whether `a` a super,
-  ## sub, same or unrelated type to `b`. The rules from the language manual
-  ## are used
-  if a == b:
-    result = vtrSame
-  elif a.kind == b.kind:
-    case a.kind
-    of akObject:
-      if a.relFieldStart != b.relFieldStart:
-        let swapped = b.relFieldStart > a.relFieldStart
-        var aa = a
-        var bb = b
-        {.cast(noSideEffect).}:
-          # erroneously inferred side-effect
-          if swapped: swap(aa, bb)
-        # After the swap, `aa` is the object with the higher `relFieldStart`
-
-        result = objTypeRel(aa, bb, swapped)
-
-      elif a.relFieldStart == 0:
-        # Both objects are base objects and since `a != b`, they're unrelated
-        result = vtrUnrelated
-      else:
-        # Slow path
-        result = objTypeRel(a, b, false)
-        if result == vtrUnrelated:
-          result = objTypeRel(b, a, true)
-
-    of akRef, akPtr:
-      result = getTypeRel(a.targetType, b.targetType)
-    else:
-      result = vtrUnrelated
-  else:
-    result = vtrUnrelated
+func alignedSize*(t: VmType): uint {.inline.} =
+  let a = 1'u shl t.align
+  (t.size + (a - 1)) and not (a - 1)

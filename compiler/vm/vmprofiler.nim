@@ -22,9 +22,6 @@ import
 
 from compiler/ast/ast import id
 
-func hash(s: PSym): Hash {.inline.} =
-  hash(s.id)
-
 proc enter*(prof: var Profiler) {.inline.} =
   if prof.enabled:
     prof.tEnter = cpuTime()
@@ -36,14 +33,13 @@ proc leaveImpl(prof: var Profiler, frames: openArray[TStackFrame]) {.noinline.} 
 
   for i in 0..<frames.len:
     let prc = frames[i].prc
-    if prc != nil:
-      # ensure that an entry exists:
-      let data = addr prof.data.mgetOrPut(prc, ProfileInfo())
-      # update the time spent within the procedure:
-      data.time += diff
-      # for the active frame, increment the number of samples taken
-      if i == frames.high:
-        inc data.count
+    # ensure that an entry exists:
+    let data = addr prof.data.mgetOrPut(prc, ProfileInfo())
+    # update the time spent within the procedure:
+    data.time += diff
+    # for the active frame, increment the number of samples taken
+    if i == frames.high:
+      inc data.count
 
 proc leave*(prof: var Profiler, frames: openArray[TStackFrame]) {.inline.} =
   ## If profiling is enabled, ends a measurement, updating the collected data.
@@ -53,7 +49,7 @@ proc leave*(prof: var Profiler, frames: openArray[TStackFrame]) {.inline.} =
   if prof.enabled:
     leaveImpl(prof, frames)
 
-proc dump*(conf: ConfigRef, prof: Profiler): string =
+proc dump*(conf: ConfigRef, env: VmEnv, prof: Profiler): string =
   ## Constructs a string containing a report of VM execution based on the given
   ## `prof`. The report is formatted and ready to print to console or
   ## similar interface.
@@ -70,7 +66,7 @@ proc dump*(conf: ConfigRef, prof: Profiler): string =
   for sym, info in prof.data.pairs:
     let pos = lowerBound(entries, info, compare)
     if pos < MaxEntries:
-      entries.insert((sym.info, info), pos)
+      entries.insert((env.procs[sym.int].sym.info, info), pos)
       # discard excess entries:
       entries.setLen(min(entries.len, MaxEntries))
 

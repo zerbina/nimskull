@@ -245,7 +245,7 @@ proc atomToIr(n: MirNode, cl: TranslateCl, info: TLineInfo): CgNode =
   of mnkStrLit:
     CgNode(kind: cnkStrLit, info: info, typ: typ, strVal: n.strVal)
   of mnkAstLit:
-    CgNode(kind: cnkAstLit, info: info, typ: typ, astLit: cl.env[][n.ast])
+    CgNode(kind: cnkAstLit, info: info, typ: typ, astLit: n.ast)
   of mnkType:
     newTypeNode(info, typ)
   of mnkNone:

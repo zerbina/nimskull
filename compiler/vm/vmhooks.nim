@@ -19,13 +19,13 @@ import
   ],
   compiler/vm/[
     vmdef,
-    vmmemory,
+    # vmmemory,
     vmobjects
   ]
 
-# XXX: proper error handling is missing here. Since these functions are exposed
-# via the compilerapi, `doAssert` is used for pre-condition checking
+# XXX: this module is likely not going to make the final cut
 
+#[
 template setX(k, f) {.dirty.} =
   doAssert a.slots[a.ra].kind == k
   a.slots[a.ra].f = v
@@ -88,3 +88,5 @@ proc getVar*(a: VmArgs; i: Natural): LocHandle =
 
   # The handle was validate by the VM prior to invoking the callback
   a.slots[si].handle
+
+]#

@@ -157,9 +157,12 @@ const
     ## `NimNodeKind`s that require initialization and cannot be created via
     ## general construction routines e.g. `newNimNode`.
 
-proc `==`*(a, b: NimNode): bool {.magic: "EqNimrodNode", noSideEffect.}
+proc sameTree(a, b: NimNode): bool {.magic: "EqNimrodNode", noSideEffect.}
+
+proc `==`*(a, b: NimNode): bool {.inline.} =
   ## Compare two Nim nodes. Return true if nodes are structurally
   ## equivalent. This means two independently created nodes can be equal.
+  sameTree(a, b)
 
 proc sameType*(a, b: NimNode): bool {.magic: "SameNodeType", noSideEffect.} =
   ## Compares two Nim nodes' types. Return true if the types are the same,
@@ -169,8 +172,11 @@ proc sameType*(a, b: NimNode): bool {.magic: "SameNodeType", noSideEffect.} =
 proc len*(n: NimNode): int {.magic: "NLen", noSideEffect.}
   ## Returns the number of children of `n`.
 
-proc `[]`*(n: NimNode, i: int): NimNode {.magic: "NChild", noSideEffect.}
+proc get(n: NimNode, i: int): NimNode {.magic: "NChild", noSideEffect.}
+
+proc `[]`*(n: NimNode, i: int): NimNode {.inline.} =
   ## Get `n`'s `i`'th child.
+  get(n, i)
 
 proc `[]`*(n: NimNode, i: BackwardsIndex): NimNode = n[n.len - i.int]
   ## Get `n`'s `i`'th child.
@@ -187,9 +193,12 @@ proc `[]`*[T, U: Ordinal](n: NimNode, x: HSlice[T, U]): seq[NimNode] =
   for i in 0..<L:
     result[i] = n[i + xa]
 
-proc `[]=`*(n: NimNode, i: int, child: NimNode) {.magic: "NSetChild",
+proc set(n: NimNode, i: int, child: NimNode) {.magic: "NSetChild",
   noSideEffect.}
+
+proc `[]=`*(n: NimNode, i: int, child: NimNode) =
   ## Set `n`'s `i`'th child to `child`.
+  set(n, i, child)
 
 proc `[]=`*(n: NimNode, i: BackwardsIndex, child: NimNode) =
   ## Set `n`'s `i`'th child to `child`.
@@ -215,16 +224,25 @@ proc add*(father, child: NimNode): NimNode {.magic: "NAdd", discardable,
   ## Adds the `child` to the `father` node. Returns the
   ## father node so that calls can be nested.
 
-proc add*(father: NimNode, children: varargs[NimNode]): NimNode {.
-  magic: "NAddMultiple", discardable, noSideEffect, locks: 0.}
+proc kind*(n: NimNode): NimNodeKind {.magic: "NKind", noSideEffect.}
+  ## Returns the `kind` of the node `n`.
+
+proc addMultiple*(father: NimNode, children: varargs[NimNode]): NimNode {.
+  magic: "NAddMultiple", discardable, noSideEffect, locks: 0.} =
   ## Adds each child of `children` to the `father` node.
   ## Returns the `father` node so that calls can be nested.
+  for it in children.items:
+    add(father, it)
+  result = father
+
+template add*(father: NimNode, children: varargs[NimNode]): NimNode =
+  ## Adds each child of `children` to the `father` node.
+  ## Returns the `father` node so that calls can be nested.
+  addMultiple(father, children)
 
 proc del*(father: NimNode, idx = 0, n = 1) {.magic: "NDel", noSideEffect.}
   ## Deletes `n` children of `father` starting at index `idx`.
 
-proc kind*(n: NimNode): NimNodeKind {.magic: "NKind", noSideEffect.}
-  ## Returns the `kind` of the node `n`.
 
 proc intVal*(n: NimNode): BiggestInt {.magic: "NIntVal", noSideEffect.}
   ## Returns an integer value from any integer literal or enum field symbol.
@@ -403,8 +421,9 @@ proc newIdentNode*(i: string): NimNode {.magic: "StrToIdent", noSideEffect.}
   ## Creates an identifier node from `i`. It is simply an alias for
   ## `ident(string)`. Use that, it's shorter.
 
-proc ident*(name: string): NimNode {.magic: "StrToIdent", noSideEffect.}
+template ident*(name: string): NimNode =
   ## Create a new ident node from a string.
+  newIdentNode(name)
 
 type
   BindSymRule* = enum    ## Specifies how `bindSym` behaves. The difference
@@ -799,26 +818,45 @@ proc nestList*(op: NimNode; pack: NimNode; init: NimNode): NimNode =
   for i in countdown(pack.len - 1, 0):
     result = newCall(op, pack[i], result)
 
-proc eqIdent*(a: string; b: string): bool {.magic: "EqIdent", noSideEffect.}
-  ## Style insensitive comparison.
+proc sameIdent(a, b: string): bool  {.magic: "EqIdent", noSideEffect.}
 
-proc eqIdent*(a: NimNode; b: string): bool {.magic: "EqIdent", noSideEffect.}
+proc eqIdent*(a: string; b: string): bool =
+  ## Style insensitive comparison.
+  sameIdent(a, b)
+
+proc skip(a: NimNode): string =
+  var n = a
+  while n.kind in {nnkPostfix, nnkAccQuoted}:
+    n = n[0]
+  if n.kind in {nnkIdent, nnkSym}:
+    result = n.strVal
+  else:
+    result = ""
+
+# XXX: fetching the string on the VM side is inefficient, as it allocates a
+#      new VM string. Maybe not too bad, but looking into some way to get
+#      around that could be worthwhile
+
+proc eqIdent*(a: NimNode; b: string): bool =
   ## Style insensitive comparison.  `a` can be an identifier or a
   ## symbol. `a` may be wrapped in an export marker
   ## (`nnkPostfix`) or quoted with backticks (`nnkAccQuoted`),
   ## these nodes will be unwrapped.
+  sameIdent(a.skip, b)
 
-proc eqIdent*(a: string; b: NimNode): bool {.magic: "EqIdent", noSideEffect.}
+proc eqIdent*(a: string; b: NimNode): bool =
   ## Style insensitive comparison.  `b` can be an identifier or a
   ## symbol. `b` may be wrapped in an export marker
   ## (`nnkPostfix`) or quoted with backticks (`nnkAccQuoted`),
   ## these nodes will be unwrapped.
+  sameIdent(a, b.skip)
 
-proc eqIdent*(a: NimNode; b: NimNode): bool {.magic: "EqIdent", noSideEffect.}
+proc eqIdent*(a: NimNode; b: NimNode): bool =
   ## Style insensitive comparison.  `a` and `b` can be an
   ## identifier or a symbol. Both may be wrapped in an export marker
   ## (`nnkPostfix`) or quoted with backticks (`nnkAccQuoted`),
   ## these nodes will be unwrapped.
+  sameIdent(a.skip, b.skip)
 
 const collapseSymChoice = not defined(nimLegacyMacrosCollapseSymChoice)
 

@@ -24,15 +24,15 @@ type
       of rdbgVmExecTraceFull:
         vmgenExecFull*: tuple[
           pc: int,
-          opc: TOpcode,
+          opc: Opcode,
           info: TLineInfo,
-          ra, rb, rc: TRegisterKind
+          ra, rb, rc: int
         ]
 
       of rdbgVmExecTraceMinimal:
         vmgenExecMinimal*: tuple[
           info: TLineInfo,
-          opc: TOpcode
+          opc: Opcode
         ]
 
       else:

@@ -337,8 +337,7 @@ const
   ConstrTreeNodes* = {mnkSetConstr, mnkRange, mnkArrayConstr, mnkSeqConstr,
                       mnkTupleConstr, mnkClosureConstr, mnkObjConstr,
                       mnkRefConstr, mnkProcVal, mnkArg, mnkField,
-                      mnkBinding} +
-                     LiteralDataNodes
+                      mnkBinding} + LiteralDataNodes - {mnkAstLit}
     ## Nodes that can appear in the MIR subset used for constant expressions.
 
   StmtNodes* = {mnkScope, mnkGoto, mnkIf, mnkCase, mnkLoop, mnkJoin,

@@ -2702,10 +2702,16 @@ proc semQuoteAst(c: PContext, n: PNode): PNode =
                   else:
                     identNodeSym.newSymNode
   quotes[1] = newTreeI(nkCall, n.info, identNode, newStrNode(nkStrLit, "result"))
+
+  # fetch the getAst symbol:
+  var mi: ModuleIter
+  var r = initModuleIter(mi, c.graph, qualifiedLookUp(c, n[0], {}).owner, getIdent(c.cache, "getAst"))
+  assert r != nil
+
   result =
     c.semExpandToAst:
       newTreeI(nkCall, n.info,
-        createMagic(c.graph, c.idgen, "getAst", mExpandToAst).newSymNode,
+        r.newSymNode,
         newTreeI(nkCall, n.info, quotes))
 
 proc tryExpr(c: PContext, n: PNode, flags: TExprFlags = {}): PNode =

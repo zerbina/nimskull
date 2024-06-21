@@ -30,16 +30,11 @@ type
     info*: TLineInfo
     pc*: int
     idx*: int
-    case opc*: TOpcode:
-      of opcConv, opcCast:
-        types*: tuple[tfrom, tto: PType]
-      of opcLdConst:
-        ast*: PNode
-      else:
-        discard
-    ra*: int
-    rb*: int
-    rc*: int
+    opc*: Opcode
+    a*: int32
+    b*: int16
+    c*: int8
+    name: string
 
 
 proc codeListing*(c: TCtx; start = 0; last = -1): seq[DebugVmCodeEntry] =
@@ -55,8 +50,8 @@ proc codeListing*(c: TCtx; start = 0; last = -1): seq[DebugVmCodeEntry] =
   var jumpTargets = initIntSet()
   for i in start..last:
     let x = c.code[i]
-    if x.opcode in relativeJumps:
-      jumpTargets.incl(i+x.regBx-wordExcess)
+    if x.opcode in {opcJmp, opcBranch, opcLeave, opcEnter}:
+      jumpTargets.incl(i+x.imm32())
 
   # because some instructions take up more than one instruction word, there's
   # not a 1-to-1 mapping between instruction words and the resulting list
@@ -70,35 +65,17 @@ proc codeListing*(c: TCtx; start = 0; last = -1): seq[DebugVmCodeEntry] =
       opc = opcode(x)
 
     var code = DebugVmCodeEntry(
-      pc: i,
+      pc: i - start,
       opc: opc,
-      ra: x.regA,
-      rb: x.regB,
-      rc: x.regC,
-      idx: x.regBx - wordExcess,
+      a: x.imm32,
+      b: x.imm32_16[1],
+      c: x.imm8,
+      idx: (x.imm32 + i) - start,
       info: c.debug[i],
       isTarget: i in jumpTargets
     )
-
-    case opc:
-    of opcConv, opcCast:
-      code.rb = c.code[i + 1].regA
-      code.types = (c.rtti[c.code[i + 0].regBx-wordExcess].nimType,
-                    c.rtti[c.code[i + 1].regBx-wordExcess].nimType)
-      inc i, 1
-    of opcLdConst:
-      let cnst = c.constants[code.idx]
-      code.ast =
-        case cnst.kind
-        of cnstInt:    newIntNode(nkIntLit, cnst.intVal)
-        of cnstFloat:  newFloatNode(nkFloatLit, cnst.floatVal)
-        of cnstNode:   cnst.node
-        of cnstSliceListInt..cnstSliceListFloat:
-          # XXX: translate into an `nkOfBranch`?
-          newNode(nkEmpty)
-    else:
-      discard
-
+    if opc == opcCall and c.procs[code.a].sym != nil:
+      code.name = c.procs[code.a].sym.name.s
     result.add code
     inc i
 
@@ -128,24 +105,22 @@ proc renderCodeListing*(config: ConfigRef, sym: PSym,
     line.setLen(0)
 
     case e.opc
-    of opcIndCall, opcIndCallAsgn:
-      line.addf("  $# r$# r$# #$#", $<e.opc, $<e.ra, $<e.rb, $<e.rc)
-    of opcConv, opcCast:
-      line.addf("  $# r$# r$# $# $#",
-                $<e.opc, $<e.ra, $<e.rb,
-                $<e.types[0].typeToString(),
-                $<e.types[1].typeToString())
-    of opcSetEh:
-      line.addf("  $# $# $#", $<e.opc, $<e.ra, $e.rb)
-    elif e.opc < firstABxInstr:
-      line.addf("  $# r$# r$# r$#", $<e.opc, $<e.ra, $<e.rb, $<e.rc)
-    elif e.opc in relativeJumps:
-      line.addf("  $# r$# L$#", $<e.opc, $<e.ra, $<e.idx)
-    elif e.opc in {opcLdConst}:
-      line.addf("  $# r$# $# $#",
-                $<e.opc, $<e.ra, $<e.ast.renderTree(), $<e.idx)
+    of opcIndCall, opcIndCallCl:
+      line.addf("  $# $# $#", $<e.opc, $<e.a, $<e.b)
+    of opcCall:
+      line.addf("  $# $# $# # $#", $<e.opc, $<e.a, $<e.b, e.name)
+    of opcJmp, opcEnter:
+      line.addf("  $# L$#", $<e.opc, $<e.idx)
+    of opcBranch:
+      line.addf("  $# L$# invert:$#", $<e.opc, $<e.idx, $<e.c)
+    of opcFinally, opcFinallyEnd, opcLdImmInt, opcGetLocal, opcGetGlobal, opcWrInt8..opcWrFlt64, opcCopy, opcStackAlloc, opcSetLocal, opcPopLocal, opcAddImm, opcLdInt8..opcLdFlt64, opcOffset, opcCheck, opcDestroy, opcReset:
+      line.addf("  $# $#", $<e.opc, $<e.a)
+    of opcSignExtend:
+      line.addf("  $# $#", $<e.opc, $<e.c)
+    of opcYield:
+      line.addf("  $# $# reason:$#", $<e.opc, $<e.a, $<e.c)
     else:
-      line.addf("  $# r$# $#", $<e.opc, $<e.ra, $<e.idx)
+      line.addf("  $#", $<e.opc)
 
     result.add alignLeft(line, 48)
     result.add toFileLineCol(config, e.info)

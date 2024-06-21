@@ -741,10 +741,16 @@ proc genArgs(c: var TCtx, n: PNode) =
       # FIXME: some argument expressions seem to reach here incorrectly
       #        typed (i.e., not as a typedesc). Figure out why, resolve
       #        the issues, and then remove the workaround here
-      if n[i].typ.kind == tyTypeDesc:
-        c.emitByVal genTypeExpr(c, n[i])
-      else:
-        c.emitByVal typeLit(c.typeToMir(n[i].typ))
+      # if n[i].typ.kind == tyTypeDesc:
+      #   c.emitByVal genTypeExpr(c, n[i])
+      # else:
+      #   c.emitByVal typeLit(c.typeToMir(n[i].typ))
+
+      let prc = c.graph.getCompilerProc("loadNimNode")
+      c.subTree mnkArg:
+        c.wrapAndUse c.typeToMir(prc.typ[0]):
+          c.builder.buildCall c.env.procedures.add(prc), c.typeToMir(prc.typ[0]):
+            c.emitByVal astLiteral(c.env, newNodeIT(nkType, n.info, n[i].typ), prc.typ[0])
     elif t.isCompileTimeOnly:
       # don't translate arguments to compile-time-only parameters. To ease the
       # translation to ``CgNode``, we don't omit them completely but only
@@ -816,7 +822,15 @@ proc genMacroCallArgs(c: var TCtx, n: PNode, kind: TSymKind, fntyp: PType) =
       genArg(c, fntyp[i - 1], it)
     elif kind == skTemplate:
       # we have to treat the arguments as normal expressions
-      c.emitByVal genRd(c, it)
+      if argTyp.sym != nil and argTyp.sym.magic == mPNimrodNode:
+        c.emitOperandTree it, sink=false
+      else:
+        let p = c.graph.getCompilerProc("dataToNimNode")
+        c.emitByVal:
+          c.wrapTemp c.typeToMir(p.typ[0]):
+            c.builder.buildCall c.env.procedures.add(p), c.typeToMir(p.typ[0]):
+              c.emitOperandTree it, sink=false
+
     else:
       unreachable()
 
@@ -1161,7 +1175,7 @@ proc genMagic(c: var TCtx, n: PNode; m: TMagic) =
     of skTemplate:
       # a ``getAst`` call taking a template call expression. The arguments
       # need special handling, but the shape stays as is
-      c.buildMagicCall m, rtyp:
+      c.builder.buildCall c.env.procedures.add(n[0].sym), rtyp:
         genMacroCallArgs(c, n, skTemplate, callee.sym.typ)
     of skMacro:
       # rewrite ``getAst(macro(a, b, c))`` -> ``macro(a, b, c)``
@@ -1879,6 +1893,10 @@ proc genx(c: var TCtx, e: PMirExpr, i: int; fromMove = false) =
   case n.kind
   of pirProc:
     c.use toValue(c.env.procedures.add(n.sym), typ)
+  of pirLoadNimNode:
+    let prc = c.graph.getCompilerProc("loadNimNode")
+    c.builder.buildCall c.env.procedures.add(prc), typ:
+      c.emitByVal astLiteral(c.env, n.orig[0], n.typ)
   of pirLiteral:
     case n.orig.kind
     of nkNilLit:
@@ -1889,8 +1907,6 @@ proc genx(c: var TCtx, e: PMirExpr, i: int; fromMove = false) =
       c.use toFloatLiteral(c.env, n.orig)
     of nkStrLiterals:
       c.use strLiteral(c.env, n.orig.strVal, typ)
-    of nkNimNodeLit:
-      c.use astLiteral(c.env, n.orig[0], n.typ)
     else:
       unreachable(n.orig.kind)
   of pirLocal, pirGlobal, pirParam, pirConst:
@@ -2287,6 +2303,8 @@ proc addParams(c: var TCtx, prc: PSym, signature: PType) =
     # not present
     add Local()
   else:
+    if resultPos >= prc.ast.len:
+      echo "error: ", prc, " magic: ", prc.magic
     add c.localToMir(prc.ast[resultPos].sym)
 
   # parameters:
@@ -2422,7 +2440,10 @@ proc exprToMir*(graph: ModuleGraph, env: var MirEnv,
           #        in simple situtations like the example above, it's simpler,
           #        faster, and more intuitive to either evaluate them directly
           #        when analyzing the type expression, or during ``semfold``
-          c.use genTypeExpr(c, e)
+          # XXX: just get rid of this workaround; problem solved
+          let p = graph.getCompilerProc("loadNimNode")
+          c.builder.buildCall c.env.procedures.add(p), c.env.types.add(p.typ[0]):
+            c.emitByVal astLiteral(c.env, newNodeIT(nkType, e.info, e.typ), p.typ[0])
         else:
           c.genAsgnSource(e, {dfOwns, dfEmpty})
 

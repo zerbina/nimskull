@@ -39,7 +39,7 @@ macro genEnumCaseStmtAux(argSym, normalizer, default, list: typed): untyped =
             " appears multiple times!", it[1])
 
   # finally, add a branch for the default case:
-  if default == nil:
+  if default.kind == nnkNilLit:
     # no default value is provided -> raise
     let raiseStmt = quote do:
       raise newException(ValueError, "Invalid enum value: " & $`argSym`)

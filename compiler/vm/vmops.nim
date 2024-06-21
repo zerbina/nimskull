@@ -31,11 +31,15 @@ import
     vmdeps,
     vmerrors,
     vmhooks,
-    vmmemory,
+    vmalloc,
+    # vmmemory,
     vmobjects
   ],
   experimental/[
     results
+  ],
+  compiler/utils/[
+    idioms
   ]
 
 from compiler/front/msgs import localReport
@@ -95,110 +99,181 @@ template macrosop(op) {.dirty.} =
 template md5op(op) {.dirty.} =
   override("stdlib.md5." & astToStr(op), `op Wrapper`)
 
+template floatVal(x: StackValue): float64 =
+  cast[float64](x)
+
+template uintVal(x: StackValue): uint64 =
+  cast[uint64](x)
+
+template intVal(x: StackValue): int64 =
+  cast[int64](x)
+
+template addrVal(x: StackValue): VirtualAddr =
+  cast[VirtualAddr](x)
+
+template ret(x: float64) =
+  return (cecValue, cast[StackValue](x))
+template ret(x: bool) =
+  return (cecValue, StackValue(ord(x)))
+
+template ret(x: object|string|seq|tuple) =
+  mixin env, args
+  if unlikely(not writeTo(env, x, args[0].addrVal)):
+    return (cecError, StackValue(0))
+
 template wrap1f_math(op) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    doAssert a.numArgs == 1
-    setResult(a, op(getFloat(a, 0)))
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    ret op(args[0].floatVal)
   mathop op
 
 template wrap2f_math(op) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    setResult(a, op(getFloat(a, 0), getFloat(a, 1)))
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    ret float64(op(args[0].floatVal, args[1].floatVal))
   mathop op
 
 template wrap0(op, modop) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    setResult(a, op())
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    try:
+      ret op()
+    except CatchableError:
+      missing("exception handling")
   modop op
 
+template check(x: bool) =
+  if unlikely(x):
+    return (cecError, StackValue(0))
+
 template wrap1s(op, modop) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    setResult(a, op(getString(a, 0)))
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    try:
+      ret op(readString(env, args[1].addrVal))
+    except CatchableError:
+      missing("exception handling")
   modop op
 
 template wrap2s(op, modop) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    setResult(a, op(getString(a, 0), getString(a, 1)))
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    ret op(readString(env, args[1].addrVal), readString(env, args[2].addrVal))
   modop op
 
 template wrap2si(op, modop) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    writeTo(op(getString(a, 0), getInt(a, 1)), a.getResultHandle(), a.mem[])
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    try:
+      ret op(readString(env, args[1].addrVal), args[2].intVal)
+    except CatchableError:
+      missing("exception handling")
   modop op
 
 template wrap1svoid(op, modop) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    op(getString(a, 0))
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    op(readString(env, args[0].addrVal))
   modop op
 
 template wrap2svoid(op, modop) {.dirty.} =
-  proc `op Wrapper`(a: VmArgs) {.nimcall.} =
-    op(getString(a, 0), getString(a, 1))
+  proc `op Wrapper`(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
+    try:
+      op(readString(env, args[0].addrVal), readString(env, args[1].addrVal))
+    except CatchableError as e:
+      missing("exception handling")
   modop op
 
-proc getCurrentExceptionMsgWrapper(a: VmArgs) {.nimcall.} =
-  if a.currentException.isNil:
-    setResult(a, "")
-  else:
-    let h = tryDeref(a.heap[], a.currentException, noneType).value()
+proc getCurrentExceptionMsgWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  # if a.currentException.isNil:
+  #   setResult(a, "")
+  # else:
+  #   let h = tryDeref(a.heap[], a.currentException, noneType).value()
 
-    deref(a.slots[a.ra].handle).strVal.asgnVmString(
-      deref(h.getFieldHandle(FieldPosition(2))).strVal,
-      a.mem.allocator)
+  #   deref(a.slots[a.ra].handle).strVal.asgnVmString(
+  #     deref(h.getFieldHandle(FieldPosition(2))).strVal,
+  #     a.mem.allocator)
+  missing("exception handling")
 
-proc getCurrentExceptionWrapper(a: VmArgs) {.nimcall.} =
-  deref(a.slots[a.ra].handle).refVal = a.currentException
-  if not a.currentException.isNil:
-    a.heap[].heapIncRef(a.currentException)
+proc getCurrentExceptionWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  missing("exception handling")
+  # deref(a.slots[a.ra].handle).refVal = a.currentException
+  # if not a.currentException.isNil:
+  #   a.heap[].heapIncRef(a.currentException)
 
-proc setCurrentExceptionWrapper(a: VmArgs) {.nimcall.} =
+proc setCurrentExceptionWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  missing("exception handling")
   # set the current exception to the one provided as the first argument
-  asgnRef(a.currentException, deref(a.getHandle(0)).refVal,
-          a.mem[], reset=true)
+  # asgnRef(a.currentException, deref(a.getHandle(0)).refVal,
+  #         a.mem[], reset=true)
 
-proc prepareExceptionWrapper(a: VmArgs) {.nimcall.} =
-  let
-    raised = a.heap[].tryDeref(deref(a.getHandle(0)).refVal, noneType).value()
-    nameField = raised.getFieldHandle(1.fpos)
+proc prepareExceptionWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  echo "prepare exception"
+  # missing("exception handling")
+  # let
+  #   raised = a.heap[].tryDeref(deref(a.getHandle(0)).refVal, noneType).value()
+  #   nameField = raised.getFieldHandle(1.fpos)
 
-  # set the name of the exception if it hasn't been already:
-  if deref(nameField).strVal.len == 0:
-    # XXX: the VM doesn't distinguish between a `nil` cstring and an empty
-    #      `cstring`, leading to the name erroneously being overridden if
-    #      it was explicitly initialized with `""`
-    asgnVmString(deref(nameField).strVal,
-                 deref(a.getHandle(1)).strVal,
-                 a.mem.allocator)
+  # # set the name of the exception if it hasn't been already:
+  # if deref(nameField).strVal.len == 0:
+  #   # XXX: the VM doesn't distinguish between a `nil` cstring and an empty
+  #   #      `cstring`, leading to the name erroneously being overridden if
+  #   #      it was explicitly initialized with `""`
+  #   asgnVmString(deref(nameField).strVal,
+  #                deref(a.getHandle(1)).strVal,
+  #                a.mem.allocator)
 
-proc nimUnhandledExceptionWrapper(a: VmArgs) {.nimcall.} =
-  # setup the exception AST:
-  let
-    exc = a.heap[].tryDeref(a.currentException, noneType).value()
-    ast = toExceptionAst($exc.getFieldHandle(1.fpos).deref().strVal,
-                         $exc.getFieldHandle(2.fpos).deref().strVal)
-  # report the unhandled exception:
-  # XXX: the current stack-trace should be passed along, but we don't
-  #      have access to it here
-  raiseVmError(VmEvent(kind: vmEvtUnhandledException, exc: ast))
+proc nimUnhandledExceptionWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  missing("exception handling")
+  # # setup the exception AST:
+  # let
+  #   exc = a.heap[].tryDeref(a.currentException, noneType).value()
+  #   ast = toExceptionAst($exc.getFieldHandle(1.fpos).deref().strVal,
+  #                        $exc.getFieldHandle(2.fpos).deref().strVal)
+  # # report the unhandled exception:
+  # # XXX: the current stack-trace should be passed along, but we don't
+  # #      have access to it here
+  # raiseVmError(VmEvent(kind: vmEvtUnhandledException, exc: ast))
 
-proc prepareMutationWrapper(a: VmArgs) {.nimcall.} =
+proc prepareMutationWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
   discard "no-op"
 
-template wrapIteratorInner(a: VmArgs, iter: untyped) =
-  let rh = a.getResultHandle()
-  assert rh.typ.kind == akSeq
-
-  let s = addr deref(rh).seqVal
-  var i = 0
-  for x in iter:
-    s[].growBy(rh.typ, 1, a.mem[])
-    writeTo(x, getItemHandle(s[], rh.typ, i, a.mem.allocator), a.mem[])
-    inc i
+template wrapIteratorInner(env: var VmEnv, args: openArray[StackValue], iter: untyped) =
+  missing("wrapIterator")
+  # let s = addr deref(rh).seqVal
+  # var i = 0
+  # for x in iter:
+  #   s[].growBy(rh.typ, 1, a.mem[])
+  #   writeTo(x, getItemHandle(s[], rh.typ, i, a.mem.allocator), a.mem[])
+  #   inc i
 
 template wrapIterator(fqname: string, iter: untyped) =
-  override fqname, proc(a: VmArgs) {.nimcall.} =
+  override fqname, proc(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) {.nimcall.} =
     wrapIteratorInner(a, iter)
 
+proc allocImplWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  let size = uint(args[0])
+  # untyped allocation
+  let res = env.allocator.alloc(size)
+  if unlikely(res == 0):
+    # TODO: raise an out of memory error
+    discard
+  result = (cecValue, StackValue res)
+
+proc reallocImplWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  let a = VirtualAddr(args[0])
+  let size = uint(args[1])
+  # untyped allocation
+  let res = env.allocator.realloc(a, size)
+  # echo "reallocated: ", size, " got: ", res.uint64
+  if unlikely(res == 0):
+    # TODO: raise an out of memory error
+    return (cecError, StackValue(0))
+  result = (cecValue, StackValue res)
+
+proc deallocImplWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  if env.allocator.dealloc(VirtualAddr(args[0])):
+    return (cecError, StackValue(0))
+
+proc nimZeroMemWrapper(env: var VmEnv, args: openArray[StackValue], cl: RootRef): CallbackResult =
+  var host: HostPointer
+  if checkmem(env.allocator, args[0].addrVal, args[1].uintVal, host):
+    return (cecError, StackValue 0)
+
+  zeroMem(host, args[1].uintVal)
 
 when defined(nimHasInvariant):
   from std / compilesettings import SingleValueSetting, MultipleValueSetting
@@ -233,9 +308,8 @@ when defined(nimHasInvariant):
     of MultipleValueSetting.cincludes: copySeq(conf.cIncludes)
     of MultipleValueSetting.clibs: copySeq(conf.cLibs)
 
-proc getEffectList(cache: IdentCache, idgen: IdGenerator; a: VmArgs;
-                   effectIndex: int) =
-  let fn = getNode(a, 0)
+proc getEffectList(cache: IdentCache, idgen: IdGenerator; fn: PNode,
+                   effectIndex: int): PNode =
   var list = newNodeI(nkBracket, fn.info)
   if fn.typ != nil and fn.typ.n != nil and fn.typ.n[0].len >= effectListLen and
       fn.typ.n[0][effectIndex] != nil:
@@ -244,10 +318,10 @@ proc getEffectList(cache: IdentCache, idgen: IdGenerator; a: VmArgs;
   else:
     list.add newIdentNode(getIdent(cache, "UncomputedEffects"), fn.info)
 
-  setResult(a, list)
+  result = list
 
-template writeResult(ret) {.dirty.} =
-  writeTo(ret, a.getResultHandle(), a.mem[])
+# template writeResult(ret) {.dirty.} =
+#   writeTo(ret, a.getResultHandle(), a.mem[])
 
 iterator basicOps*(): Override =
   ## Basic system operations as well as overrides for some stdlib functions
@@ -262,6 +336,13 @@ iterator basicOps*(): Override =
   systemop(prepareMutation)
   override("stdlib.system.closureIterSetupExc",
            setCurrentExceptionWrapper)
+  # hook the system allocator:
+  systemop(allocImpl)
+  systemop(reallocImpl)
+  systemop(deallocImpl)
+
+  # hook the low-level memory operations
+  override("stdlib.memory.nimZeroMem", nimZeroMemWrapper)
 
   # math operations
   wrap1f_math(sqrt)
@@ -295,8 +376,8 @@ iterator basicOps*(): Override =
   #wrap1f_math(`mod`)
   # XXX: the csources compiler doesn't accept ``nkAccQuoted`` during
   #      identifier construction, so the above can't be used here
-  override "stdlib.math.mod", proc(a: VmArgs) {.nimcall.} =
-    setResult(a, `mod`(getFloat(a, 0), getFloat(a, 1)))
+  # override "stdlib.math.mod", proc(env: var VmEnv, args: openArray[StackValue], cl: RootRef): (CallbackExitCode, StackValue) =
+  #   ret (args[0].floatVal mod args[1].floatVal)
 
   when declared(copySign):
     wrap2f_math(copySign)
@@ -304,60 +385,20 @@ iterator basicOps*(): Override =
   when declared(signbit):
     wrap1f_math(signbit)
 
+  #[
   override "stdlib.math.round", proc (a: VmArgs) {.nimcall.} =
     let n = a.numArgs
     case n
     of 1: setResult(a, round(getFloat(a, 0)))
     of 2: setResult(a, round(getFloat(a, 0), getInt(a, 1).int))
     else: doAssert false, $n
+  ]#
 
-  wrap1s(getMD5, md5op)
-
-  # ``hashes`` module
-
-  proc hashVmImpl(a: VmArgs) {.nimcall.} =
-    # TODO: perform index check here
-    var res = hashes.hash(a.getString(0), a.getInt(1).int, a.getInt(2).int)
-    if a.config.backend == backendJs:
-      # emulate JS's terrible integers:
-      res = cast[int32](res)
-    setResult(a, res)
-
-  override "stdlib.hashes.hashVmImpl", hashVmImpl
-
-  proc hashVmImplByte(a: VmArgs) {.nimcall.} =
-    let sPos = a.getInt(1).int
-    let ePos = a.getInt(2).int
-    let arr = a.getHandle(0)
-    # XXX: openArray is currently treated as `seq` in the vm
-    assert arr.typ.kind == akSeq
-    assert arr.typ.seqElemType.kind == akInt
-    assert arr.typ.seqElemType.sizeInBytes == 1
-
-    let seqVal = addr deref(arr).seqVal
-
-    if ePos >= seqVal.length:
-      raiseVmError(
-        VmEvent(
-          kind: vmEvtIndexError,
-          indexSpec: (
-            usedIdx: toInt128(ePos),
-            minIdx: toInt128(0),
-            maxIdx: toInt128(seqVal.length-1))))
-
-    let p = seqVal.data.rawPointer
-
-    var res = hashes.hash(toOpenArray(p, sPos, ePos), sPos, ePos)
-    if a.config.backend == backendJs:
-      # emulate JS's terrible integers:
-      res = cast[int32](res)
-    setResult(a, res)
-
-  override "stdlib.hashes.hashVmImplByte", hashVmImplByte
-  override "stdlib.hashes.hashVmImplChar", hashVmImplByte
+  # wrap1s(getMD5, md5op)
 
   # ``formatfloat`` module
 
+  #[
   override "stdlib.formatfloat.addFloatSprintf", proc(a: VmArgs) {.nimcall.} =
     let p = a.getVar(0)
     let x = a.getFloat(1)
@@ -366,6 +407,7 @@ iterator basicOps*(): Override =
     let oldLen = deref(p).strVal.len
     deref(p).strVal.setLen(oldLen + n, a.mem.allocator)
     safeCopyMem(deref(p).strVal.data.slice(oldLen, n), temp, n)
+  ]#
 
 iterator ioReadOps*(): Override =
   ## Returns overrides for read operations from the ``io`` module.
@@ -383,33 +425,37 @@ iterator osOps*(): Override =
   wrap1s(existsEnv, osop)
   wrap1s(dirExists, osop)
   wrap1s(fileExists, osop)
+  #[
   override "stdlib.*.staticWalkDir", proc (a: VmArgs) {.nimcall.} =
     let path = getString(a, 0)
     let relative = getBool(a, 1)
     wrapIteratorInner(a):
       walkDir(path, relative)
+  ]#
 
   wrap0(getCurrentDir, osop)
-
+  #[
   wrapIterator("stdlib.os.envPairsImplSeq"): envPairs()
 
   override "stdlib.times.getTime", proc (a: VmArgs) {.nimcall.} =
     writeResult times.getTime()
+    ]#
 
 iterator os2Ops*(): Override =
   ## OS operations that are able to modify the host's environment or run
   ## external programs
 
-  wrap2svoid(putEnv, osop)
-  wrap1svoid(delEnv, osop)
+  # wrap2svoid(putEnv, osop)
+  # wrap1svoid(delEnv, osop)
 
-  override "stdlib.osproc.execCmdEx", proc (a: VmArgs) {.nimcall.} =
-    let options = readAs(getHandle(a, 1), set[osproc.ProcessOption])
-    writeResult osproc.execCmdEx(getString(a, 0), options)
+  # override "stdlib.osproc.execCmdEx", proc (a: VmArgs) {.nimcall.} =
+  #   let options = readAs(getHandle(a, 1), set[osproc.ProcessOption])
+  #   writeResult osproc.execCmdEx(getString(a, 0), options)
 
 iterator compileTimeOps*(): Override =
   ## Operations for querying compiler related information at compile-time.
 
+  #[
   when defined(nimHasInvariant):
     override "stdlib.compilesettings.querySetting", proc (a: VmArgs) {.nimcall.} =
       writeResult(querySettingImpl(a.config, getInt(a, 0)))
@@ -418,7 +464,7 @@ iterator compileTimeOps*(): Override =
 
   override "stdlib.os.getCurrentCompilerExe", proc (a: VmArgs) {.nimcall.} =
     setResult(a, getAppFilename())
-  
+
   # xxx: not really a compile-time query, but runs at compiletime and unlike
   #      osOps it directly impacts compilation
   for op in ["stdlib.system.slurp", "stdlib.system.staticRead"]:
@@ -426,9 +472,11 @@ iterator compileTimeOps*(): Override =
       let output = opSlurp(getString(a, 0), a.currentLineInfo, a.currentModule,
                            a.config)
       writeResult(output)
+    ]#
 
 iterator gorgeOps*(): Override =
   ## Special operations for executing external programs at compile time.
+  #[
   for op in ["stdlib.system.gorge", "stdlib.system.staticExec"]:
     override op, proc (a: VmArgs) {.nimcall.} =
       let (output, _) = opGorge(getString(a, 0), getString(a, 1),
@@ -439,15 +487,21 @@ iterator gorgeOps*(): Override =
     let ret = opGorge(getString(a, 0), getString(a, 1), getString(a, 2),
                       a.currentLineInfo, a.config)
     writeResult(ret)
+  ]#
 
 iterator debugOps*(): Override =
+  discard
+  #[
   override "stdlib.vmutils.vmTrace", proc (a: VmArgs) {.nimcall.} =
     # XXX: `isVmTrace` should probably be in `TCtx` instead of in the active
     a.config.active.isVmTrace = getBool(a, 0)
+  ]#
 
 iterator macroOps*(): Override =
+  discard
   ## Operations that are part of the Macro API
 
+  #[
   # XXX: doesn't really have to do anything with macros, but it's in
   #      `stdlib.macros`, so...
   proc getProjectPathWrapper(a: VmArgs) {.nimcall.} =
@@ -511,3 +565,4 @@ iterator macroOps*(): Override =
   override "stdlib.macros.hint", proc (a: VmArgs) {.nimcall.} =
     a.config.localReport(a.getInfo(),
                          SemReport(kind: rsemUserHint, str: getString(a, 0)))
+  ]#

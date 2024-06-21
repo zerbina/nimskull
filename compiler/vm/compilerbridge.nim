@@ -16,6 +16,7 @@ import
     tables
   ],
   compiler/ast/[
+    renderer,
     ast_types,
     ast,
     errorhandling,
@@ -41,7 +42,8 @@ import
   ],
   compiler/utils/[
     debugutils,
-    idioms
+    idioms,
+    astrepr
   ],
   compiler/vm/[
     vmcompilerserdes,
@@ -49,12 +51,17 @@ import
     vmhooks,
     vmjit,
     vmlegacy,
+    vmconv,
     vmops,
+    macroapi,
     vmprofiler,
     vmserialize,
     vmtypegen,
+    vmalloc,
     vmutils,
-    vm
+    vmtypes,
+    newvm,
+    vmdebug
   ],
   experimental/[
     results
@@ -101,11 +108,14 @@ type
     ## for running code at compile-time.
     vm*: TCtx
     jit*: JitState
+    iface: CompilerIface
 
-  PVmCtx* = ref object of RootObj
+  PDelayedVm* = ref object of RootObj
     ## Wrapper type intended for storing only a VM instance (without a JIT
     ## environment) in the module graph.
-    context*: TCtx
+    mode*: TEvalMode
+    flags*: set[CodeGenFlag]
+    # overrides*: seq[Override]
 
   PEvalPassContext = ref object of PPassContext
     ## Pass context for the evaluation pass.
@@ -115,39 +125,78 @@ type
 
 # prevent a default `$` implementation from being generated
 func `$`(e: ExecErrorReport): string {.error.}
+func vmEventToAstDiagVmError*(evt: VmEvent): AstDiagVmError {.inline.}
 
-proc logBytecode(c: TCtx, owner: PSym, start: int) =
+proc logBytecode(config: ConfigRef, c: TCtx, owner: PSym, start: int) =
   ## If enabled, renders the bytecode ranging from `start` to the current end
   ## into text that is then written to the standard output.
-  if irVm in c.config.toDebugIr or
-     (owner != nil and c.config.isDebugEnabled(irVm, owner.name.s)):
+  if irVm in config.toDebugIr or
+     (owner != nil and config.isDebugEnabled(irVm, owner.name.s)):
     let listing = codeListing(c, start)
-    c.config.msgWrite: renderCodeListing(c.config, owner, listing)
+    echo renderCodeListing(config, nil, listing)
 
-proc putIntoReg(dest: var TFullReg; jit: var JitState, c: var TCtx, n: PNode,
-                formal: PType) =
+proc logBytecode(config: ConfigRef, c: TCtx, prc: FunctionIndex) =
+  if c.procs[prc.int].kind == ckDefault:
+    logBytecode(config, c, c.procs[prc.int].sym, c.procs[prc.int].start)
+
+proc putIntoReg(jit: var JitState, c: var TCtx, n: PNode, typ: VmTypeId,
+                formal: PType): StackValue =
   ## Treats `n` as a constant expression and loads the value it represents
   ## into `dest`.
-  let
-    typ = c.getOrCreate(formal.skipTypes({tySink, tyStatic}))
-    data = constDataToMir(c, jit, n)
-  case typ.kind
+  let data = constDataToMir(c, jit, n)
+  case c.types[typ].kind
   of akInt:
-    dest.ensureKind(rkInt, c.memory)
-    dest.intVal = jit.env.getInt(data[0].number)
+    result = cast[StackValue](jit.env.getInt(data[0].number))
   of akFloat:
-    dest.ensureKind(rkFloat, c.memory)
-    dest.floatVal = jit.env.getFloat(data[0].number)
+    result = cast[StackValue](jit.env.getFloat(data[0].number))
   of akPtr:
-    dest.ensureKind(rkAddress, c.memory)
     # non-nil values should have already been reported as an error
     assert data[0].kind == mnkNilLit
-  of akPNode:
-    dest.ensureKind(rkNimNode, c.memory)
-    dest.nimNode = jit.env[data[0].ast]
+  of akForeign:
+    result = cast[StackValue](c.allocator.register(jit.env[data[0].ast]))
   else:
-    dest.initLocReg(typ, c.memory)
-    initFromExpr(dest.handle, data, jit.env, c)
+    # TODO: use the stack allocator
+    result = cast[StackValue](c.allocator.alloc0(c.types[typ].size))
+    initFromExpr(c.allocator.translate(VirtualAddr result), typ, data, jit.env, jit.config, c)
+
+# proc check(n: PNode, i: int) =
+#   echo i, ": ", n.kind
+#   case n.kind
+#   of nkWithoutSons:
+#     discard
+#   of nkWithSons:
+#     for i in 0..<n.len:
+#       check(n[i], i)
+
+proc regToNode(c: TCtx, config: ConfigRef, p: VmTypeId, val: StackValue; typ: PType, info: TLineInfo): PNode =
+  ## Deserializes the value stored by `x` to a `PNode` of type `typ`
+  case c.types[p].kind
+  of akInt:
+    result = newIntTypeNode(cast[BiggestInt](val), typ)
+  of akFloat:
+    result = newNodeIT(nkFloatLit, info, typ)
+    result.floatVal = cast[BiggestFloat](val)
+  of akPtr:
+    if uint64(val) == 0:
+      result = newNodeIT(nkNilLit, info, typ)
+    else:
+      var h: HostPointer
+      # TODO: a typecheck would make sense
+      if checkmem(c.allocator, VirtualAddr(val), c.types[c.types[p].a].size, h):
+        return config.newError(newNodeI(nkEmpty, info), PAstDiag(kind: adVmDerefAccessOutOfBounds))
+
+      result = c.deserialize(config, h, c.types[p].a, typ, info)
+  of akForeign:
+    # TODO: validate the foreign ref
+    result = c.allocator.lookup(ForeignRef(val), PNode)
+    # check(result, 0)
+  else:
+    var h: HostPointer
+    if checkmem(c.allocator, cast[VirtualAddr](val), c.types[p].size, h):
+      return config.newError(newNodeI(nkEmpty, info), PAstDiag(kind: adVmDerefAccessOutOfBounds))
+    result = c.deserialize(config, h, p, typ, info)
+
+  assert result != nil
 
 proc unpackResult(res: sink ExecutionResult; config: ConfigRef, node: PNode): PNode =
   ## Unpacks the execution result. If the result represents a failure, returns
@@ -281,48 +330,45 @@ proc createLegacyStackTrace(
                     location: some source(c, thread),
                     reportInst: toReportLineInfo(instLoc))
 
-proc execute(jit: var JitState, c: var TCtx, thread: sink VmThread,
-             cb: proc(c: TCtx, r: TFullReg): PNode
-            ): ExecutionResult {.inline.} =
+var debug = VmDebugger(breakOn: bpYield)
+
+proc execute(jit: var JitState, c: var TCtx, iface: CompilerIface, thread: sink VmThread,
+             typ: PType, info: TLineInfo): ExecutionResult {.inline.} =
   ## This is the entry point for invoking the VM to execute code at
   ## compile-time. The `cb` callback is used to deserialize the result stored
   ## as VM data into ``PNode`` AST, and is invoked with the register that
   ## holds the result
 
+  update(debug, c, thread.pc)
   # run the VM until either no code is left to execute or an event implying
   # execution can't go on occurs
   while true:
-    var r = execute(c, thread)
+    var r = run(c, thread, iface)
     case r.kind
     of yrkDone:
       # execution is finished
-      doAssert r.reg.isSome() or c.mode in {emStaticStmt, emRepl},
-        "non-static stmt evaluation must produce a value, mode: " & $c.mode
-      let reg =
-        if r.reg.isSome:
-          thread.regs[r.reg.get]
-        else:
-          TFullReg(kind: rkNone)
-      result.initSuccess cb(c, reg)
+      doAssert r.reg.isSome() or jit.mode in {emStaticStmt, emRepl},
+        "non-static stmt evaluation must produce a value, mode: " & $jit.mode
+      if r.reg.isSome():
+        assert typ != nil
+        let n = regToNode(c, jit.config, r.typ, r.reg.unsafeGet, typ, info)
+        # echo "------------------- result: ", renderTree(n), " at ", jit.config.toFileLineCol(info)
+        result.initSuccess n
+      else:
+        result.initSuccess jit.graph.emptyNode
       break
     of yrkError:
+      echo "error occurred; aborting..."
+      debug(debug, thread, c, jit.config)
       result.initFailure buildError(c, thread, r.error)
       break
-    of yrkQuit:
-      case c.mode
-      of emRepl, emStaticExpr, emStaticStmt:
-        # XXX: should code run at compile time really be able to force-quit
-        #      the compiler? It currently can.
-        localReport(c.config, createLegacyStackTrace(c, thread))
-        localReport(c.config, InternalReport(kind: rintQuitCalled))
-        # FIXME: this will crash the compiler (RangeDefect) if `quit` is
-        #        called with a value outside of int8 range!
-        msgQuit(int8(r.exitCode))
-      of emConst, emOptimize:
-        result.initFailure buildQuit(c, thread, r.exitCode)
-        break
-      of emStandalone:
-        unreachable("not valid at compile-time")
+    of yrkUnhandledException:
+      var ast = newTree(nkObjConstr, newNode(nkEmpty), newNode(nkEmpty),
+        newStrNode(nkStrLit, readString(c, VirtualAddr(uint64(r.exc) + 16))),
+        newStrNode(nkStrLit, readString(c, VirtualAddr(uint64(r.exc) + 32))))
+      var evt = VmEvent(kind: vmEvtUnhandledException, exc: ast)
+      result.initFailure buildError(c, thread, evt)
+      break
     of yrkMissingProcedure:
       # a stub entry was encountered -> generate the code for the
       # corresponding procedure
@@ -332,28 +378,56 @@ proc execute(jit: var JitState, c: var TCtx, thread: sink VmThread,
         result.initFailure:
           buildError(c, thread, res.takeErr)
         break
+      update(debug, c, thread.pc)
       # success! ``compile`` updated the procedure's entry, so we can
       # continue execution
-      logBytecode(c, c.functions[r.entry.int].sym, res.get.start)
-    of yrkEcho:
-      # vm yielded with an echo
-      # xxx: `localReport` and report anything needs to be replaced, this is
-      #      just output and it's ridiculous that it all funnles through
-      #      `cli_reporter`. Using it here only because I'm sure there is some
-      #      spooky action at a distance breakage without. at least it's pushed
-      #      out to the edge.
-      localReport(c.config, InternalReport(msg: r.strs.join(""),
-                                           kind: rintEchoMessage))
-      # after echo continue executing, hence no `break`
+      logBytecode(jit.config, c, res.get.toFuncIndex)
+    of yrkUser:
+      case r.reason
+      of 0:
+        # 'echo' syscall
+        var text: string
+        for _ in 0..<r.args:
+          # XXX: meh, lots of allocations -- refactor
+          text = readString(c, VirtualAddr thread.pop()) & text
+        # xxx: `localReport` and report anything needs to be replaced, this is
+        #      just output and it's ridiculous that it all funnles through
+        #      `cli_reporter`. Using it here only because I'm sure there is some
+        #      spooky action at a distance breakage without. at least it's pushed
+        #      out to the edge.
+        # localReport(jit.config,
+        #   InternalReport(msg: text, kind: rintEchoMessage))
+        echo text
+      of 1:
+        # 'quit' syscall
+        let exitCode = thread.pop()
+        case jit.mode
+        of emRepl, emStaticExpr, emStaticStmt:
+          # XXX: should code run at compile time really be able to force-quit
+          #      the compiler? It currently can.
+          localReport(jit.config, createLegacyStackTrace(c, thread))
+          localReport(jit.config, InternalReport(kind: rintQuitCalled))
+          # FIXME: this will crash the compiler (RangeDefect) if `quit` is
+          #        called with a value outside of int8 range!
+          msgQuit(int8(exitCode))
+        of emConst, emOptimize:
+          result.initFailure buildQuit(c, thread, int(exitCode))
+          break # terminate the loop
+        of emStandalone:
+          unreachable("not valid at compile-time")
+      of 2:
+        # breakpoint
+        dec thread.pc
+        debug(debug, thread, c, jit.config)
+      else:
+        missing("unknown syscall handling")
 
   dispose(c, thread)
 
-proc execute(jit: var JitState, c: var TCtx, info: CodeInfo): ExecutionResult =
-  let thread = initVmThread(c, info.start, info.regCount, nil)
-  execute(jit, c, thread,
-          proc(c: TCtx, r: TFullReg): PNode = c.graph.emptyNode)
+proc execute(jit: var JitState, c: var TCtx, iface: CompilerIface, prc: FunctionIndex): ExecutionResult =
+  execute(jit, c, iface, initVmThread(c, prc, @[]), nil, unknownLineInfo)
 
-template returnOnErr(res: VmGenResult, config: ConfigRef, node: PNode): CodeInfo =
+template returnOnErr(res: JitResult, config: ConfigRef, node: PNode): VmFunctionPtr =
   ## Unpacks the vmgen result. If the result represents an error, exits the
   ## calling function by returning a new `nkError` wrapping `node`
   let r = res
@@ -399,29 +473,24 @@ proc reportIfError(config: ConfigRef, n: PNode) =
     config.localReport(n)
 
 
-template mkCallback(cn, rn, body): untyped =
-  let p = proc(cn: TCtx, rn: TFullReg): PNode = body
-  p
+proc evalStmt(jit: var JitState, c: var TCtx, iface: CompilerIface, n: PNode): PNode =
+  let n = transformExpr(jit.graph, jit.idgen, jit.module, n)
+  let prc = genStmt(jit, c, n).returnOnErr(jit.config, n)
 
-proc evalStmt(jit: var JitState, c: var TCtx, n: PNode): PNode =
-  let n = transformExpr(c.graph, c.idgen, c.module, n)
-  let info = genStmt(jit, c, n).returnOnErr(c.config, n)
-
-  # execute new instructions; this redundant opcEof check saves us lots
-  # of allocations in 'execute':
-  if c.code[info.start].opcode != opcEof:
-    result = execute(jit, c, info).unpackResult(c.config, n)
+  if prc.isNil:
+    result = jit.graph.emptyNode
   else:
-    result = c.graph.emptyNode
+    result = execute(jit, c, iface, prc.toFuncIndex).unpackResult(jit.config, n)
 
-proc registerAdditionalOps*(c: var TCtx, disallowDangerous: bool) =
+proc registerAdditionalOps*(jit: var JitState, c: var TCtx,
+                            disallowDangerous: bool) =
   ## Convenience proc used for setting up the overrides relevant during
   ## compile-time execution. If `disallowDangerous` is set to 'true', all
   ## operations that are able to modify the host's environment are replaced
   ## with no-ops
   template register(list: untyped) =
     for it in list:
-      registerCallback(c, it.pattern, it.prc)
+      registerCallback(jit, c, it.pattern, it.prc)
 
   register(): basicOps()
   register(): macroOps()
@@ -429,6 +498,7 @@ proc registerAdditionalOps*(c: var TCtx, disallowDangerous: bool) =
   register(): compileTimeOps()
   register(): ioReadOps()
   register(): osOps()
+  register(): macroapiOps()
 
   let cbStart = c.callbacks.len # remember where the callbacks for dangerous
                                 # ops start
@@ -441,16 +511,16 @@ proc registerAdditionalOps*(c: var TCtx, disallowDangerous: bool) =
     # ``registerCallback`` always appends them to the list
     for i in cbStart..<c.callbacks.len:
       # replace with a no-op
-      c.callbacks[i] = proc(a: VmArgs) {.nimcall.} = discard
+      c.callbacks[i] = nil#proc(a: VmArgs) {.nimcall.} = discard
 
   # the `cpuTime` callback doesn't fit any other category so it's registered
   # here
-  if optBenchmarkVM in c.config.globalOptions or not disallowDangerous:
-    registerCallback c, "stdlib.times.cpuTime", proc(a: VmArgs) {.nimcall.} =
-      setResult(a, cpuTime())
+  if optBenchmarkVM in jit.config.globalOptions or not disallowDangerous:
+    registerCallback jit, c, "stdlib.times.cpuTime", proc(a: var VmEnv, b: openArray[StackValue], c: RootRef): (CallbackExitCode, StackValue) {.raises: [].} =
+      result = (cecValue, cast[StackValue](cpuTime()))
   else:
-    registerCallback c, "stdlib.times.cpuTime", proc(a: VmArgs) {.nimcall.} =
-      setResult(a, 5.391245e-44)  # Randomly chosen
+    registerCallback jit, c, "stdlib.times.cpuTime",  proc(a: var VmEnv, b: openArray[StackValue], c: RootRef): (CallbackExitCode, StackValue) {.raises: [].} =
+      result = (cecValue, cast[StackValue](5.391245e-44))  # Randomly chosen
 
 proc setupGlobalCtx*(module: PSym; graph: ModuleGraph; idgen: IdGenerator) =
   addInNimDebugUtils(graph.config, "setupGlobalCtx")
@@ -460,43 +530,50 @@ proc setupGlobalCtx*(module: PSym; graph: ModuleGraph; idgen: IdGenerator) =
         defined(nimsuggest) or graph.config.cmd == cmdCheck or
         vmopsDanger notin graph.config.features
 
-    var ctx = initCtx(module, graph.cache, graph, idgen, legacyReportsVmTracer)
-    ctx.flags = {cgfAllowMeta}
-    registerAdditionalOps(ctx, disallowDangerous)
+    var jit = initJit(graph)
+    var ctx = initCtx(legacyReportsVmTracer)
+    jit.flags = {cgfAllowMeta}
+    registerAdditionalOps(jit, ctx, disallowDangerous)
 
-    graph.vm = PEvalContext(vm: ctx, jit: initJit(graph))
-  elif graph.vm of PVmCtx:
+    graph.vm = PEvalContext(vm: ctx, jit: jit)
+  elif graph.vm of PDelayedVm:
     # take the VM instance provided by the wrapper and create a proper
     # evaluation context from it
-    let ctx = move PVmCtx(graph.vm).context
-    graph.vm = PEvalContext(vm: ctx, jit: initJit(graph))
-  else:
-    let c = PEvalContext(graph.vm)
-    refresh(c.vm, module, idgen)
+    let setup = PDelayedVm(graph.vm)
+    var jit = initJit(graph)
+    var ctx = initCtx(legacyReportsVmTracer)
+    jit.flags = setup.flags
+    jit.mode = setup.mode
+    graph.vm = PEvalContext(vm: ctx, jit: jit)
 
-proc eval(jit: var JitState, c: var TCtx; prc: PSym, n: PNode): PNode =
+  let c = PEvalContext(graph.vm)
+  if c.iface.isNil:
+    c.iface = CompilerIface(graph: graph, config: graph.config, cache: graph.cache)
+    c.iface.nodes = addr c.jit.env.asts # XXX: ugly, but simple
+
+  # update the JIT's module context:
+  c.jit.module = module
+  c.jit.idgen = idgen
+  # update the interface
+  c.iface.module = module
+  c.iface.idgen = idgen
+
+proc eval(jit: var JitState, c: var TCtx; iface: CompilerIface, prc: PSym, n: PNode): PNode =
   let
-    n = transformExpr(c.graph, c.idgen, c.module, n)
-    requiresValue = c.mode != emStaticStmt
+    n = transformExpr(jit.graph, jit.idgen, jit.module, n)
+    requiresValue = jit.mode != emStaticStmt
     r =
       if requiresValue: genExpr(jit, c, n)
       else:             genStmt(jit, c, n)
 
-  let (start, regCount) = r.returnOnErr(c.config, n)
+  let prc = r.returnOnErr(jit.config, n)
+  if prc.isNil:
+    return newNodeI(nkEmpty, n.info)
 
-  if c.code[start].opcode == opcEof: return newNodeI(nkEmpty, n.info)
-  assert c.code[start].opcode != opcEof
+  logBytecode(jit.config, c, prc.toFuncIndex)
 
-  logBytecode(c, prc, start)
-
-  let cb =
-    if requiresValue:
-      mkCallback(c, r): c.regToNode(r, n.typ, n.info)
-    else:
-      mkCallback(c, r): newNodeI(nkEmpty, n.info)
-
-  let thread = initVmThread(c, start, regCount, prc)
-  result = execute(jit, c, thread, cb).unpackResult(c.config, n)
+  let thread = initVmThread(c, prc.toFuncIndex, @[])
+  result = execute(jit, c, iface, thread, n.typ, n.info).unpackResult(jit.config, n)
 
 proc evalConstExprAux(module: PSym, idgen: IdGenerator, g: ModuleGraph,
                       prc: PSym, n: PNode,
@@ -511,12 +588,12 @@ proc evalConstExprAux(module: PSym, idgen: IdGenerator, g: ModuleGraph,
 
   let
     c = PEvalContext(g.vm)
-    oldMode = c.vm.mode
+    oldMode = c.jit.mode
 
   # update the mode, and restore it once we're done
-  c.vm.mode = mode
-  result = eval(c.jit, c.vm, prc, n)
-  c.vm.mode = oldMode
+  c.jit.mode = mode
+  result = eval(c.jit, c.vm, c.iface, prc, n)
+  c.jit.mode = oldMode
 
 proc evalConstExpr*(module: PSym; idgen: IdGenerator; g: ModuleGraph; e: PNode): PNode {.inline.} =
   result = evalConstExprAux(module, idgen, g, nil, e, emConst)
@@ -532,28 +609,28 @@ proc setupCompileTimeVar*(module: PSym; idgen: IdGenerator; g: ModuleGraph; n: P
   # TODO: the node needs to be returned to the caller instead
   reportIfError(g.config, r)
 
-proc setupMacroParam(reg: var TFullReg, jit: var JitState, c: var TCtx, x: PNode, typ: PType) =
-  case typ.kind
+proc setupMacroParam(jit: var JitState, c: var TCtx, x: PNode, typ: VmTypeId, formal: PType): StackValue =
+  case formal.kind
   of tyStatic:
-    putIntoReg(reg, jit, c, x, typ)
+    putIntoReg(jit, c, x, typ, formal)
   else:
     var n = x
     if n.kind in {nkHiddenSubConv, nkHiddenStdConv}: n = n[1]
     # TODO: is anyone on the callsite dependent on this modifiction of `x`?
     n.typ = x.typ
-    reg = TFullReg(kind: rkNimNode, nimNode: n)
+    cast[StackValue](c.allocator.register(n))
 
-proc evalMacroCall*(jit: var JitState, c: var TCtx, call, args: PNode,
+proc evalMacroCall*(jit: var JitState, c: var TCtx, iface: CompilerIface, call, args: PNode,
                     sym: PSym): PNode =
   ## Evaluates a call to the macro `sym` with arguments `arg` with the VM.
   ##
   ## `call` is the original call expression, which is used as the ``wrongNode``
   ## in case of an error, as the node returned by the ``callsite`` macro API
   ## procedure, and for providing line information.
-  let oldMode = c.mode
-  c.mode = emStaticStmt
-  c.comesFromHeuristic.line = 0'u16
-  c.callsite = call
+  let oldMode = jit.mode
+  jit.mode = emStaticStmt
+  # iface.comesFromHeuristic.line = 0'u16
+  # iface.callsite = call
 
   defer:
     # restore the previous state when exiting this procedure
@@ -561,23 +638,23 @@ proc evalMacroCall*(jit: var JitState, c: var TCtx, call, args: PNode,
     #       global execution environment (i.e. ``TCtx``). ``callsite`` is part
     #       of the state that makes up a single VM invocation, and ``mode`` is
     #       only needed for ``vmgen``
-    c.mode = oldMode
-    c.callsite = nil
+    jit.mode = oldMode
+    # iface.callsite = nil
 
   let wasAvailable = isAvailable(jit, c, sym)
-  let (start, regCount) = loadProc(jit, c, sym).returnOnErr(c.config, call)
+  let prc = loadProc(jit, c, sym).returnOnErr(jit.config, call).toFuncIndex
 
   # make sure to only output the code listing once:
   if not wasAvailable:
-    logBytecode(c, sym, start)
+    logBytecode(jit.config, c, prc)
 
-  var thread = initVmThread(c, start, regCount, sym)
-  # return value:
-  thread.regs[0] = TFullReg(kind: rkNimNode, nimNode: newNodeI(nkEmpty, call.info))
+  var stack: seq[StackValue]
+  var arg = 0
 
   # put the normal arguments into registers
   for i in 1..<sym.typ.len:
-    setupMacroParam(thread.regs[i], jit, c, args[i - 1], sym.typ[i])
+    stack.add setupMacroParam(jit, c, args[i - 1], c.types.param(c.procs[prc.int].typ, arg), sym.typ[i])
+    inc arg
 
   # put the generic arguments into registers
   let gp = sym.ast[genericParamsPos]
@@ -586,13 +663,14 @@ proc evalMacroCall*(jit: var JitState, c: var TCtx, call, args: PNode,
     # signature
     if tfImplicitTypeParam notin gp[i].sym.typ.flags:
       let idx = sym.typ.len + i
-      setupMacroParam(thread.regs[idx], jit, c, args[idx - 1], gp[i].sym.typ)
+      stack.add setupMacroParam(jit, c, args[idx - 1], c.types.param(c.procs[prc.int].typ, arg), gp[i].sym.typ)
+      inc arg
 
-  let cb = mkCallback(c, r): r.nimNode
-  result = execute(jit, c, thread, cb).unpackResult(c.config, call)
+  var thread = initVmThread(c, prc, stack)
+  result = execute(jit, c, iface, thread, sym.internal[0], call.info).unpackResult(jit.config, call)
 
   if result.kind != nkError and cyclicTree(result):
-    result = c.config.newError(call, PAstDiag(kind: adCyclicTree))
+    result = jit.config.newError(call, PAstDiag(kind: adCyclicTree))
 
 proc evalMacroCall*(module: PSym; idgen: IdGenerator; g: ModuleGraph;
                     templInstCounter: ref int;
@@ -602,17 +680,18 @@ proc evalMacroCall*(module: PSym; idgen: IdGenerator; g: ModuleGraph;
   ## and `templInstCounter`.
   setupGlobalCtx(module, g, idgen)
   let c = PEvalContext(g.vm)
-  c.vm.templInstCounter = templInstCounter
+  c.iface.templInstCounter = templInstCounter
 
-  result = evalMacroCall(c.jit, c.vm, call, args, sym)
+  result = evalMacroCall(c.jit, c.vm, c.iface, call, args, sym)
 
 proc dumpVmProfilerData*(graph: ModuleGraph): string =
   ## Dumps the profiler data collected by the profiler of the VM instance
   ## associated with `graph` to a string.
   let c = PEvalContext(graph.vm)
-  result =
-    if c != nil: dump(graph.config, c.vm.profiler)
-    else:        ""
+  missing("profiler")
+  result = ""
+    # if c != nil: dump(graph.config, c.vm.profiler)
+    # else:        ""
 
 # ----------- the VM-related compilerapi -----------
 
@@ -625,7 +704,7 @@ proc execProc*(jit: var JitState, c: var TCtx; sym: PSym;
   # VM's compilerapi (`nimeval`) whose users don't know about nkError yet
   if sym.kind in routineKinds:
     if sym.typ.len-1 != args.len:
-      localReport(c.config, sym.info, SemReport(
+      localReport(jit.config, sym.info, SemReport(
         kind: rsemWrongNumberOfArguments,
         sym: sym,
         countMismatch: (
@@ -633,42 +712,35 @@ proc execProc*(jit: var JitState, c: var TCtx; sym: PSym;
           got: args.len)))
 
     else:
-      let (start, maxSlots) = block:
+      let prc = block:
         # XXX: `returnOnErr` should be used here instead, but isn't for
         #      backwards compatiblity
         let r = loadProc(jit, c, sym)
         if unlikely(r.isErr):
-          localReport(c.config, vmGenDiagToLegacyVmReport(r.takeErr))
+          localReport(jit.config, vmGenDiagToLegacyVmReport(r.takeErr))
           return nil
         r.unsafeGet
 
-      var thread = initVmThread(c, start, maxSlots, sym)
+      # TODO: return type handling doesn't work. But really, who cares? The
+      #       compiler API is barely useable anyways :D
+      var operands: seq[StackValue]
 
-      # setup parameters:
-      if not isEmptyType(sym.typ[0]) or sym.kind == skMacro:
-        let typ = c.getOrCreate(sym.typ[0])
-        if not thread.regs[0].loadEmptyReg(typ, sym.info, c.memory):
-          thread.regs[0].initLocReg(typ, c.memory)
-      # XXX We could perform some type checking here.
-      for i in 1..<sym.typ.len:
-        putIntoReg(thread.regs[i], jit, c, args[i-1], sym.typ[i])
+      let typ = if sym.kind == skMacro: sym.internal else: sym.typ
 
-      let cb =
-        if not isEmptyType(sym.typ[0]):
-          mkCallback(c, r): c.regToNode(r, sym.typ[0], sym.info)
-        elif sym.kind == skMacro:
-          # TODO: missing cyclic check
-          mkCallback(c, r): r.nimNode
-        else:
-          mkCallback(c, r): newNodeI(nkEmpty, sym.info)
+      # push the arguments to the stack:
+      for i in 1..<typ.len:
+        operands.add putIntoReg(jit, c, args[i-1], c.types.param(c.procs[prc.int].typ, i-1), typ[i])
 
-      let r = execute(jit, c, thread, cb)
-      result = r.unpackResult(c.config, c.graph.emptyNode)
-      reportIfError(c.config, result)
+      let thread = initVmThread(c, FunctionIndex prc, operands)
+      # XXX: compiler interface instance is missing
+      let r = execute(jit, c, nil, thread, typ[0], unknownLineInfo)
+      result = r.unpackResult(jit.config, jit.graph.emptyNode)
+      reportIfError(jit.config, result)
       if result.isError:
         result = nil
+
   else:
-    c.config.internalError(sym.info, "symbol doesn't represent a routine")
+    jit.config.internalError(sym.info, "symbol doesn't represent a routine")
 
 # XXX: the compilerapi regarding globals (getGlobalValue/setGlobalValue)
 #      doesn't work the same as before. Previously, the returned PNode
@@ -678,18 +750,19 @@ proc execProc*(jit: var JitState, c: var TCtx; sym: PSym;
 proc getGlobalValue*(c: EvalContext, s: PSym): PNode =
   ## Does not perform type checking, so ensure that `s.typ` matches the
   ## global's type
-  internalAssert(c.vm.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
-  let slot = c.vm.globals[c.jit.getGlobal(s)]
-  result = c.vm.deserialize(slot, s.typ, s.info)
+  internalAssert(c.jit.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
+  let slot = c.vm.globals[0][c.jit.getGlobal(s)]
+
+  result = c.vm.deserialize(c.jit.config, c.vm.allocator.translate(VirtualAddr(slot.val)), slot.typ, s.typ, s.info)
 
 proc setGlobalValue*(c: var EvalContext; s: PSym, val: PNode) =
   ## Does not do type checking so ensure the `val` matches the `s.typ`
-  internalAssert(c.vm.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
+  internalAssert(c.jit.config, s.kind in {skLet, skVar} and sfGlobal in s.flags)
   let
-    slot = c.vm.globals[c.jit.getGlobal(s)]
+    slot = c.vm.globals[0][c.jit.getGlobal(s)]
     data = constDataToMir(c.vm, c.jit, val)
 
-  initFromExpr(slot, data, c.jit.env, c.vm)
+  initFromExpr(c.vm.allocator.translate(VirtualAddr(slot.val)), slot.typ, data, c.jit.env, c.jit.config, c.vm)
 
 ## what follows is an implementation of the ``passes`` interface that evaluates
 ## the code directly inside the VM. It is used for NimScript execution and by
@@ -721,7 +794,7 @@ proc myProcess(c: PPassContext, n: PNode): PNode =
     setupGlobalCtx(c.module, c.graph, c.idgen)
     let eval = PEvalContext(c.graph.vm)
 
-    let r = evalStmt(eval.jit, eval.vm, n)
+    let r = evalStmt(eval.jit, eval.vm, eval.iface, n)
     reportIfError(c.graph.config, r)
     # TODO: use the node returned by evalStmt as the result and don't report
     #       the error here
@@ -734,3 +807,92 @@ proc myClose(graph: ModuleGraph; c: PPassContext, n: PNode): PNode =
   result = myProcess(c, n)
 
 const evalPass* = makePass(myOpen, myProcess, myClose)
+
+func vmEventToAstDiagVmError*(evt: VmEvent): AstDiagVmError {.inline.} =
+  let kind =
+    case evt.kind
+    of vmEvtOpcParseExpectedExpression: adVmOpcParseExpectedExpression
+    of vmEvtUserError: adVmUserError
+    of vmEvtUnhandledException: adVmUnhandledException
+    of vmEvtCannotCast: adVmCannotCast
+    of vmEvtCannotModifyTypechecked: adVmCannotModifyTypechecked
+    of vmEvtNilAccess: adVmNilAccess
+    of vmEvtAccessOutOfBounds: adVmAccessOutOfBounds
+    of vmEvtAccessTypeMismatch: adVmAccessTypeMismatch
+    of vmEvtAccessNoLocation: adVmAccessNoLocation
+    of vmEvtErrInternal: adVmErrInternal
+    of vmEvtIndexError: adVmIndexError
+    of vmEvtOutOfRange: adVmOutOfRange
+    of vmEvtOverOrUnderflow: adVmOverOrUnderflow
+    of vmEvtDivisionByConstZero: adVmDivisionByConstZero
+    of vmEvtArgNodeNotASymbol: adVmArgNodeNotASymbol
+    of vmEvtNodeNotASymbol: adVmNodeNotASymbol
+    of vmEvtNodeNotAProcSymbol: adVmNodeNotAProcSymbol
+    of vmEvtIllegalConv: adVmIllegalConv
+    of vmEvtIllegalConvFromXToY: adVmIllegalConvFromXToY
+    of vmEvtMissingCacheKey: adVmMissingCacheKey
+    of vmEvtCacheKeyAlreadyExists: adVmCacheKeyAlreadyExists
+    of vmEvtFieldNotFound: adVmFieldNotFound
+    of vmEvtNotAField: adVmNotAField
+    of vmEvtFieldUnavailable: adVmFieldUnavailable
+    of vmEvtCannotCreateNode: adVmCannotCreateNode
+    of vmEvtCannotSetChild: adVmCannotSetChild
+    of vmEvtCannotAddChild: adVmCannotAddChild
+    of vmEvtCannotGetChild: adVmCannotGetChild
+    of vmEvtNoType: adVmNoType
+    of vmEvtTooManyIterations: adVmTooManyIterations
+
+  {.cast(uncheckedAssign).}: # discriminants on both sides lead to saddness
+    result =
+      case kind:
+      of adVmUserError:
+        AstDiagVmError(
+          kind: kind,
+          errLoc: evt.errLoc,
+          errMsg: evt.errMsg)
+      of adVmArgNodeNotASymbol:
+        AstDiagVmError(
+          kind: kind,
+          callName: evt.callName,
+          argAst: evt.argAst,
+          argPos: evt.argPos)
+      of adVmCannotCast, adVmIllegalConvFromXToY:
+        AstDiagVmError(
+          kind: kind,
+          formalType: evt.typeMismatch.formalType,
+          actualType: evt.typeMismatch.actualType)
+      of adVmIndexError:
+        AstDiagVmError(
+          kind: kind,
+          indexSpec: evt.indexSpec)
+      of adVmErrInternal, adVmNilAccess, adVmIllegalConv,
+          adVmFieldUnavailable, adVmFieldNotFound,
+          adVmCacheKeyAlreadyExists, adVmMissingCacheKey,
+          adVmCannotCreateNode:
+        AstDiagVmError(
+          kind: kind,
+          msg: evt.msg)
+      of adVmCannotSetChild, adVmCannotAddChild, adVmCannotGetChild,
+          adVmNoType, adVmNodeNotASymbol:
+        AstDiagVmError(
+          kind: kind,
+          ast: evt.ast)
+      of adVmUnhandledException:
+        AstDiagVmError(
+          kind: kind,
+          ast: evt.exc)
+      of adVmNotAField:
+        AstDiagVmError(
+          kind: kind,
+          sym: evt.sym)
+      of adVmOpcParseExpectedExpression,
+          adVmCannotModifyTypechecked,
+          adVmAccessOutOfBounds,
+          adVmAccessTypeMismatch,
+          adVmAccessNoLocation,
+          adVmOutOfRange,
+          adVmOverOrUnderflow,
+          adVmDivisionByConstZero,
+          adVmNodeNotAProcSymbol,
+          adVmTooManyIterations:
+        AstDiagVmError(kind: kind)

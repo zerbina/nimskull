@@ -31,9 +31,11 @@ func `$`*(x: float | float32): string =
   ## Outplace version of `addFloat`.
   result.addFloat(x)
 
-proc `$`*(x: bool): string {.magic: "BoolToStr", noSideEffect.}
+proc `$`*(x: bool): string {.magic: "BoolToStr", noSideEffect.} =
   ## The stringify operator for a boolean argument. Returns `x`
   ## converted to the string "false" or "true".
+  if x: "true"
+  else: "false"
 
 proc `$`*(x: char): string {.magic: "CharToStr", noSideEffect.}
   ## The stringify operator for a character argument. Returns `x`

@@ -28,6 +28,12 @@ func matches(s: PSym; x: IdentPattern): bool =
     while s != nil and s.kind == skPackage and s.owner != nil: s = s.owner
   result = true
 
+func lookup*(patterns: Patterns, name: string): int =
+  for i, it in patterns.pairs:
+    if it.string == name:
+      return i
+  result = -1
+
 func lookup*(patterns: Patterns; s: PSym): int =
   ## Tries to find and return the index of the pattern matching `s`. If none
   ## is found, -1 is returned

@@ -80,9 +80,9 @@ proc prepareSeqAdd(len: int; p: pointer; addlen, elemSize, elemAlign: int): poin
         result = q
 
 proc shrink*[T](x: var seq[T]; newLen: Natural) =
-  when nimvm:
-    setLen(x, newLen)
-  else:
+  when true:
+  #   setLen(x, newLen)
+  # else:
     when not supportsCopyMem(T):
       # destroy all cut-off items, but don't reset the memory yet
       for i in countdown(x.len - 1, newLen):

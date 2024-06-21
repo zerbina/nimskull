@@ -8,6 +8,7 @@
 import
   compiler/ast/[
     ast_types,
+    ast_query,
     ast,
     reports,
     types
@@ -16,10 +17,12 @@ import
     options
   ],
   compiler/utils/[
-    idioms
+    idioms,
+    containers
   ],
   compiler/vm/[
-    vmdef
+    vmdef,
+    vmtypes
   ],
 
   std/[
@@ -29,113 +32,110 @@ import
 
 import std/options as soptions
 
-from std/bitops import bitand, fastLog2
+type
+  TypeTableEntry = tuple[hcode: int, typ: VmTypeId]
+  TypeTable = object
+    ## A partial hash-table overlay for `TypeInfoCache.types`. Not all types
+    ## present in the latter need to be present in the table
+    data*: seq[TypeTableEntry]
+    counter*: int
 
-const EmptySize = 4 ## the size of empty object/tuple/array types
+  TypeTranslationState* = object
+    ## Encapsulates all state needed for RTTI generation, such as various
+    ## caches and other acceleration structures.
+    cache: Table[ItemId, VmTypeId] ## `PType`-id -> `PVmType` mappings
 
-template paddedSize(s, a: uint): untyped =
-  ## Round the size up so that `s % a == 0`
-  bitand(s + a - 1, not (a - 1))
+    structs: TypeTable
+      ## type-structure-based cache for types
 
-template paddedSize(info: VmType): untyped =
-  ## Round the size up so that `info.sizeInBytes % (1 shl info.alignment) == 0`
-  paddedSize(info.sizeInBytes, 1'u shl info.alignment)
+    staticInfo: array[AtomKind, tuple[size, align: uint8]]
+      ## size and alignment information for atoms where this information is
+      ## the same for every instance
 
-func hash(t: PVmType): Hash {.inline.} =
-  # the ref itself already acts as a unique id
-  hash(cast[int](t))
+    rootRef*: VmTypeId
+      ## the VM type corresponding to ``ref RootObj``.
+      # XXX: this is a temporary workaround, the type cache shouldn't need to
+      #      know nor care about ``RootObj``. Can be removed once closure types
+      #      are lowered earlier
+    rttiType*: Option[VmTypeId]
+      ## the type to use for the RTTI field in objects
 
-func hash(t: VmType): Hash =
+proc initTypeGen*(): TypeTranslationState =
+  template pair(size: uint8, align: uint8): untyped =
+    (uint8(size), uint8(align))
+
+  result.staticInfo = [
+    akVoid: pair(0, 0),
+    akInt: pair(0, 0),
+    akFloat: pair(0, 0),
+    akPtr: pair(8, 3),
+    akRef: pair(8, 3),
+    akProc: pair(8, 3),
+    akSet: pair(0, 0),
+    akString: pair(16, 3),
+    akSeq: pair(16, 3),
+    akForeign: pair(8, 3),
+    akRecord: pair(0, 0),
+    akUnion: pair(0, 0),
+    akArray: pair(0, 0),
+    akFlexArray: pair(0, 0)
+  ]
+
+func hash(types: VmTypeEnv, t: VmType): Hash =
   ## Creates a hash over the fields of `t` that are relevant for structural
   ## types
   let h = hash(t.kind)
   let body =
     case t.kind
-    of akSeq:                 hash(t.seqElemType)
-    of akPtr, akRef:          hash(t.targetType)
-    of akSet:                 hash(t.setLength)
-    of akCallable:            hash(t.routineSig.int)
-    of akDiscriminator:       hash(t.numBits)
-    of akArray:               hash(t.elementCount) !& hash(t.elementType)
-    of akObject:
+    of akSeq, akPtr, akRef, akFlexArray:   hash(t.a)
+    of akSet:                 hash(t.a)
+    of akProc, akRecord:
       var r = 0
-      for (_, ft) in t.objFields.items:
-        r = r !& hash(ft)
+      for i in t.a..<t.b:
+        r = r !& hash(types.fields[i])
       r
-    of akInt, akFloat, akString, akPNode:
-      # the hash function is only meant to be used on structural types created
-      # during `genType`
+    of akArray:
+      hash(types.fields[t.a])
+    of akInt, akFloat:
+      hash(t.size) !& hash(t.a)
+    of akVoid, akString, akForeign:
+      0
+    of akUnion:
       unreachable()
 
   result = !$(h !& body)
 
-func `==`(a, b: VmType): bool =
+func compare(types: VmTypeEnv, a, b: VmType): bool =
   ## Compares the fields of `a` and `b` that are relevant for structural types
   if a.kind != b.kind:
     return false
 
   template cmpField(n): untyped = a.n == b.n
 
+  # TODO: consider size and alignment
+
   case a.kind
-  of akSeq:                 cmpField(seqElemType)
-  of akPtr, akRef:          cmpField(targetType)
-  of akSet:                 cmpField(setLength)
-  of akCallable:            cmpField(routineSig)
-  of akDiscriminator:
-    # XXX: just testing for `numBits` means that `a: range[0..2]` and
-    #      `b: range[0..3]` are treated as the same type!
-    cmpField(numBits)
-  of akArray:               cmpField(elementType) and cmpField(elementCount)
-  of akObject:
-    if a.objFields.len != b.objFields.len:
+  of akSeq, akPtr, akRef, akSet, akFlexArray:
+    cmpField(a)
+  of akProc, akRecord:
+    if a.len != b.len:
       return false
 
-    for i in 0..<a.objFields.len:
-      if a.objFields[i].typ != b.objFields[i].typ:
+    for i in a.a..<a.b:
+      if types.fields[i] != types.fields[i - a.a + b.a]:
         return false
 
     true
-  of akInt, akFloat, akString, akPNode:
+  of akArray:
+    types.fields[a.a] == types.fields[b.a]
+  of akInt, akFloat:
+    cmpField(size) and cmpField(a)
+  of akVoid, akString, akForeign:
+    true
+  of akUnion:
     unreachable()
 
-func `==`(a: PVmType, b: openArray[PVmType]): bool {.inline.} =
-  # compare field types
-  if a.kind == akObject and a.objFields.len == b.len:
-    for i in 0..<b.len:
-      if a.objFields[i].typ != b[i]:
-        return false
-
-    result = true
-
-func makeSignatureId*(c: var TypeInfoCache, typ: PType): RoutineSigId
-
-const skipTypeSet = abstractRange+{tyStatic}-{tyTypeDesc}
-
-func getAtomicType(cache: TypeInfoCache, conf: ConfigRef, t: PType): Option[PVmType] =
-  # XXX: if the type enums had a better ordering, the logic here could be a
-  #      simplified by using enum-array lookup. See comment in `TypeInfoCache`
-  #      definition
-  let r =
-    case t.kind
-    of tyBool: cache.boolType
-    of tyChar: cache.charType
-    of tyCstring, tyString: cache.stringType
-    of tyInt..tyInt64: cache.intTypes[t.kind]
-    of tyUInt..tyUInt64: cache.uintTypes[t.kind]
-    of tyFloat..tyFloat64: cache.floatTypes[t.kind]
-    of tyPointer, tyNil: cache.pointerType
-    of tyUntyped, tyTyped, tyTypeDesc: cache.nodeType # XXX: is this really
-                        # needed? Is a field of one of these types possible?
-    of tyRef:
-      if t.sym != nil and t.sym.magic == mPNimrodNode: cache.nodeType
-      else: nil
-    of tyEnum:
-      # use the underlying type:
-      getAtomicType(cache, conf, t.lastSon).get()
-    else:
-      nil
-
-  result = option(r)
+const skipTypeSet = abstractRange+{tyEnum}-{tyTypeDesc}
 
 # ------------ TypeTable implementation ------------
 
@@ -161,17 +161,7 @@ func enlarge(tbl: var TypeTable) =
         j = nextTry(j, maxHash(tbl))
       tbl.data[j] = old
 
-func get[K](types: seq[PVmType], tbl: TypeTable,
-            key: K; hcode: Hash): VmTypeId =
-  mixin `==`
-  if tbl.data.len > 0:
-    var i = hcode and maxHash(tbl)
-    while (let m = tbl.data[i]; m.isFilled):
-      if m.hcode == hcode and `==`(types[m.typ], key): return m.typ
-      i = nextTry(i, maxHash(tbl))
-  # type-id '0' means "not found" in this context
-
-func getOrIncl(types: var seq[PVmType], tbl: var TypeTable,
+func getOrIncl(types: var VmTypeEnv, tbl: var TypeTable,
                h: Hash, t: sink VmType): (VmTypeId, bool) =
   ## Returns the ID of structural type `t` and whether it existed prior to
   ## this operation. If the type is not in `types` yet, it is first added and
@@ -179,7 +169,8 @@ func getOrIncl(types: var seq[PVmType], tbl: var TypeTable,
   var i = h and maxHash(tbl)
   if tbl.data.len > 0:
     while (let m = tbl.data[i]; m.isFilled):
-      if m.hcode == h and types[m.typ][] == t: return (m.typ, true)
+      if m.hcode == h and compare(types, types.types[m.typ], t):
+        return (m.typ, true)
       i = nextTry(i, maxHash(tbl))
 
     # no matching entry found
@@ -195,10 +186,7 @@ func getOrIncl(types: var seq[PVmType], tbl: var TypeTable,
     i = h and maxHash(tbl)
 
   # add the type to the `types` list
-  let id = types.len.VmTypeId
-  let pt = PVmType()
-  pt[] = t
-  types.add(pt)
+  let id = types.types.add(t)
 
   # fill table entry
   tbl.data[i] = (h, id)
@@ -207,618 +195,340 @@ func getOrIncl(types: var seq[PVmType], tbl: var TypeTable,
 
 # ------------ end ------------
 
-func genDiscriminator(conf: ConfigRef, typ: PType): VmType =
-  ## Builds a `VmType` for a discriminator of type `typ`
-
-  # Ignore the reporting related side-effects of `lastOrd`
-  {.noSideEffect.}:
-    let limit = toInt(lastOrd(conf, typ))
-
-  # high(enum) might be zero so we have to guard against that case with `max`
-  let numBits = fastLog2(max(limit, 1)) + 1
-
-  # round the number of bytes to either 1 or the next power of two
-  let exponent = fastLog2(((numBits * 2) + 7) /% 8)
-  let sizeInBytes = 1 shl exponent
-
-  VmType(kind: akDiscriminator, sizeInBytes: uint(sizeInBytes), alignment: uint8(exponent), numBits: numBits)
-
 type GenClosure* = object
-  queue: seq[(PVmType, PType)]
-  tmpFields: seq[PVmType]
-  sizeQueue: seq[PVmType] ## newly created types that need to have their size
-                          ## computed
+  tmpFields: seq[Field]
+
   conf: ConfigRef
+  typesPtr: ptr VmTypeEnv
 
-type GenResult = object
-  existing: PVmType
-  typ: VmType
+template types(x: GenClosure): VmTypeEnv =
+  x.typesPtr[]
 
-func genTuple(c: var TypeInfoCache, t: PType, cl: var GenClosure): GenResult
+proc genTuple(c: var TypeTranslationState, t: PType, cl: var GenClosure): VmType
+proc genObject(c: var TypeTranslationState, t: PType, cl: var GenClosure): VmType
 
-func genType(c: var TypeInfoCache, t: PType, cl: var GenClosure;
-             noClosure = false): tuple[typ: PVmType, existed: bool] =
+proc addUnique(cl: var GenClosure, c: var TypeTranslationState, t: sink VmType): VmTypeId =
+  let (id, _) = cl.types.getOrIncl(c.structs, hash(cl.types, t), t)
+  result = id
+
+proc popRecord(cl: var GenClosure, size: uint32, start: int): VmType =
+  var flags = {vtfDataOnly} # until proven otherwise
+  for i in start..<cl.tmpFields.len:
+    if vtfDataOnly notin cl.types[cl.tmpFields[i].typ].flags:
+      flags.excl vtfDataOnly
+      break
+
+  result = VmType(kind: akRecord, size: size, flags: flags, a: cl.types.fields.len.uint32, b: uint32(cl.types.fields.len + (cl.tmpFields.len - start)))
+  cl.types.fields.add cl.tmpFields.toOpenArray(start, cl.tmpFields.high)
+  cl.tmpFields.setLen(start)
+
+proc genType(c: var TypeTranslationState, t: PType, cl: var GenClosure;
+             noClosure = false): VmTypeId =
   ## The heart of `PType` -> `VmType` translation. Looks up or creates types
   ## and adds mappings to `lut` if they don't exist already.
   ##
   ## If `noClosure` is 'true', a proc type with ``.closure`` calling
   ## convention is treated as a procedure type instead of a closure.
   let t = t.skipTypes(skipTypeSet)
-  let typ = getAtomicType(c, cl.conf, t)
-  if typ.isSome():
-    return (typ.unsafeGet, true)
+  result = c.cache.getOrDefault(t.itemId, VoidType)
+  if result != VoidType:
+    return
 
-  if t.itemId in c.lut:
-    return (c.lut[t.itemId], true)
-
-  var res: GenResult
-
-  # TODO: skip search for all ref, ptr, array and seq types if the element
-  #       type was just created
+  let start = cl.tmpFields.len # remember how many temporary fields there are
+  var res: VmType
 
   case t.kind
-  of tyVar, tyLent, tyPtr:
-    res.typ = VmType(kind: akPtr,
-                     targetType: genType(c, t[0], cl).typ)
-
+  of tyVoid:
+    res = VmType(kind: akVoid)
+  of tyInt..tyInt64, tyBool:
+    # FIXME: the alignment computation is wrong
+    res = VmType(kind: akInt, size: uint32 getSize(cl.conf, t), align: getAlign(cl.conf, t).uint8, a: 1)
+  of tyUInt..tyUInt64, tyChar:
+    res = VmType(kind: akInt, size: uint32 getSize(cl.conf, t), a: 0)
+  of tyFloat..tyFloat64:
+    res = VmType(kind: akFloat, size: uint32 getSize(cl.conf, t))
+  of tyVar, tyLent:
+    if t[0].skipTypes(skipTypeSet).kind == tyOpenArray:
+      return genType(c, t[0], cl)
+    else:
+      res = VmType(kind: akPtr, a: genType(c, t[0], cl).uint32)
+  of tyPtr:
+    res = VmType(kind: akPtr, a: genType(c, t[0], cl).uint32)
   of tyRef:
-    res.typ = VmType(kind: akRef,
-                     targetType: genType(c, t[0], cl).typ)
+    if t.sym != nil and t.sym.magic == mPNimrodNode:
+      res = VmType(kind: akForeign)
+    else:
+      let elem = genType(c, t[0], cl)
+      cl.tmpFields.add Field(off: 0, typ: cl.addUnique(c, VmType(kind: akInt, size: 8, align: 3, a: 0)))
+      # TODO: use proper offset that respects element's alignment
+      cl.tmpFields.add Field(off: 8, typ: elem)
+      let content = cl.types.types.add(cl.popRecord(8 + cl.types[elem].size, cl.tmpFields.len - 2))
 
-  of tySequence, tyOpenArray:
-    res.typ = VmType(kind: akSeq,
-                     seqElemType: genType(c, t[0], cl).typ)
-
+      res = VmType(kind: akRef, a: genType(c, t[0], cl).uint32, b: content)
+  of tyTypeDesc:
+    # stored as a NimNode
+    res = VmType(kind: akForeign)
+  of tySequence:
+    res = VmType(kind: akSeq, a: genType(c, t[0], cl).uint32)
+  of tyString, tyCstring:
+    res = VmType(kind: akString, a: genType(c, t[0], cl).uint32)
+  of tyPointer:
+    # use the 'void' type as the target type. The exact type doesn't matter,
+    # we only need *some* type
+    res = VmType(kind: akPtr, a: cl.addUnique(c, VmType(kind: akVoid)))
+  of tyOpenArray, tyVarargs:
+    let elem = genType(c, t[0], cl)
+    let x = cl.addUnique(c, VmType(kind: akInt, size: 8, align: 3, a: 1))
+    cl.tmpFields.add Field(off: 0, typ: x)
+    let pt = cl.addUnique(c, VmType(kind: akPtr, size: 8, align: 3, a: elem))
+    cl.tmpFields.add Field(off: 8, typ: pt)
+    res = VmType(kind: akRecord, flags: {vtfDataOnly}, size: 16, align: 3)
   of tyProc:
     if t.callConv == ccClosure and not noClosure:
       # a closure is represented as a ``tuple[prc: proc, env: RootRef]``.
       # Manually create one.
-      let
-        start = cl.tmpFields.len
-        (prcTyp, _) = c.genType(t, cl, noClosure=true)
+      let prcTyp = c.genType(t, cl, noClosure=true)
+      # do *not* elide the temporary, genType can modify `cl`!
+      cl.tmpFields.add Field(off: 0, typ: prcTyp)
+      cl.tmpFields.add Field(off: 8, typ: c.rootRef)
 
-      cl.tmpFields.add prcTyp
-      cl.tmpFields.add c.rootRef
-
-      var hcode = hash(akObject)
-      hcode = hcode !& hash(cl.tmpFields[start + 0])
-      hcode = hcode !& hash(cl.tmpFields[start + 1])
-
-      let id = c.types.get(c.structs, cl.tmpFields.subView(start, 2), hcode)
-      if id != 0:
-        res.existing = c.types[id]
-      else:
-        res.typ = VmType(kind: akObject)
-        res.typ.objFields.newSeq(2)
-        res.typ.objFields[0].typ = cl.tmpFields[start + 0]
-        res.typ.objFields[1].typ = cl.tmpFields[start + 1]
-
-      cl.tmpFields.setLen(start)
+      res = VmType(kind: akRecord, size: 16, align: 3)
     else:
-      res.typ = VmType(kind: akCallable, routineSig: c.makeSignatureId(t))
+      if t[0].isEmptyType():
+        cl.tmpFields.add Field(off: 0, typ: VoidType)
+      else:
+        let typ = c.genType(t[0], cl)
+        if cl.types[typ].kind notin {akInt, akFloat, akProc, akRef, akPtr, akForeign}:
+          cl.tmpFields.add Field(off: 0, typ: VoidType)
 
+        cl.tmpFields.add Field(off: 0, typ: typ)
+
+      for i in 1..<t.len:
+        if t[i].kind notin {tyStatic, tyTypeDesc}:
+          cl.tmpFields.add Field(off: 0, typ: c.genType(t[i], cl))
+
+      res = VmType(kind: akProc)
   of tyObject:
-    if true:
-      # if the `t` is not in the cache, we've got a new object type
-
-      # object types are special. Their creation gets deferred such as to not
-      # run into cyclic dependency issues. With some clever tricks and by using
-      # some form of resumeable functions we could get around the deferred
-      # creation in some cases, but the added complexity is likely not worth it
-
-      result.typ = PVmType(kind: akObject)
-      c.types.add(result.typ)
-
+    # create and cache the RTTI instance first. If another type for which
+    # RTTI is generated during the traversal looks up the type, it gets
+    # the cached ID and the cycle is thus broken
+    result = cl.types.types.add VmType(kind: akRecord, size: getSize(cl.conf, t).uint32)
+    c.cache[t.itemId] = result
+    res = genObject(c, t, cl)
+    cl.types.types[result] = res
+    return
   of tyTuple:
     res = genTuple(c, t, cl)
   of tyArray:
-    # XXX: lengthOrd has side-effects due to error reporting right now.
-    #      We shouldn't lie to the compiler like this. `lengthOrd` should
-    #      probably be side-effect free
-    {.noSideEffect.}:
-      let L = toInt(lengthOrd(cl.conf, t))
-
-    res.typ = VmType(kind: akArray,
-                     elementType: genType(c, t[1], cl).typ,
-                     elementCount: L)
+    let L = toInt(lengthOrd(cl.conf, t))
+    if L == 0:
+      res = VmType(kind: akInt, size: 1, align: 1, a: 0)
+    else:
+      # XXX: the length might be cut off
+      let elem = genType(c, elemType(t), cl)
+      cl.tmpFields.add Field(off: L.uint32, typ: elem)
+      res = VmType(kind: akArray, flags: cl.types[elem].flags, size: getSize(cl.conf, t).uint32)
   of tySet:
     # XXX: for now `set`s are separate atoms, but they could be represented
     #      via `akInt` and `akArry` similar to how the C backend does it.
     #      This would first require some language specification regarding
     #      static-/dynamic-type compatibility however.
 
-    {.noSideEffect.}: # Ignore the reporting related side effects
-      let L =
-        if t[0].kind != tyEmpty: toUInt32(lengthOrd(cl.conf, t[0]))
-        else: 0
+    let L =
+      if t[0].kind != tyEmpty: toUInt32(lengthOrd(cl.conf, t[0]))
+      else: 0
 
-    res.typ = VmType(kind: akSet, setLength: int L)
+    res = VmType(kind: akSet, a: uint32 L)
 
     # Calculate the size and alignment for the underlying storage
-    (res.typ.sizeInBytes, res.typ.alignment) =
-      if L <= 8:    (1'u, 0'u8)
-      elif L <= 16: (2'u, 1'u8)
-      elif L <= 32: (4'u, 2'u8)
-      elif L <= 64: (8'u, 3'u8)
-      else: (bitand(uint(L) + 7, not 7'u) div 8, 3'u8)
-
-  of tyUserTypeClass, tyUserTypeClassInst:
-    # XXX: do these two even reach here? `cgen` has logic for them, but maybe
-    #      that's a historic leftover?
-    assert t.isResolvedUserTypeClass
-
-    # XXX: maybe it's not a good idea to add all user-type class instances to
-    #      the cache?
-    res.existing = c.genType(t.lastSon(), cl).typ
+    (res.size, res.align) =
+      if L <= 8:    (1'u32, 0'u8)
+      elif L <= 16: (2'u32, 1'u8)
+      elif L <= 32: (4'u32, 2'u8)
+      elif L <= 64: (8'u32, 3'u8)
+      else: (((L + 7) and (not 7'u32)) div 8, 3'u8)
+  of tyUntyped:
+    # XXX: this is a horrible, horrible workaround for the insanity that is
+    #      getAst
+    # let elem = cl.addUnique(c, VmType(kind: akForeign, size: 8, align: 3))
+    # res = VmType(kind: akSeq, a: elem)
+    discard
+  of tyUncheckedArray:
+    let elem = genType(c, elemType(t), cl)
+    res = VmType(kind: akFlexArray, size: 1, align: cl.types[elem].align, a: elem)
   else:
-    unreachable()
+    unreachable(t.kind)
 
-  if res.existing != nil:
-    result.typ = res.existing
-    result.existed = true
-  elif t.kind == tyObject:
-    assert result.typ != nil
-    result.existed = false
+  if res.kind in {akInt, akFloat, akProc, akPtr, akSet, akFlexArray}:
+    res.flags.incl vtfDataOnly
 
-    # XXX: as of the time of this comment, `result.typ` gets erroneously
-    #      sunken into the `sizeQueue.add` argument when passed directly
-    #      without `temp`, leaving `result.typ` empty. Using a custom copy
-    #      function prevents the move (explicitly using the `=copy` function
-    #      doesn't suffice)
-    func copy(a: PVmType): PVmType {.inline.} = a
-    let temp = copy(result.typ)
+  let before = cl.types.fields.len
+  if start < cl.tmpFields.len:
+    res.a = before.uint32
+    res.b = res.a + uint32(cl.tmpFields.len - start)
+  # tentatively add the new fields to the environment; the hash/compare logic
+  # depends on it
+  cl.types.fields.add cl.tmpFields.toOpenArray(start, cl.tmpFields.high)
+  cl.tmpFields.setLen(start)
 
-    # Queue the object to be generated later. See the comment in the
-    # `tyObject` of-branch above
-    cl.queue.add((temp, t))
-    cl.sizeQueue.add(temp)
-  else:
-    let (id, existed) = c.types.getOrIncl(c.structs, hash(res.typ), res.typ)
+  if res.size == 0:
+    # fill with the static information
+    let (size, align) = c.staticInfo[res.kind]
+    res.size = size
+    res.align = align
 
-    result.typ = c.types[id]
-    result.existed = existed
+  let (id, existed) = cl.types.getOrIncl(c.structs, hash(cl.types, res), res)
+  if existed:
+    # remove the temporary fields again
+    cl.types.fields.setLen(before)
 
-    if not existed:
-      let typ = result.typ
+  result = id
 
-      # if the type has no size set, try to use the static size/alignment for
-      # the type kind (`staticInfo` yields 0 if types of the given kind have
-      # no static size)
-      if typ.sizeInBytes == 0:
-        (typ.sizeInBytes, typ.alignment) = c.staticInfo[typ.kind]
-
-      # tuples and arrays use deferred size computation; seqs use
-      # deferred stride computation
-      if typ.kind in {akObject, akArray, akSeq}:
-        cl.sizeQueue.add(result.typ)
-
-  # add a lookup entry from the `PType` ID to the `VmType`
+  # speed up future calls to genType
   if t.kind != tyProc:
-    c.lut[t.itemId] = result.typ
+    c.cache[t.itemId] = result
 
+proc align(offset: uint32, a: BiggestInt): uint32 =
+  let a = uint32 a
+  (offset + a - 1) and not(a - 1)
 
-func genTuple(c: var TypeInfoCache, t: PType, cl: var GenClosure): GenResult =
+proc addTmpField(c: var TypeTranslationState, offset: var uint32, t: PType, cl: var GenClosure) =
+  offset = align(offset, getAlign(cl.conf, t))
+  let typ = genType(c, t, cl)
+  cl.tmpFields.add Field(off: offset, typ: typ)
+  offset += uint32 getSize(cl.conf, t)
+
+proc genTuple(c: var TypeTranslationState, t: PType, cl: var GenClosure): VmType =
   ## Searches all previously created tuple types for a type equivalent to the
   ## `VmType` `t` maps to. If a matching `VmType` is found, it's id (`PVmType`)
   ## is returned. Otherwise, the new `VmType` is returned.
-  assert t.n == nil or t.n.len == t.sons.len
-  let L = t.sons.len
-  if L == 0:
-    result.existing = c.emptyType
-    return
-  #[
-  # XXX: breaks too much
-  elif L == 1:
-    discard genType(c, t[0], false, cl)
-    # HACK: `genType` doesn't return an id so we have to use this work-around
-    result.existing = c.lut[t[0].skipTypes(skipTypeSet).itemId]
-    return
-  ]#
-
-  let fieldStart = cl.tmpFields.len
-  var
-    isNew = false
-    hcode = Hash(0)
-
+  var offset = 0'u32
+  var flags = {vtfDataOnly} # until proven otherwise
   for i in 0..<t.len:
-    let (typ, e) = genType(c, t[i], cl)
-    isNew = isNew or not e # if the field's type was just created, the tuple
-                           # type also doesn't exist yet
-    cl.tmpFields.add(typ)
-    hcode = hcode !& hash(typ)
+    addTmpField(c, offset, t[i], cl)
+    if vtfDataOnly notin cl.types[cl.tmpFields[^1].typ].flags:
+      flags.excl vtfDataOnly
 
-  if not isNew:
-    # see if a tuple with the same structure already exists
-    let id = c.types.get(c.structs, cl.tmpFields.subView(fieldStart, L),
-                           hcode)
-    if id != 0:
-      result.existing = c.types[id]
+  result = VmType(kind: akRecord, flags: flags, size: offset, align: uint8 getAlign(cl.conf, t))
 
-  # set up the type if it doesn't exist yet
-  if result.existing == nil:
-    result.typ = VmType(kind: akObject)
-    # Copy over the field types
-    result.typ.objFields.setLen(L)
-    for i in 0..<L:
-      result.typ.objFields[i].typ = cl.tmpFields[fieldStart + i]
-
-  cl.tmpFields.setLen(fieldStart)
-
-func findDefaultBranch(n: PNode): int =
-  ## Returns the 1-based index of the default branch. If no 'of'-branch
-  ## contains 0, the else branch (highest index) must cover it
-  for i in 1..<n.len:
-    let b = n[i]
-    for j in 0..<b.len-1: # the last item is the branch's content
-      let v = b[j]
-      let low =
-        if v.kind == nkRange: getOrdValue(v[0])
-        else: getOrdValue(v)
-
-      if low == Zero:
-        return i
-
-    if b.kind == nkElse:
-      return i
-
-  unreachable()
-
-func genRecordNode(c: var TypeInfoCache, dest: var VmType, n: PNode, cl: var GenClosure) =
+proc genRecordNode(c: var TypeTranslationState, base: uint32, n: PNode,
+                   cl: var GenClosure): uint32 =
   ## Recursively walks the given record node, populating `dest` with all
   ## record fields as well as branch walk-list information (if a record-case
   ## is present)
-
   case n.kind
   of nkSym:
-    let (t, _) = genType(c, n.sym.typ, cl)
-    dest.objFields.add((0, t))
-
+    assert n.sym.offset >= 0
+    let typ = genType(c, n.sym.typ, cl)
+    assert cl.types[typ].kind != akVoid, $n.sym.typ.kind
+    cl.tmpFields.add Field(off: n.sym.offset.uint32 - base, typ: typ)
+    result = uint32(n.sym.offset + getSize(cl.conf, n.sym.typ)) - base
   of nkRecList:
     for x in n.items:
-      genRecordNode(c, dest, x, cl)
+      result = genRecordNode(c, base, x, cl)
   of nkRecCase:
-    if dest.branches.len == 0:
-      # Add the super-branch
-      dest.branches.add(BranchListEntry(kind: blekBranch))
-
+    let start = cl.tmpFields.len
     # discriminator
-    block:
-      let dTyp = genDiscriminator(cl.conf, n[0].sym.typ)
-      let (id, _) = c.types.getOrIncl(c.structs, hash(dTyp), dTyp)
-      dest.objFields.add((0, c.types[id]))
+    let base = block:
+      let typ = genType(c, n[0].sym.typ, cl)
+      cl.tmpFields.add Field(off: n[0].sym.offset.uint32 - base, typ: typ)
+      uint32(n[0].sym.offset + getSize(cl.conf, n[0].sym.typ))
 
-    let discIndex = dest.branches.len
-    block:
-      # In order for a zero-initialized object variant to be valid, the
-      # default branch would have to be at index 0. Since that's not
-      # necessarily the case, whenever reading or writing the branch index to
-      # a location, 0 is mapped to the index of the default branch and vice
-      # versa.
-      let defaultBranch = findDefaultBranch(n) - 1
-
-      let entry = BranchListEntry(
-        kind: blekStart,
-        field: FieldIndex(dest.objFields.high),
-        defaultBranch: defaultBranch.uint16,
-        numBranches: uint16(n.len - 1))
-
-      dest.branches.add(entry)
+    # a record-case uses its own RTTI item
+    var selectors: seq[Selector]
+    var size = getSize(cl.conf, n[0].sym.typ)
+    var bodySize = 0'u32
+    # there is a special "field" for tagged unions: the selector start.
+    # Reserve a slot for it
+    cl.tmpFields.setLen(start + 2)
 
     for i in 1..<n.len:
-      let bI = uint32(dest.branches.len)
-      dest.branches.add(BranchListEntry(kind: blekBranch))
+      let selstart = selectors.len
+      for _, it in branchLabels(n[i]):
+        if it.kind == nkRange:
+          selectors.add Selector(isRange: true, branch: uint32(i - 1), val: toUInt64(getInt(it[0])))
+          selectors.add Selector(isRange: true, branch: uint32(i - 1), val: toUInt64(getInt(it[1])))
+        else:
+          selectors.add Selector(isRange: false, branch: uint32(i - 1), val: toUInt64(getInt(it)))
 
-      let first = FieldIndex(dest.objFields.len)
-      let son = lastSon(n[i])
-      genRecordNode(c, dest, son, cl)
-      let last = FieldIndex(dest.objFields.high)
+      let start = cl.tmpFields.len
+      let recsize = genRecordNode(c, base, n[i][^1], cl)
+      # each branch is its own record type
+      let typ = cl.types.types.add cl.popRecord(recsize, start)
+      cl.tmpFields.add Field(off: uint32(selectors.len - selstart), typ: typ)
 
-      # `fieldRange` is allowed to be empty
-      dest.branches[bI].fieldRange = first..last
+      bodySize = max(recsize, bodySize)
 
-    # The `b` value for `fieldRange` is filled later by `finishObjectDesc`
-    let r = FieldIndex(dest.objFields.len)..FieldIndex(0)
-    dest.branches.add(BranchListEntry(kind: blekEnd, fieldRange: r))
-    dest.branches[discIndex].numItems = uint32(dest.branches.len - discIndex)
+    # patch the special fields:
+    cl.tmpFields[start + 1] = Field(off: cl.types.selectors.len.uint32, typ: cl.tmpFields[start].typ)
 
+    cl.types.selectors.add selectors
+    var typ = cl.popRecord(size.uint32 + bodySize, start) # TODO: not correct, given the special field
+    typ.kind = akUnion
+    let id = cl.types.types.add typ
+    cl.tmpFields.add Field(off: n[0].sym.offset.uint32, typ: id)
+    result = n[0].sym.offset.uint32 + bodySize
   else:
     unreachable()
 
-
-func finishObjectDesc(desc: var VmType) =
-  ## For variant objects, adds the end entry and fills in some missing branch
-  ## entry information
-
-  if desc.branches.len > 0:
-    # Set field range for the super-branch and add end entry
-    let fieldsHigh = FieldIndex(desc.objFields.high)
-    desc.branches[0].fieldRange = FieldIndex(0)..fieldsHigh
-
-    func adjustEnds(list: var openArray[BranchListEntry], endItem: int, i: var int) =
-      ## Recursively walks the walk-list, filling in the `fieldRange.b` for
-      ## 'end' entries.
-      assert list[i].kind == blekBranch
-
-      # XXX: Instead of using recursion, a flat loop with a seq as the
-      #      stack could also be used. The downside would be that one or more
-      #      heap allocations are required then
-      let lastField = list[i].fieldRange.b
-
-      inc i
-
-      while i < endItem:
-        case list[i].kind
-        of blekBranch:
-          return
-        of blekStart:
-          let it = list[i]
-          let e = i + int(it.numItems) - 1
-          inc i
-          for _ in 0'u16..<it.numBranches:
-            adjustEnds(list, e, i)
-
-        of blekEnd:
-          list[i].fieldRange.b = lastField
-
-          inc i
-
-    var i = 0
-    adjustEnds(desc.branches, desc.branches.len, i)
-
-    # An variant object always has at least one field (a discriminator) so
-    # `endRange` is always an empty slice
-    let endRange = FieldIndex(desc.objFields.len)..FieldIndex(0)
-    desc.branches.add(BranchListEntry(kind: blekEnd, fieldRange: endRange))
-
-func genObject(c: var TypeInfoCache, dst: var VmType, t: PType, cl: var GenClosure) =
-  ## Populates `dst`'s field list and branch walk-list
-  assert dst.objFields.len == 0 # type must be in an empty state
-  var base: PVmType
+proc genObject(c: var TypeTranslationState, t: PType, cl: var GenClosure): VmType =
+  ##
+  let start = cl.tmpFields.len
 
   if t[0] != nil:
-    let pt = t[0].skipTypes(skipPtrs + abstractInst)
-    assert pt.kind == tyObject
-    base = genType(c, pt, cl).typ
-    dst.objFields.add((0, base))
-    dst.relFieldStart = 1 # the base type might not be fully set-up yet, so
-                          # we defer the `relFieldStart` computation to the
-                          # size pass. `relFieldStart` is set to 1 here in
-                          # order to signal that inheritance is used
-    # XXX: it might be a better idea to merge size/offset computation with
-    #      object type generation and use a DAG to store the dependencies
-    #      between queued types. This would allow for size computation to
-    #      become flat (instead of recursive, as it is now) and also
-    #      make the `relFieldStart` computable during object type creation
+    cl.tmpFields.add Field(off: 0, typ: genType(c, t[0], cl))
+  elif not lacksMTypeField(t):
+    if c.rttiType.isNone:
+      # on-demand creation of the RTTI type. It's just an integer
+      let body = VmType(kind: akInt, flags: {vtfDataOnly}, size: 8, align: 3)
+      c.rttiType = some cl.addUnique(c, body)
 
-  genRecordNode(c, dst, t.n, cl)
+    cl.tmpFields.add Field(off: 0, typ: c.rttiType.unsafeGet)
+  elif t.n.len == 0:
+    return VmType(kind: akInt, flags: {vtfDataOnly}, size: 1)
 
-  finishObjectDesc(dst)
-
-type SizeAlignTuple = tuple[size: uint, align: uint8]
-
-func calcSizeAndAlign(t: var VmType): SizeAlignTuple
-  ## Recursively calculates and fills in the `sizeInBytes` and `alignemnt`
-  ## information for `t`
-
-func getSizeAndAlign(t: var VmType): SizeAlignTuple {.inline.} =
-  ## If `t` already has size information, retrieves it. Calculates and fills in
-  ## the information otherwise
-  if t.sizeInBytes > 0:
-    # likely case
-    (t.sizeInBytes, t.alignment)
-  else:
-    calcSizeAndAlign(t)
-
-func calcFieldOff(fieldSA: SizeAlignTuple, o: var uint, a: var uint8): int {.inline.} =
-  o = paddedSize(o, 1'u shl fieldSA.align)
-  result = o.int
-  o += fieldSA.size
-  a = max(a, fieldSA.align)
-
-func calcForRange(fields: var openArray[(int, PVmType)], offset: uint, align: uint8): SizeAlignTuple =
-  result = (offset, align)
-  for (off, typ) in fields.mitems:
-    let fSa = getSizeAndAlign(typ[])
-    off = calcFieldOff(fSa, result.size, result.align)
-
-template slice[T, ST](x: seq[T], s: Slice[ST]): untyped =
-  let ab = s # don't evaluate `s` multiple times
-  toOpenArray(x, ab.a.int, ab.b.int)
-
-func calcBranch(t: var VmType, i: var int, offset: uint, align: uint8): SizeAlignTuple
-
-func calcCase(t: var VmType, i: var int, offset: uint, align: uint8): SizeAlignTuple =
-  # The discriminator field is already processed by `calcBranch`
-  let numBranches = t.branches[i].numBranches
-
-  inc i # move to first branch
-
-  var start: SizeAlignTuple = (offset, align)
-  for b in 0'u32..<numBranches:
-    # `calcBranch` updates `i`
-    let tmp = calcBranch(t, i, start.size, start.align)
-    result.size = max(result.size, tmp.size)
-    result.align = max(result.align, tmp.align)
-
-  # Don't skip the union's 'end' entry
-  assert t.branches[i].kind == blekEnd
-
-func calcBranch(t: var VmType, i: var int, offset: uint, align: uint8): SizeAlignTuple =
-  result.size = offset
-  result.align = align
-
-  let b = t.branches[i]
-  assert b.kind == blekBranch, $b.kind
-
-  inc i
-
-  var fields = b.fieldRange
-  while fields.a <= fields.b:
-    let next = addr t.branches[i] # the target of `next` is not mutated
-    if next.kind == blekStart:
-      # only process fields up to the sub rec-case
-      fields.b = next.field
-
-    # This includes the discriminator of the next rec-case (if there is one)
-    result = calcForRange(t.objFields.slice(fields), result.size, result.align)
-
-    if next.kind == blekStart:
-      result = calcCase(t, i, result.size, result.align)
-
-      let e = addr t.branches[i]
-      assert e.kind == blekEnd
-      fields = e.fieldRange
-
-      inc i # skip the union's 'end'
-    else:
-      break
-
-
-func calcSizeAndAlign(t: var VmType): SizeAlignTuple =
-  case t.kind:
-  of akObject:
-    if t.branches.len == 0:
-      result = calcForRange(t.objFields, 0, 0)
-    else:
-      var i = 0
-      result = calcBranch(t, i, 0, 0)
-      assert i == t.branches.high
-
-    if result.size == 0:
-      result.size = EmptySize
-
-    if t.relFieldStart > 0:
-      # The base type is stored as the first field and thus has had it's
-      # size and field start already computed by the logic above
-      let base = t.objFields[0].typ
-      t.relFieldStart = base.relFieldStart + uint32(base.objFields.len)
-      if base.relFieldStart > 0:
-        # -1 for the base's base field
-        t.relFieldStart -= 1
-      else:
-        # +1 so that all `relFieldStart` values for objects that have bases
-        # start at 1. See the documentation for `VmType` for the reason
-        # behind this
-        t.relFieldStart += 1
-
-  of akArray:
-    let (s, a) = getSizeAndAlign(t.elementType[])
-
-    let stride = paddedSize(s, 1'u shl a)
-    let sizeInBytes = max(EmptySize.uint, stride * uint(t.elementCount))
-      # To not break too much assumptions, arrays have a byte-size of atleast 1
-
-    t.elementStride = stride.int
-    result = (sizeInBytes, a)
-  else:
-    unreachable()
-
-  t.sizeInBytes = result[0]
-  t.alignment = result[1]
-
-func genAllTypes(c: var TypeInfoCache, cl: var GenClosure) =
-  # generate all queued object types
-  var i = 0
-  while i < cl.queue.len:
-    # new items might be added to the queue while we're iterating
-    let (typ, ptyp) = cl.queue[i]
-    assert typ.kind == akObject
-    genObject(c, typ[], ptyp, cl)
-
-    inc i
-
-  # Calculate the size and alignment for all objects/tuples/arrays
-  for ty in cl.sizeQueue:
-    case ty.kind:
-    of akObject, akArray:
-      discard calcSizeAndAlign(ty[])
-    of akSeq:
-      # seqs are added after their element type, so the element type has it's
-      # size calcualated by now
-      ty.seqElemStride = int paddedSize(ty.seqElemType[])
-    else: unreachable()
+  let size = getSize(cl.conf, t) # make sure offsets are computed
+  discard genRecordNode(c, 0, t.n, cl)
+  result = cl.popRecord(size.uint32, start)
 
 proc getOrCreate*(
-  c: var TypeInfoCache,
+  c: var TypeTranslationState,
+  types: var VmTypeEnv,
   conf: ConfigRef,
   typ: PType,
-  noClosure: bool,
-  cl: var GenClosure): PVmType {.inline.} =
+  noClosure: bool): VmTypeId {.inline.} =
   ## Lookup or create the `VmType` corresponding to `typ`. If a new type is
   ## created, the `PType` -> `PVmType` mapping is cached
-  cl.queue.setLen(0)
-  cl.conf = conf
+  var cl = GenClosure(conf: conf, typesPtr: addr types)
+  result = genType(c, typ, cl, noClosure)
+  assert types[result].size != 0, $typ.kind
+  assert types[result].kind != akVoid
 
-  result = genType(c, typ, cl, noClosure).typ
-  genAllTypes(c, cl)
-
-proc getOrCreate*(c: var TCtx, typ: PType; noClosure = false): PVmType {.inline.} =
-  var cl: GenClosure
-  getOrCreate(c.typeInfoCache, c.config, typ, noClosure, cl)
-
-
-func lookup*(c: TypeInfoCache, conf: ConfigRef, typ: PType): Option[PVmType] =
+func lookup*(c: TypeTranslationState, typ: PType): Option[VmTypeId] =
   ## Searches the cache for a `VmType` matching the given `typ`. If one exists,
   ## it's returned, otherwise, `none` is returned
-  let t = typ.skipTypes(skipTypeSet)
-  result = getAtomicType(c, conf, t)
-  if result.isNone() and t.itemId in c.lut:
-    # XXX: double lookup
-    result = some(c.lut[t.itemId])
+  let id = c.cache.getOrDefault(typ.skipTypes(skipTypeSet).itemId, VoidType)
+  if id == VoidType: none(VmTypeId)
+  else:              some(id)
 
-template hash(x: RoutineSig): untyped =
-  # XXX: the (extremely) simple hash function is not worth the cost of the
-  #      additional calls to `sameType`
-  hash(x.PType.len)
-
-func `==`(x, y: RoutineSig): bool {.inline.} =
-  let xt = x.PType
-  let yt = y.PType
-  if xt.len == yt.len:
-    # we want to ignore calling convention differences for the proc type in
-    # question but not for procedural parameter types. Since `types.sameType`
-    # doesn't support this, we do the iteration ourself
-
-    for i in 0..<xt.len:
-      {.noSideEffect.}:
-        # XXX: `compareTypes` reads from a global variable (`eqTypeFlags`)
-        # that's only written to at compiler start-up, so it's relatively
-        # safe to cast away the side-effects
-
-        # TODO: using `dcEq` here leads to a function pointer with type
-        #       `proc(x: distinct int)` being incompatible with one of
-        #       type `proc(x: int)`. Specification for compatible function
-        #       pointers is missing. Using `dcEqIgnoreDistinct` would break
-        #       functions with `typeDesc` parameters however.
-        if not compareTypes(xt[i], yt[i], dcEq, {IgnoreTupleFields}):
-          return false
-
-    result = true
-
-func makeSignatureId*(c: var TypeInfoCache, typ: PType): RoutineSigId =
-  ## Generates a unique ID for the routine signature `typ`. The exact meaning
-  ## of "unique" here is given by the `== <#==,RoutineSig,RoutineSig>`_
-  ## function. Two types that are equal (using the aforementioned comparison)
-  ## map to the same ID
-  assert typ.kind == tyProc
-
-  let
-    typ = typ.skipTypes(abstractRange)
-    key = RoutineSig(typ)
-
-  result = c.signatures.mgetOrPut(key, c.nextSigId)
-  if result == c.nextSigId:
-    # a table entry was just created:
-    inc int(c.nextSigId)
-
-proc initRootRef*(c: var TypeInfoCache, config: ConfigRef, root: PType) =
+proc initRootRef*(env: var VmTypeEnv, c: var TypeTranslationState,
+                  config: ConfigRef, root: VmTypeId) =
   ## Sets up the ``rootRef`` field for `c`. `root` must be the ``PType`` for
   ## the ``RootObj`` type.
-  var
-    cl = GenClosure()
-    typ = VmType(kind: akRef,
-                 targetType: getOrCreate(c, config, root, false, cl))
-  (typ.sizeInBytes, typ.alignment) = c.staticInfo[akRef]
+  var typ = VmType(kind: akRef, a: root)
+  (typ.size, typ.align) = c.staticInfo[akRef]
 
-  let (id, _) = c.types.getOrIncl(c.structs, hash(typ), typ)
-  c.rootRef = c.types[id]
+  let (id, _) = env.getOrIncl(c.structs, hash(env, typ), typ)
+  c.rootRef = id
+
+proc createProcType*(c: var TypeTranslationState, config: ConfigRef, env: var VmTypeEnv, typ: PType): VmTypeId =
+  ## Creates a proc
+  var cl = GenClosure(typesPtr: addr env, conf: config)
+  let typ = c.genType(typ, cl)
+  let start = env.fields.len
+  env.fields.add Field(typ: typ)
+  var t = VmType(kind: akProc, size: 8, align: 3, a: uint32(start), b: uint32(start + 1))
+  let (id, exists) = env.getOrIncl(c.structs, hash(env, t), t)
+  result = id
+  if exists:
+    env.fields.setLen(start)

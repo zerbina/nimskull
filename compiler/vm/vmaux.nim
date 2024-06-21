@@ -16,7 +16,7 @@ import
   compiler/vm/[
     identpatterns,
     vmdef,
-    vmtypegen
+    vmtypes
   ]
 
 func findRecCaseAux(n: PNode, d: PSym): PNode =
@@ -81,41 +81,17 @@ func getEnvParam*(prc: PSym): PSym =
   else: nil
 
 
-proc initProcEntry*(keys: Patterns, config: ConfigRef,
-                    tc: var TypeInfoCache, prc: PSym): FuncTableEntry =
+proc initProcEntry*(prc: PSym, typ: VmTypeId): ProcEntry =
   ## Returns an initialized function table entry. Execution information (such
   ## as the bytecode offset and register count) for procedures not overriden
   ## by callbacks is initialized to a state that indicates "missing"; it needs
   ## to be filled in separately via `fillProcEntry`.
-  let cbIndex = lookup(keys, prc)
-  result =
-    if cbIndex >= 0:
-      FuncTableEntry(kind: ckCallback, cbOffset: cbIndex)
-    else:
-      FuncTableEntry(kind: ckDefault, start: -1)
+  assert prc != nil
+  result = ProcEntry(kind: ckStub, sym: prc, typ: typ,
+                     isClosure: prc.typ.callConv == ccClosure)
 
-  var cl = GenClosure() # for creating the VM type structures
-
-  result.sym = prc
-  result.sig = tc.makeSignatureId(prc.typ)
-  result.retValDesc =
-    if prc.kind == skMacro:
-      tc.nodeType
-    else:
-      let rTyp = prc.getReturnType()
-      if not isEmptyType(rTyp):
-        tc.getOrCreate(config, rTyp, false, cl)
-      else:
-        noneType
-
-  result.isClosure = prc.typ.callConv == ccClosure
-
-proc initProcEntry*(c: var TCtx, prc: PSym): FuncTableEntry {.inline.} =
-  ## Convenience wrapper around
-  ## `initProcEntry <#initProcEntry,Patterns,ConfigRef,TypeInfoCache,PSym>`_.
-  initProcEntry(c.callbackKeys, c.config, c.typeInfoCache, prc)
-
-func fillProcEntry*(e: var FuncTableEntry, info: CodeInfo) {.inline.} =
+func fillProcEntry*(e: var ProcEntry, info: sink CodeInfo) {.inline.} =
   ## Sets the execution information of the function table entry to `info`
+  e.kind = ckDefault
   e.start = info.start
-  e.regCount = info.regCount.uint16
+  e.locals = info.locals
