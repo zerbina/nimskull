@@ -43,6 +43,7 @@ import
     guards,
     semdata,
     nilcheck,
+    borrowchecks
   ]
 
 from compiler/ast/reports_sem import SemReport,
@@ -1811,16 +1812,15 @@ proc trackProc*(c: PContext; s: PSym, body: PNode) =
 
   var mutationInfo = MutationInfo()
   var hasMutationSideEffect = false
-  if {strictFuncs, views} * c.features != {}:
-    var goals: set[Goal] = {}
-    if strictFuncs in c.features: goals.incl constParameters
-    if views in c.features: goals.incl borrowChecking
+  if strictFuncs in c.features:
+    let goals = {constParameters}
     var partitions = computeGraphPartitions(s, body, g, goals)
     if not t.hasSideEffect and t.hasDangerousAssign:
       t.hasSideEffect = varpartitions.hasSideEffect(partitions, mutationInfo)
       hasMutationSideEffect = t.hasSideEffect
-    if views in c.features:
-      checkBorrowedLocations(partitions, body, g.config)
+
+  if views in c.features:
+    check(g.config, constructCfg(g.config, s, body))
 
   if s.kind != skMacro and sfThread in s.flags and t.gcUnsafe:
     if optThreads in g.config.globalOptions and optThreadAnalysis in g.config.globalOptions:

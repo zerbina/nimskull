@@ -296,7 +296,7 @@ proc isAssignable*(owner: PSym, n: PNode; isUnsafeAddr=false): TAssignableResult
   of nkHiddenDeref:
     let n0 = n[0]
     if n0.typ.kind == tyLent:
-      if isUnsafeAddr or (n0.kind == nkSym and n0.sym.kind == skResult):
+      if isUnsafeAddr or (n0.kind == nkSym and n0.sym.kind in {skResult, skVar}):
         result = arLValue
       else:
         result = arLentValue

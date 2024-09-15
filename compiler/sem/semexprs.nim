@@ -2139,26 +2139,15 @@ proc asgnToResultVar(c: PContext, n: PNode): PNode {.inline.} =
     le = n[0]
     ri = n[1]
 
-  case le.kind
-  of nkHiddenDeref:
-    let x = le[0]
-    case x.kind
-    of nkSym:
-      case x.sym.kind
-      of skResult:
-        if classifyViewType(x.typ) != noView:
-          let r = takeImplicitAddr(c, x.typ, ri)
-          result[0] = x # 'result[]' --> 'result'
-          result[1] = r
-
-          if r.kind == nkError:
-            result = c.config.wrapError(result)
-      else:
-        discard
-    else:
-      discard
-  else:
-    discard
+  if le.kind == nkHiddenDeref and le[0].kind == nkSym and le[0].sym.kind == skResult:
+    # a var/lent assignment
+    result[0] = le[0]
+    # don't add an implicit address for composite views...
+    if le.typ.skipTypes(abstractInst).kind == tyOpenArray or
+       classifyViewType(le.typ) == noView:
+      result[1] = takeImplicitAddr(c, le[0].typ, ri)
+    if result[1].kind == nkError:
+      result = c.config.wrapError(result)
 
 proc goodLineInfo(arg: PNode): TLineInfo =
   if arg.kind == nkStmtListExpr and arg.len > 0:
@@ -2197,6 +2186,38 @@ proc inferResultType(c: PContext, formal: PType, res: PSym, n: PNode): PNode =
   c.p.owner.typ[0] = result.typ
   if res != nil:
     res.typ = result.typ
+
+proc checkViewAssignment(c: PContext, n: var PNode, hasError: var bool) =
+  case n.kind
+  of nkObjConstr:
+    for i in 1..<n.len:
+      checkViewAssignment(c, n[i][0].sym.typ, n[i][1], hasError)
+  of nkTupleConstr:
+    for i in 0..<n.len:
+      checkViewAssignment(c, n.typ[0], n[i], hasError)
+  of nkBracket:
+    for i in 0..<n.len:
+      # the element *must* be a view, otherwise we wouldn't have entered here
+      checkViewAssignment(c, n[i], hasError)
+  else:
+    n = c.config.newError(n, PAstDiag(kind: adSemMustBeConstructor))
+    hasError = true
+
+proc checkViewAssignment(c: PContext, typ: PType, n: var PNode, hasError: var bool) =
+  if directViewType(typ) != noView:
+    # toOpenArray, implicit openarray constructors, and nkHiddenAddr all
+    # create direct views
+    if n.kind == nkHiddenStdConv and n.typ.skipTypes(abstractInst).kind == tyOpenArray:
+      if not canBorrow(n[1]):
+        n = c.config.newError(n, PAstDiag(kind: adSemCannotBorrow))
+        hasError = true
+    elif n.kind != nkHiddenAddr and
+        (n.kind notin nkCallKinds or n[0].kind != nkSym or n[0].sym.magic != mSlice):
+      # TODO: use a more fitting better diagnostic
+      n = c.config.newError(n, PAstDiag(kind: adSemCannotBorrow))
+      hasError = true
+  elif classifyViewType(typ) != noView:
+    checkViewAssignment(c, n, hasError)
 
 proc semAsgn(c: PContext, n: PNode; mode=asgnNormal): PNode =
   checkSonsLen(n, 2, c.config)
@@ -2250,6 +2271,10 @@ proc semAsgn(c: PContext, n: PNode; mode=asgnNormal): PNode =
     # call
     return
 
+  # HACK: workaround the dot-transformation path not inserting the deref
+  if a.typ.kind in {tyVar, tyLent}:
+    a = newDeref(a)
+
   var hasError = false
 
   result = shallowCopy(n)
@@ -2298,6 +2323,17 @@ proc semAsgn(c: PContext, n: PNode; mode=asgnNormal): PNode =
     result = c.config.wrapError(result)
   else:
     result = asgnToResultVar(c, result)
+
+  if result.kind != nkError and views in c.config.features and classifyViewType(result[0].typ) != noView:
+    if result[0].kind != nkSym or sfGlobal in result[0].sym.flags:
+      result[0] = c.config.newError(result[0], PAstDiag(kind: adSemCannotAssignTo,
+                                                wrongType: a.typ))
+      hasError = true
+
+    checkViewAssignment(c, result[1], hasError)
+
+    if hasError:
+      result = c.config.wrapError(result)
 
 proc semReturn(c: PContext, n: PNode): PNode =
   addInNimDebugUtils(c.config, "semReturn", n, result)

@@ -73,6 +73,7 @@ import
     parampatterns,
     evaltempl,
     lowerings,
+    borrowchecks
   ],
   compiler/backend/[
     cgmeth
@@ -143,6 +144,7 @@ proc semAnnotation(c: PContext, pragmas: ptr PNode, n: PNode,
 proc computeRequiresInit(c: PContext, t: PType): bool
 proc defaultConstructionError(c: PContext, t: PType, n: PNode): PNode
 proc hasUnresolvedArgs(c: PContext, n: PNode): bool
+proc checkViewAssignment(c: PContext, typ: PType, n: var PNode, hasError: var bool)
 
 proc wrapErrorAndUpdate(c: ConfigRef, n: PNode, s: PSym): PNode =
   ## Wraps the erroneous AST `n` in an error node, sets it as the AST of `s`,
@@ -276,13 +278,22 @@ proc fitNode(c: PContext, formal: PType, arg: PNode; info: TLineInfo): PNode =
 
 proc fitNodeConsiderViewType(c: PContext, formal: PType, arg: PNode; info: TLineInfo): PNode =
   let a = fitNode(c, formal, arg, info)
-  if formal.kind in {tyVar, tyLent}:
-    #classifyViewType(formal) != noView:
-    result = newNodeIT(nkHiddenAddr, a.info, formal)
-    result.add a
-
-    if a.kind == nkError:
-      result = c.config.wrapError(result)
+  if a.kind == nkError:
+    result = a
+  elif formal.kind == tyVar:
+    if canBorrow(a) and isAssignable(getCurrOwner(c), a) in {arLValue, arLocalLValue}:
+      result = newNodeIT(nkHiddenAddr, a.info, formal)
+      result.add a
+    elif not canBorrow(a):
+      result = c.config.newError(a, PAstDiag(kind: adSemCannotBorrow))
+    else:
+      result = c.config.newError(a, PAstDiag(kind: adSemCannotBorrowImmutable))
+  elif formal.kind == tyLent:
+    if canBorrow(a) and isAssignable(getCurrOwner(c), a, true) in {arLValue, arLocalLValue}:
+      result = newNodeIT(nkHiddenAddr, a.info, formal)
+      result.add a
+    else:
+      result = c.config.newError(a, PAstDiag(kind: adSemCannotBorrow))
   else:
    result = a
 

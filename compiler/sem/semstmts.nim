@@ -695,6 +695,10 @@ proc semNormalizedLetOrVar(c: PContext, n: PNode, symkind: TSymKind): PNode =
       typ = def.typ
     else:
       def = fitNodeConsiderViewType(c, givenTyp, initExpr, initExpr.info)
+      if def.kind != nkError and givenTyp.kind == tyLent and n.kind == nkVarSection:
+        # the previous check was too lenient
+        if isAssignable(getCurrOwner(c), def[0]) notin {arLValue, arLocalLValue}:
+          def = c.config.newError(def[0], PAstDiag(kind: adSemCannotBorrowImmutable))
       typ = givenTyp
   
   elif haveGivenTyp and not haveInit: # eg: var foo: int
@@ -747,6 +751,12 @@ proc semNormalizedLetOrVar(c: PContext, n: PNode, symkind: TSymKind): PNode =
     typFlags.incl taConcept
 
   typ = typeAllowedOrError(typ, symkind, c, def, typFlags)
+
+  if typ.kind != tyError:
+    var hasError = false
+    checkViewAssignment(c, typ, def, hasError)
+    if hasError and def.kind != nkError:
+      def = c.config.wrapError(def)
 
   # always construct a `producedDecl`, even on error, as we still need to
   # include all the preceding child nodes from `defPart`, without potentially

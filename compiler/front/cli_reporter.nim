@@ -560,6 +560,23 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
         "' and attempts to mutate it"
       )
 
+    of rsemIllegalBorrow:
+      result.add "illegal borrow\n"
+      if r.isProblemMutation:
+        result.add "$1 because '$2' is potentially mutated here\n" % [conf.toStr(r.problem), $r.ast]
+      else:
+        result.add "$1 becuase '$2' is potentially used here\n" % [conf.toStr(r.problem), $r.ast]
+
+      result.add "$1 before the borrower is potentially used here" % [conf.toStr(r.usage)]
+    of rsemIllegalParamterBorrow:
+      result.add "cannot pass borrow of global to side-effectful routine"
+    of rsemCannotBorrowImmutable:
+      result.add "cannot create mutable view from immutable path '$1'" % [$r.ast]
+    of rsemCannotBorrow2:
+      result.add "cannot borrow from expression: " & $r.ast
+    of rsemMustBeConstructor:
+      result.add "RHS of compound view assignment must be constructor expression"
+
     of rsemPragmaRecursiveDependency:
       result.add "recursive dependency: "
       result.add r.sym.name.s
@@ -3268,7 +3285,10 @@ func astDiagToLegacyReport(conf: ConfigRef, diag: PAstDiag): Report {.inline.} =
       adSemContinueCannotHaveLabel,
       adSemUnavailableLocation,
       adSemExternalLocalNotAllowed,
-      adSemForExpectedIterator:
+      adSemForExpectedIterator,
+      adSemCannotBorrowImmutable,
+      adSemCannotBorrow,
+      adSemMustBeConstructor:
     semRep = SemReport(
         location: some diag.location,
         reportInst: diag.instLoc.toReportLineInfo,

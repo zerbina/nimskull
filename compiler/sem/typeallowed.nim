@@ -59,26 +59,46 @@ proc typeAllowedAux(marker: var IntSet, typ: PType, kind: TSymKind,
   var t = skipTypes(typ, abstractInst-{tyTypeDesc, tySink})
   case t.kind
   of tyVar, tyLent:
+    if taHeap in flags:
+      return t # views cannot be on the heap
+
     if kind in {skProc, skFunc, skConst} and (views notin c.features):
       result = t
     elif taIsOpenArray in flags:
       result = t
     elif t.kind == tyLent and ((kind != skResult and views notin c.features) or
-                              kind == skParam): # lent can't be used as parameters.
+                              (kind notin {skResult, skVar, skLet, skForVar, skField} and
+                               taField notin flags)):
       result = t
     else:
+      # the var in ``var view`` means that the view can be used for mutation,
+      # not that the view can be changed
       var t2 = skipTypes(t[0], abstractInst-{tyTypeDesc, tySink})
       case t2.kind
       of tyVar, tyLent:
-        if taHeap notin flags: result = t2 # ``var var`` is illegal on the heap
+        # repeated var/lent modifiers are illegal
+        result = t2
       of tyOpenArray:
-        if (kind != skParam and views notin c.features) or taIsOpenArray in flags: result = t
+        if t.kind == tyLent:
+          result = t2 # lent openArray is illegal
+        elif (kind == skResult and views notin c.features) or
+             (kind != skParam and taField notin flags) or
+             taIsOpenArray in flags:
+          result = t
         else: result = typeAllowedAux(marker, t2[0], kind, c, flags+{taIsOpenArray})
       of tyUncheckedArray:
-        if kind != skParam and views notin c.features: result = t
+        if t.kind == tyLent:
+          result = t2 # lent UncheckedArray is illegal
+        elif kind != skParam: result = t
         else: result = typeAllowedAux(marker, t2[0], kind, c, flags)
       of tySink:
         result = t
+      elif classifyViewType(t2) != noView:
+        if t.kind == tyLent and kind != skField and taField notin flags:
+          result = t2
+        elif kind notin {skParam, skField}:
+          result = t2
+        else: result = typeAllowedAux(marker, t2, kind, c, flags)
       else:
         if kind notin {skParam, skResult} and views notin c.features: result = t
         else: result = typeAllowedAux(marker, t2, kind, c, flags)
@@ -92,9 +112,9 @@ proc typeAllowedAux(marker: var IntSet, typ: PType, kind: TSymKind,
       let f = if kind in {skProc, skFunc}: flags+{taNoUntyped} else: flags
       for i in 1..<t.len:
         if result != nil: break
-        result = typeAllowedAux(marker, t[i], skParam, c, f-{taIsOpenArray})
+        result = typeAllowedAux(marker, t[i], skParam, c, f-{taIsOpenArray, taHeap})
       if result.isNil and t[0] != nil:
-        result = typeAllowedAux(marker, t[0], skResult, c, flags)
+        result = typeAllowedAux(marker, t[0], skResult, c, flags-{taIsOpenArray, taHeap})
   of tyTypeDesc:
     if kind in {skVar, skLet, skConst} and taProcContextIsNotMacro in flags:
       result = t
@@ -132,6 +152,8 @@ proc typeAllowedAux(marker: var IntSet, typ: PType, kind: TSymKind,
     # you cannot nest openArrays/sinks/etc.
     if (kind != skParam or taIsOpenArray in flags) and views notin c.features:
       result = t
+    elif taHeap in flags:
+      result = t # views cannot be on the heap
     else:
       result = typeAllowedAux(marker, t[0], kind, c, flags+{taIsOpenArray})
   of tyVarargs:

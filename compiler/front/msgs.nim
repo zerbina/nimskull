@@ -600,6 +600,9 @@ func astDiagToLegacyReportKind*(
   of adSemDeprecatedCompilerOpt: rsemDeprecatedCompilerOpt
   of adSemCompilerOptionArgInvalid: rsemCompilerOptionArgInvalid
   of adSemDeprecatedCompilerOptArg: rsemDeprecatedCompilerOptArg
+  of adSemCannotBorrowImmutable: rsemCannotBorrowImmutable
+  of adSemCannotBorrow: rsemCannotBorrow2
+  of adSemMustBeConstructor: rsemMustBeConstructor
 
 func astDiagToLegacyReportKind*(diag: PAstDiag): ReportKind {.inline.} =
   case diag.kind

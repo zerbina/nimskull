@@ -202,6 +202,11 @@ type
       of rsemDiagnostics:
         diag*: SemDiagnostics
 
+      of rsemIllegalBorrow:
+        borrow*: PNode
+        isProblemMutation*: bool
+        problem*, usage*: TLineInfo
+
       else:
         discard
 

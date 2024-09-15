@@ -622,6 +622,11 @@ type
     rsemCannotBorrow
     rsemBorrowOutlivesSource
     rsemImmutableBorrowMutation
+    rsemIllegalBorrow
+    rsemIllegalParamterBorrow
+    rsemCannotBorrowImmutable
+    rsemCannotBorrow2
+    rsemMustBeConstructor
 
     rsemCyclicTree
     rsemCyclicDependency

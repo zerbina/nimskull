@@ -1239,6 +1239,9 @@ type
     adSemCannotMixTypesAndValuesInTuple
     adSemNoReturnTypeDeclared
     adSemReturnNotAllowed
+    adSemCannotBorrowImmutable
+    adSemCannotBorrow
+    adSemMustBeConstructor
     # semmagics
     adSemExprHasNoAddress
     adSemExpectedOrdinal
@@ -1389,7 +1392,10 @@ type
         adSemContinueCannotHaveLabel,
         adSemUnavailableLocation,
         adSemForExpectedIterator,
-        adSemExternalLocalNotAllowed:
+        adSemExternalLocalNotAllowed,
+        adSemCannotBorrow,
+        adSemCannotBorrowImmutable,
+        adSemMustBeConstructor:
       discard
     of adSemExpectedIdentifierInExpr:
       notIdent*: PNode
