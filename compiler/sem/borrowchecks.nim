@@ -687,7 +687,10 @@ proc constructCfg*(config: ConfigRef, s: PSym; body: PNode): ControlFlowGraph =
     popScope(c, 0)
     genImplicitReturn(c)
 
-  echoCfg(c.code)
+  if irDfa in config.toDebugIr or config.isDebugEnabled(irDfa, s.name.s):
+    config.writeln("-- DFA: " & s.name.s)
+    config.writeln(codeListing(c.code, 0, -1).alignTable)
+
   result = c.code
 
 iterator traverse[T](c: ControlFlowGraph, start: int, exit: var bool, state: var T): (int, Instr) =

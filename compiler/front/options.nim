@@ -194,6 +194,7 @@ type
     irMirIn  = "mir_in"
     irMirOut = "mir_out"
     irCgir   = "cgir"
+    irDfa    = "dfa"
     irVm     = "vm"
 
   ReportHook* = proc(conf: ConfigRef, report: Report): TErrorHandling {.closure.}
