@@ -2330,7 +2330,7 @@ proc semAsgn(c: PContext, n: PNode; mode=asgnNormal): PNode =
                                                 wrongType: a.typ))
       hasError = true
 
-    checkViewAssignment(c, result[1], hasError)
+    checkViewAssignment(c, result[0].typ, result[1], hasError)
 
     if hasError:
       result = c.config.wrapError(result)
