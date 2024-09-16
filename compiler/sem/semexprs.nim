@@ -2437,6 +2437,9 @@ proc semYieldVarResult(c: PContext, n: PNode, restype: PType): PNode =
   addInNimDebugUtils(c.config, "semYieldVarResult", n, result)
   result = n # n is a production already
 
+  # TODO: remove all this special handling. The analysis should be no
+  #       different than a ``x: view = y`` assignment
+
   let t = skipTypes(restype, {tyGenericInst, tyAlias, tySink})
   var hasError = false
 

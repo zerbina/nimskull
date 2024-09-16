@@ -202,7 +202,7 @@ type
       of rsemDiagnostics:
         diag*: SemDiagnostics
 
-      of rsemIllegalBorrow:
+      of rsemIllegalBorrow, rsemOverlappingParamBorrows:
         borrow*: PNode
         isProblemMutation*: bool
         problem*, usage*: TLineInfo

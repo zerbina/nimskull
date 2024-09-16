@@ -5,10 +5,14 @@ import
   compiler/ast/[
     ast,
     renderer,
-    types
+    types,
+    lineinfos
   ],
   compiler/front/[
     options, msgs
+  ],
+  compiler/sem/[
+    aliases
   ]
 
 from compiler/ast/reports_sem import SemReport
@@ -21,14 +25,14 @@ import std/private/asciitables
 type
   InstrKind* = enum
     goto, loop, fork
-    def, use, mut, kill, borrow
+    def, use, mut, kill, borrow, mborrow
     call
   Instr* = object
     n*: PNode ## contains the def/use/mut
     case kind: InstrKind
     of goto, loop, fork:
       dest*: int
-    of borrow:
+    of borrow, mborrow:
       borrower: PNode
     else:
       discard
@@ -71,7 +75,7 @@ proc codeListing(c: ControlFlowGraph, start = 0; last = -1): string =
     result.add ($i & " " & $c[i].kind)
     result.add "\t"
     case c[i].kind
-    of def, use, mut, kill, borrow, call:
+    of def, use, mut, kill, borrow, mborrow, call:
       result.add renderTree(c[i].n)
     of goto, fork, loop:
       result.add "L"
@@ -262,8 +266,12 @@ proc genCase(c: var Con; n: PNode) =
         endings.add c.gotoI(it.lastSon)
 
 proc genBlock(c: var Con; n: PNode) =
-  withBlock(n[0].sym):
-    c.gen(n[1])
+  if n[0].kind != nkEmpty:
+    withBlock(n[0].sym):
+      c.gen(n[1])
+  else:
+    withBlock nil:
+      c.gen(n[1])
 
 proc genBreakOrRaiseAux(c: var Con, i: int, n: PNode) =
   for v in c.blocks[i].vars ..< c.vars.len:
@@ -365,10 +373,60 @@ proc skipConvDfa*(n: PNode): PNode =
       result = result[1]
     else: break
 
-type AliasKind* = enum
+type AliasKind = enum
   yes, no, maybe
 
-proc aliases*(obj, field: PNode): AliasKind =
+proc root(n: PNode): PNode
+
+template isRef(t: PType): bool =
+  t.skipTypes({tyGenericInst, tyAlias, tySink}).kind == tyRef
+
+proc aliases(path: PNode, typ: PType): bool =
+  ## Computes whether the location named by `path` can be mutated through a
+  ## pointer of type `typ`.
+  assert typ.kind in {tyPtr, tyRef}
+  # things to consider:
+  # * a ref always points to the heap
+  # * a ref always points to a complete location (unless not final :( )
+  # * a ptr can point anywhere
+  let root = root(path)
+  # XXX: root skips view derefs, which could result in unwanted behaviour
+  # XXX: this won't work... at least not in the way ``aliases`` is used right
+  #      now
+  case root.kind
+  of nkSym:
+    # some non-heap location
+    if typ.kind == tyRef:
+      result = false # a guaranteed no
+    elif root.sym.kind in {skLet, skForVar}:
+      # immutable aliasing is irrelevant
+      result = false
+    else:
+      let p = if root.typ.kind in {tyVar, tyLent}: root.typ.base
+              else: root.typ
+
+      result = typ.base.isPartOf(p) != arNo or
+               p.isPartOf(typ.base) != arNo
+      # XXX: the above doesn't take ``a.b.c``, where `typ` is a pointer to
+      #      `a.b`, into account
+  of nkDerefExpr:
+    if isRef(root[0].typ):
+      if sameType(root[0].typ, typ):
+        # XXX: why sameType? What about distinct types?
+        result = true
+      elif typ.kind == tyPtr:
+        result = sameType(root[0].typ.base, typ.base)
+    elif typ.kind == tyPtr:
+      # given ``p[].x`` and ``T``
+      result = path.typ.isPartOf(typ.base) != arNo or
+               root.typ.isPartOf(typ.base) != arNo
+    else:
+      # a ``ref A`` can only alias some locations in a ``ptr B`` if A == B
+      result = sameType(root[0].typ.base, typ.base)
+  else:
+    doAssert false
+
+proc aliases(obj, field: PNode): AliasKind =
   ##[
 
 ============ =========== ====
@@ -392,7 +450,7 @@ obj          field       alias kind
 
   ]##
 
-  template collectImportantNodes(result, n) =
+  template collectImportantNodes(result, n, root) =
     var result: seq[PNode]
     var n = n
     while true:
@@ -404,12 +462,38 @@ obj          field       alias kind
       of nkDotExpr, nkBracketExpr:
         result.add n
         n = n[0]
-      of nkSym:
-        result.add n; break
-      else: return no
+      of nkSym, nkDerefExpr:
+        root = n; break
+      else:
+        doAssert false
 
-  collectImportantNodes(objImportantNodes, obj)
-  collectImportantNodes(fieldImportantNodes, field)
+  var rootA, rootB: PNode
+  collectImportantNodes(objImportantNodes, obj, rootA)
+  collectImportantNodes(fieldImportantNodes, field, rootB)
+
+  if rootA.kind == rootB.kind:
+    case rootA.kind
+    of nkSym:
+      if rootA.sym.id == rootB.sym.id:
+        result = yes
+      else:
+        # the paths cannot alias
+        return no
+    of nkDerefExpr:
+      discard "XXX: missing"
+    else:
+      discard "XXX: missing"
+  elif rootA.kind == nkDerefExpr:
+    # XXX: incomplete
+    if rootA[0].typ.skipTypes({tyGenericInst, tyAlias, tySink}).kind == tyPtr:
+      if isPartOf(rootA[0].typ.skipTypes(abstractInst), field.typ) != TAnalysisResult.arNo:
+        return maybe # could alias
+    else:
+      # refs cannot point to locals
+      return no
+
+  # FIXME: a.x and a[0] aren't considered to alias, due to the nkBracketExpr
+  #        vs. nkDotExpr usage...
 
   # If field is less nested than obj, then it cannot be part of/aliased by obj
   if fieldImportantNodes.len < objImportantNodes.len: return no
@@ -430,8 +514,6 @@ obj          field       alias kind
       return no
 
     case currFieldPath.kind
-    of nkSym:
-      if currFieldPath.sym != currObjPath.sym: return no
     of nkDotExpr:
       if currFieldPath[1].sym != currObjPath[1].sym: return no
     of nkBracketExpr:
@@ -455,18 +537,20 @@ proc skipTrivials(n: PNode): PNode =
 proc isInteresting(c: Con, s: PSym): bool =
   s.kind in InterestingSyms
 
+proc isInteresting(n: PNode): bool =
+  (n.kind == nkSym and n.sym.kind in InterestingSyms) or
+  n.kind in {nkDerefExpr, nkHiddenDeref}
+
 proc genUse(c: var Con; orig: PNode) =
   let n = skipTrivials(orig)
 
-  if (n.kind == nkSym and c.isInteresting(n.sym)) or
-     n.kind in {nkDerefExpr, nkHiddenDeref}:
+  if isInteresting(n):
     c.code.add Instr(n: orig, kind: use)
 
 proc genMut(c: var Con; orig: PNode) =
   let n = skipTrivials(orig)
 
-  if (n.kind == nkSym and c.isInteresting(n.sym)) or
-     n.kind in {nkDerefExpr, nkHiddenDeref}:
+  if isInteresting(n):
     c.code.add Instr(n: orig, kind: mut)
 
 proc genDef(c: var Con; orig: PNode) =
@@ -477,7 +561,7 @@ proc genDef(c: var Con; orig: PNode) =
     return
 
   n = skipTrivials(n)
-  if n.kind in {nkSym, nkDerefExpr, nkHiddenDeref}:
+  if isInteresting(n):
     # an assignment to a sub-location, e.g., ``a.b = c``
     c.code.add Instr(n: orig, kind: mut)
 
@@ -507,28 +591,31 @@ proc genCall(c: var Con; n: PNode) =
   for i in 1..<n.len:
     withContext n:
       gen(c, n[i])
-    if n[i].kind != nkHiddenAddr and not isLentParameter(c.config, t.n[i].sym, t[0]):
-      # used right away
-      genUse(c, n[i])
+    if n[i].kind != nkHiddenAddr:
+      # note: t.n.len can be < n.len when there are unsafe varargs
+      if i < t.n.len and isLentParameter(c.config, t.n[i].sym, t[0]):
+        if isInteresting(skipTrivials(n[i])):
+          # if the expression is an lvalue, a borrow takes place
+          c.code.add Instr(n: n[i], kind: borrow, borrower: n)
+      else:
+        # used right away
+        genUse(c, n[i])
 
     when false:
       if t != nil and i < t.len and t[i].kind == tyOut:
         # Pass by 'out' is a 'must def'. Good enough for a move optimizer.
         genDef(c, n[i])
 
-  # values passed by reference are also used within the procedure
-  for i in 1..<n.len:
-    if n[i].kind != nkHiddenAddr and isLentParameter(c.config, t.n[i].sym, t[0]):
-      genUse(c, n[i])
-
   c.code.add Instr(n: n, kind: call)
-  # sequence the mutations after the call instruction, so that they don't
-  # conflict with the parameter borrows
+  # sequence the relevant mutations/usages after the call instruction, so that
+  # they don't conflict with the parameter borrows
 
-  # var parameter mutations happen *within* the called procedure
+  # usage/mutation of borrowed parameters happens *within* the called procedure
   for i in 1..<n.len:
     if n[i].kind == nkHiddenAddr:
       genMut(c, n[i][0])
+    elif i < t.n.len and isLentParameter(c.config, t.n[i].sym, t):
+      genUse(c, n[i])
 
   # every call can potentially raise:
   if c.inTryStmt > 0 and canRaiseConservative(n[0]):
@@ -552,7 +639,10 @@ proc genMagic(c: var Con; n: PNode; m: TMagic) =
     genUse(c, n[2])
     gen(c, n[3])
     genUse(c, n[3])
-    c.code.add Instr(n: n[1], kind: borrow, borrower: c.borrowCtx)
+    if directViewType(n.typ) == immutableView:
+      c.code.add Instr(n: n[1], kind: borrow, borrower: c.borrowCtx)
+    else:
+      c.code.add Instr(n: n[1], kind: mborrow, borrower: c.borrowCtx)
   else:
     genCall(c, n)
 
@@ -628,7 +718,11 @@ proc gen(c: var Con; n: PNode) =
         n[0]
 
     gen(c, x)
-    c.code.add Instr(n: x, kind: borrow, borrower: c.borrowCtx)
+    if c.borrowCtx.kind in nkCallKinds or n.typ.kind == tyVar:
+      c.code.add Instr(n: x, kind: mborrow, borrower: c.borrowCtx)
+    else:
+      # XXX: this is wrong! lent doesn't imply immutable borrow
+      c.code.add Instr(n: x, kind: borrow, borrower: c.borrowCtx)
   of nkBracketExpr:
     gen(c, n[0])
     genUse(c, n[1]) # the index operand is used
@@ -646,8 +740,15 @@ proc gen(c: var Con; n: PNode) =
   of nkForStmt:
     genFor(c, n)
   of nkStmtList, nkStmtListExpr, nkChckRangeF, nkChckRange64, nkChckRange,
-     nkBracket, nkCurly, nkPar, nkTupleConstr, nkClosure, nkObjConstr, nkYieldStmt:
+     nkBracket, nkCurly, nkPar, nkTupleConstr, nkClosure, nkRange:
     for x in n: gen(c, x)
+  of nkYieldStmt:
+    withContext n:
+      gen(c, n[0])
+    # TODO: yield probably needs its own DFA instruction
+  of nkObjConstr:
+    for i in 1..<n.len:
+      gen(c, n[i])
   of nkPragmaBlock: gen(c, n.lastSon)
   of nkDiscardStmt, nkStringToCString, nkCStringToString:
     gen(c, n[0])
@@ -675,8 +776,17 @@ proc gen(c: var Con; n: PNode) =
   of nkEmpty:
     # TODO: shouldn't be possible
     discard
-  of nkConstSection, nkBindStmt, nkMixinStmt, nkImportStmt, callableDefs, nkTypeSection, nkCommentStmt, nkPragma:
+  of nkContinueStmt:
+    # TODO: needs to be implemented. Counts as a goto jumping to the loop
+    #       instruction
+    discard
+  of nkConstSection, nkBindStmt, nkMixinStmt, nkImportStmt, callableDefs,
+     nkTypeSection, nkCommentStmt, nkPragma, nkNimNodeLit, nkType:
     discard "ignore"
+  of nkAsmStmt:
+    discard "ignore"
+    # XXX: really? what about interpolated expressions? They're potentially
+    #      mutated too. The same goes for ``.emit``...
   else: c.config.internalError(n.info, $n.kind)
 
 proc constructCfg*(config: ConfigRef, s: PSym; body: PNode): ControlFlowGraph =
@@ -728,7 +838,7 @@ iterator traverse[T](c: ControlFlowGraph, start: int, exit: var bool, state: var
     of fork:
       addNext(c[i].dest)
       inc i
-    of def, use, mut, kill, borrow, call:
+    of def, use, mut, kill, borrow, mborrow, call:
       yield (i, c[i])
       if exit:
         resume()
@@ -789,17 +899,82 @@ proc root(n: PNode): PNode =
   of nkSym, nkDerefExpr:
     result = n
   of PathKinds0 - {nkDerefExpr}:
+    # XXX: it's not yet clear what the consequences of skipping view
+    #      dereferences here are
     result = n[0].root
   of PathKinds1:
     result = n[1].root
   of nkCallKinds:
     result = n[1].root
+  of nkStmtListExpr:
+    result = n[^1].root
   else:
     doAssert false
 
 proc overlaps(a, b: PNode): bool =
   # TODO: use proper path aliasing analysis
   aliases(a, b) != no
+
+proc maybeIndirect(path: PNode, t: PType, marker: var IntSet): seq[PNode] =
+  ## Searches for the first ``ptr T`` or ``ref T`` through which `path` could
+  ## be mutated and returns the accessor path for it. If no such path exists,
+  ## an empty seq is returned.
+  if marker.containsOrIncl(t.id):
+    return
+
+  template recurse(t: PType, body: untyped) {.dirty.} =
+    result = maybeIndirect(path, t, marker)
+    if result.len > 0:
+      body
+      return
+
+  case t.kind
+  of tyDistinct, tyAlias, tyGenericInst, tyInferred, tyVar, tyLent:
+    result = maybeIndirect(path, t[^1], marker)
+  of tyArray, tySequence, tyOpenArray:
+    recurse(elemType(t)):
+      result.add newTreeI(nkBracketExpr, unknownLineInfo, nil, newIntNode(nkIntLit, 0))
+  of tyTuple:
+    for i in 0..<t.len:
+      recurse(t[i]):
+        result.add newTreeI(nkBracketExpr, unknownLineInfo, nil, newIntNode(nkIntLit, i))
+
+  of tyRef, tyPtr:
+    if aliases(path, t):
+      result = @[newTreeI(nkDerefExpr, unknownLineInfo, nil)]
+    else:
+      recurse(t[^1]):
+        result.add newTreeI(nkDerefExpr, unknownLineInfo, nil)
+  of tyObject:
+    if t[0] != nil:
+      recurse(t[0].skipTypes(skipPtrs)):
+        discard
+
+    proc aux(path, n: PNode, marker: var IntSet): seq[PNode] =
+      template recurse(n: PNode) =
+        result = aux(path, n, marker)
+        if result.len > 0:
+          return
+
+      case n.kind
+      of nkSym:
+        recurse(n.sym.typ):
+          result.add newTreeI(nkDotExpr, unknownLineInfo, nil, n)
+      of nkRecList:
+        for it in n.items:
+          recurse(it)
+      of nkRecCase:
+        recurse(n[0])
+        for it in n.items:
+          recurse(it.lastSon)
+      else:
+        doAssert false
+
+    result = aux(path, t.n, marker)
+  of tyProc, tyPointer, IntegralTypes:
+    discard "not relevant"
+  else:
+    discard
 
 proc report(config: ConfigRef, borrow, use: PNode, problem: Instr) =
   # TODO: report a better error for kills (i.e., the borrower outliving the borrowee)
@@ -851,10 +1026,14 @@ proc verifyLocalBorrow(config: ConfigRef, c: ControlFlowGraph, start: int) =
         # mutation of the borrower
         report(config, path, instr.n, c[problem])
         break
-    of borrow:
-      if overlaps(path, instr.n):
+    of borrow, mborrow:
+      if instr.borrower.kind in nkCallKinds:
+        # the borrow itself is not relevant; there's a mut/use instruction
+        # following
+        discard
+      elif overlaps(path, instr.n):
         if instr.borrower.kind == nkSym:
-          if isMutable or instr.borrower.sym.kind == skVar:
+          if isMutable or instr.kind == mborrow:
             problem = i
         else:
           # a mutable borrow for a var parameter
@@ -874,8 +1053,15 @@ proc verifyLocalBorrow(config: ConfigRef, c: ControlFlowGraph, start: int) =
 proc verifyParamBorrow(config: ConfigRef, c: ControlFlowGraph, start: int) =
   let path = c[start].n
   let target = c[start].borrower
+  let fntyp = target[0].typ.skipTypes(abstractInst)
 
-  if isGlobal(path) and tfNoSideEffect notin target[0].typ.skipTypes(abstractInst).flags:
+  if isGlobal(path) and tfNoSideEffect notin fntyp.flags:
+    # IDEA: instead of disallowing the borrowing at the callsite, we could
+    #       turn the problem on its head and prevent potentially unsafe
+    #       mutations through globals in the *callee*:
+    #         var x = 0
+    #         proc a(p: var int) =
+    #           x = 1 # disallowed
     config.localReport(path.info, SemReport(kind: rsemIllegalParamterBorrow))
     return
 
@@ -885,31 +1071,62 @@ proc verifyParamBorrow(config: ConfigRef, c: ControlFlowGraph, start: int) =
     case instr.kind
     of def, kill, mut:
       if overlaps(path, instr.n):
-        problem = i # mutation/kill of the borrowee
+        report(config, path, target, instr)
+        break
     of use:
-      if overlaps(path, instr.n):
-        problem = i # use of the borrowee
-    of borrow:
-      if overlaps(path, instr.n):
-        # TODO: must be a proper error
-        echo "error: cannot reborrow at ", config.toFileLineCol(instr.n.info)
+      # consider ``f(borrow x, (use x; ...))``. There's no safety issue here
+      # XXX: really? what about automatic moves? Maybe possible sinks need to
+      #      be marked as such...
+      discard
+    of borrow, mborrow:
+      if instr.borrower.kind in nkCallKinds and instr.borrower != target:
+        discard "ignore other call's borrows; the mut/use instruction are what's relevant"
+      elif overlaps(path, instr.n):
+        config.localReport(instr.n):
+          SemReport(kind: rsemOverlappingParamBorrows, usage: path.info,
+                    isProblemMutation: c[start].kind == mborrow)
         break
     of call:
       if instr.n == target:
         # the call consumes the view
         break
+      elif isGlobal(path) and tfNoSideEffect notin instr.n[0].typ.skipTypes(abstractInst).flags:
+        report(config, path, target, instr)
     else:
       doAssert false
 
+  # look for potential ref/ptr aliasing:
+  # XXX: this is a very costly analysis... A type flag marking types as
+  #      contaings refs or pointers would reduce the cost significantly
+  var marker: IntSet
+  for i in 1..<fntyp.len:
+    # with strictFuncs, only var parameters can be used for mutations of
+    # refs/ptrs
+    if strictFuncs notin config.features or fntyp[i].kind == tyVar:
+      var problem = maybeIndirect(path, fntyp[i], marker)
+      if problem.len > 0:
+        problem[^1][0] = fntyp.n[i]
+        for j in countdown(problem.len - 2, 0):
+          problem[j][0] = move problem[j + 1]
+
+        config.localReport(path):
+          SemReport(kind: rsemPotentialAliasViolation, ast: move problem[0])
+        # no need to continue searching
+        break
+
 proc check*(config: ConfigRef, c: ControlFlowGraph) =
   for pos, it in c.pairs:
-    if it.kind == borrow:
+    if it.kind in {borrow, mborrow}:
       case it.borrower.kind
       of nkSym:
         # borrow to local
         verifyLocalBorrow(config, c, pos)
       of nkCallKinds:
-        # borrow to procedure parameter
+        # borrow to procedure parameter (or iterator result)
         verifyParamBorrow(config, c, pos)
+      of nkYieldStmt:
+        # XXX: currently ignored. It needs to be ensured that mutable borrows
+        #      don't conflict with immutable ones
+        discard
       else:
         config.internalError(it.n.info, $it.borrower.kind)

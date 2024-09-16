@@ -576,6 +576,15 @@ proc reportBody*(conf: ConfigRef, r: SemReport): string =
       result.add "cannot borrow from expression: " & $r.ast
     of rsemMustBeConstructor:
       result.add "RHS of compound view assignment must be constructor expression"
+    of rsemOverlappingParamBorrows:
+      if r.isProblemMutation:
+        result.add "cannot create another mutable borrow\n"
+        result.add "$1 another, potentially overlapping, mutable borrow was created here" % [conf.toStr(r.usage)]
+      else:
+        result.add "cannot create mutable borrow\n"
+        result.add "$1 a potentially overlapping immutable borrow was created here" % [conf.toStr(r.usage)]
+    of rsemPotentialAliasViolation:
+      result.add "cannot create borrow because the location could be modified through '$1'" % [$r.ast]
 
     of rsemPragmaRecursiveDependency:
       result.add "recursive dependency: "

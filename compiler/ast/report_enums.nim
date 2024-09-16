@@ -627,6 +627,8 @@ type
     rsemCannotBorrowImmutable
     rsemCannotBorrow2
     rsemMustBeConstructor
+    rsemOverlappingParamBorrows
+    rsemPotentialAliasViolation
 
     rsemCyclicTree
     rsemCyclicDependency
