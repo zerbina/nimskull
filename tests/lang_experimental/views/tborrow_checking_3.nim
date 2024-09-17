@@ -7,6 +7,16 @@ proc error() =
   var s = @[1]
   a(s, s) # error; mutable borrows of the same location
 
+proc no_error() =
+  type Container = ref object
+    children: seq[Container]
+
+  proc p(a, b: Container) = discard
+
+  var c = Container(children: @[Container()])
+  p(c, c.children[0])
+  # not an error, even though this is a dangerous borrow of c.children[0]
+
 proc error_2() =
   type Container = object
     children: seq[Container]

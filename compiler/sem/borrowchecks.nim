@@ -1081,7 +1081,8 @@ proc verifyParamBorrow(config: ConfigRef, c: ControlFlowGraph, start: int) =
     of borrow, mborrow:
       if instr.borrower.kind in nkCallKinds and instr.borrower != target:
         discard "ignore other call's borrows; the mut/use instruction are what's relevant"
-      elif overlaps(path, instr.n):
+      elif overlaps(path, instr.n) and mborrow in {c[start].kind, instr.kind}:
+        # only mutable borrows overlapping with other borrows is a problem
         config.localReport(instr.n):
           SemReport(kind: rsemOverlappingParamBorrows, usage: path.info,
                     isProblemMutation: c[start].kind == mborrow)
