@@ -187,9 +187,7 @@ proc genClosureCall(p: BProc, le, ri: CgNode, d: var TLoc) =
   proc addComma(r: Rope): Rope =
     if r == "": r else: r & ", "
 
-  const PatProc = "$1.ClE_0? $1.ClP_0($3$1.ClE_0):(($4)($1.ClP_0))($2)"
-  const PatIter = "$1.ClP_0($3$1.ClE_0)" # we know the env exists
-
+  const PatProc = "$1.ClP_0($2$1.ClE_0)"
   var op: TLoc
   initLocExpr(p, ri[0], op)
 
@@ -199,14 +197,6 @@ proc genClosureCall(p: BProc, le, ri: CgNode, d: var TLoc) =
   assert(typ.len == typ.n.len)
 
   var pl = genParams(p, ri, typ)
-
-  template genCallPattern {.dirty.} =
-    if tfIterator in typ.flags:
-      lineF(p, cpsStmts, PatIter & ";$n", [rdLoc(op), pl, pl.addComma, rawProc])
-    else:
-      lineF(p, cpsStmts, PatProc & ";$n", [rdLoc(op), pl, pl.addComma, rawProc])
-
-  let rawProc = getClosureType(p.module, ri[0].typ, clHalf)
   if not ri.typ.isEmptyType():
     if isInvalidReturnType(p.module, ri.typ):
       if numArgs(ri) > 0: pl.add(~", ")
@@ -218,21 +208,18 @@ proc genClosureCall(p: BProc, le, ri: CgNode, d: var TLoc) =
         if d.k == locNone:
           getTemp(p, ri.typ, d)
         pl.add(addrLoc(p.module, d))
-        genCallPattern()
+        lineF(p, cpsStmts, PatProc & ";$n", [rdLoc(op), pl.addComma])
         exitCall(p, ri)
     else:
       if d.k == locNone: getTemp(p, ri.typ, d)
       assert(d.t != nil)        # generate an assignment to d:
       var list: TLoc
       initLoc(list, locCall, d.lode, OnUnknown)
-      if tfIterator in typ.flags:
-        list.r = PatIter % [rdLoc(op), pl, pl.addComma, rawProc]
-      else:
-        list.r = PatProc % [rdLoc(op), pl, pl.addComma, rawProc]
+      list.r = PatProc % [rdLoc(op), pl.addComma]
       genAssignment(p, d, list)
       exitCall(p, ri)
   else:
-    genCallPattern()
+    lineF(p, cpsStmts, PatProc & ";$n", [rdLoc(op), pl.addComma])
     exitCall(p, ri)
 
 proc genAsgnCall(p: BProc, le, ri: CgNode, d: var TLoc) =

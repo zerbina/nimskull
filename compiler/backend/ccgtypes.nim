@@ -729,30 +729,9 @@ proc useType(m: BModule, typ: TypeId, desc: TypeHeader; onlyName = false): Rope 
 proc getTypeDesc(m: BModule, typ: PType): Rope =
   result = useType(m, m.addLate(typ))
 
-type
-  TClosureTypeKind = enum ## In C closures are mapped to 3 different things.
-    clHalf,           ## fn(args) type without the trailing 'void* env' parameter
-    clHalfWithEnv,    ## fn(args, void* env) type with trailing 'void* env' parameter
-    clFull            ## struct {fn(args, void* env), env}
-
-proc getClosureType(m: BModule, t: PType, kind: TClosureTypeKind): Rope =
-  case kind
-  of clHalf:
-    # create a proc type with all of `t`'s parameters, except for the
-    # environment pointer
-    let canon {.cursor.} =
-      m.types.headerFor(m.types.canonical(m.types[t]), Canonical)
-
-    let pt = m.types.buildProc(tkProc, ccNimCall, canon.retType(m.types), bu):
-      for (_, typ, flags) in params(m.types, canon):
-        bu.addParam(flags, typ)
-
-    result = useType(m, pt)
-  of clHalfWithEnv:
-    let c = m.types.canonical(m.types[t])
-    result = useType(m, m.types[m.types.lookupField(c, 0)].typ)
-  of clFull:
-    result = getTypeDesc(m, t)
+proc getClosureType(m: BModule, t: PType): Rope =
+  let c = m.types.canonical(m.types[t])
+  result = useType(m, m.types[m.types.lookupField(c, 0)].typ)
 
 proc genProcHeader(m: BModule, prc: PSym, locs: openArray[TLoc]): Rope =
   ## Generates the C function header for `prc`, with `locs` being the locs

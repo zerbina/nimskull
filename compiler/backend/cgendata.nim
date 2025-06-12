@@ -212,6 +212,9 @@ type
       # XXX: move emission of RTTI setup into the orchestrator and remove this
       #      facility
 
+    dynThunks*: Table[TypeId, ProcLoc]
+    thunks*: Table[ProcedureId, ProcLoc]
+
   TCGen = object ## represents a C source file
     idgen*: IdGenerator
     s*: TCFileSections        ## sections of the C file
@@ -252,6 +255,9 @@ type
       ## back to the caller. The caller is responsible for clearing the list
       ## after it's done with processing it. The code-generator only ever
       ## appends to it
+
+    declaredThunks*: IntSet
+    declaredDynThunks*: IntSet
 
 template config*(m: BModule): ConfigRef = m.g.config
 template config*(p: BProc): ConfigRef = p.module.g.config

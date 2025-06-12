@@ -1199,8 +1199,9 @@ proc genSomeCast(p: BProc, e: CgNode, d: var TLoc) =
     putIntoDest(p, d, e, "(*($1*) ($2))" %
         [getTypeDesc(p.module, e.typ), addrLoc(p.module, a)], a.storage)
   elif etyp.kind == tyProc and etyp.callConv == ccClosure and srcTyp.callConv != ccClosure:
+    # TODO: remove
     putIntoDest(p, d, e, "(($1) ($2))" %
-        [getClosureType(p.module, etyp, clHalfWithEnv), rdCharLoc(a)], a.storage)
+        [getClosureType(p.module, etyp), rdCharLoc(a)], a.storage)
   else:
     # C++ does not like direct casts from pointer to shorter integral types
     # QUESTION: should we keep this as a matter of hygiene?
@@ -1512,6 +1513,90 @@ proc genTupleConstr(p: BProc, n: CgNode, d: var TLoc) =
 proc isConstClosure(n: CgNode): bool {.inline.} =
   n[0].kind == cnkProc and n[1].kind == cnkNilLit
 
+proc getThunk(m: BModule, typ: PType, p: ProcedureId): TLoc =
+  if p in m.g.thunks:
+    if not containsOrIncl(m.declaredThunks, ord p):
+      # declare first
+      var ret, params: string
+      genProcParams(m, typ, ret, params, m.g.thunks[p].params)
+      m.s[cfsProcHeaders].addf("extern $2 $1$3;$N",
+                               [m.g.thunks[p].name, ret, params])
+
+    result = initLoc(locExpr, nil, m.g.thunks[p].name, OnUnknown)
+  else:
+    useProc(m, p)
+    let name = m.g.procs[p].name & "_thunk_"
+    let locs = prepareParameters(m, typ)
+    var ret, params: string
+    genProcParams(m, typ, ret, params, locs)
+    m.s[cfsProcHeaders].addf("$2 $1$3;$N", [name, ret, params])
+    m.declaredThunks.incl(ord p)
+    # emit a definition for the thunk
+    m.s[cfsProcs].addf("$2 $1$3 {$N", [name, ret, params])
+    var args = ""
+    for i in 1..<locs.len:
+      if i > 1:
+        args.add ", "
+      args.add locs[i].r
+      if mapType(m, locs[i].t) == ctNimOpenArray:
+        args.add ", "
+        args.add locs[i].r
+        args.add "Len_0"
+
+    if isEmptyType(typ[0]):
+      m.s[cfsProcs].addf("\t$1($2);$n", [m.g.procs[p].name, args])
+    else:
+      if isInvalidReturnType(m, typ[0]):
+        if args.len > 0:
+          args.add ", "
+        args.add "Result"
+      m.s[cfsProcs].addf("\treturn $1($2);$n", [m.g.procs[p].name, args])
+    m.s[cfsProcs].addf("}$N", [])
+    m.g.thunks[p] = ProcLoc(name: name, params: locs)
+    result = getThunk(m, typ, p)
+
+proc getDynThunk(m: BModule, typ: PType, sig: TypeId): TLoc =
+  ## Returns the loc for the dynamic thunk for procedures with signature `sig`.
+  if sig in m.g.dynThunks:
+    if not containsOrIncl(m.declaredDynThunks, ord sig):
+      # declare first
+      var ret, params: string
+      genProcParams(m, typ, ret, params, m.g.dynThunks[sig].params)
+      m.s[cfsProcHeaders].addf("extern $2 $1$3;$N",
+                               [m.g.dynThunks[sig].name, ret, params])
+
+    result = initLoc(locExpr, nil, m.g.dynThunks[sig].name, OnUnknown)
+  else:
+    let name = "dyn_thunk" & computeTypeName(m.g.graph, m.g.env.types, sig) & "_"
+    let locs = prepareParameters(m, typ)
+    var ret, params: string
+    genProcParams(m, typ, ret, params, locs)
+    m.s[cfsProcHeaders].addf("$2 $1$3;$N", [name, ret, params])
+    m.declaredDynThunks.incl(ord sig)
+    # emit a definition for the thunk
+    m.s[cfsProcs].addf("$2 $1$3 {$N", [name, ret, params])
+    var args = ""
+    for i in 1..<locs.len:
+      if i > 1:
+        args.add ", "
+      args.add locs[i].r
+      if mapType(m, locs[i].t) == ctNimOpenArray:
+        args.add ", "
+        args.add locs[i].r
+        args.add "Len_0"
+
+    if isEmptyType(typ[0]):
+      m.s[cfsProcs].addf("\t(($1) ClE_0)($2);$n", [m.useType(sig), args])
+    else:
+      if isInvalidReturnType(m, typ[0]):
+        if args.len > 0:
+          args.add ", "
+        args.add "Result"
+      m.s[cfsProcs].addf("\treturn (($1) ClE_0)($2);$n", [m.useType(sig), args])
+    m.s[cfsProcs].addf("}$N", [])
+    m.g.dynThunks[sig] = ProcLoc(name: name, params: locs)
+    result = getDynThunk(m, typ, sig)
+
 proc genClosure(p: BProc, n: CgNode, d: var TLoc) =
   assert n.kind == cnkClosureConstr
 
@@ -1536,10 +1621,16 @@ proc genClosure(p: BProc, n: CgNode, d: var TLoc) =
       linefmt(p, cpsStmts, "$1.ClP_0 = $2; $1.ClE_0 = $3;$n",
               [tmp.rdLoc, a.rdLoc, b.rdLoc])
     else:
-      # cast the function pointer first
-      linefmt(p, cpsStmts, "$1.ClP_0 = ($4)($2); $1.ClE_0 = $3;$n",
-              [tmp.rdLoc, a.rdLoc, b.rdLoc,
-              getClosureType(p.module, n.typ, clHalfWithEnv)])
+      # create a thunk
+      if n[0].kind == cnkProc:
+        # a static thunk is enough
+        let callee = getThunk(p.module, n.typ, n[0].prc)
+        linefmt(p, cpsStmts, "$1.ClP_0 = $2; $1.ClE_0 = $3;$n",
+                [tmp.rdLoc, callee.rdLoc, b.rdLoc])
+      else:
+        let callee = getDynThunk(p.module, n.typ, p.module.addLate(a.t))
+        linefmt(p, cpsStmts, "$1.ClP_0 = $2; $1.ClE_0 = $3;$n",
+                [tmp.rdLoc, callee.rdLoc, a.rdLoc])
     putLocIntoDest(p, d, tmp)
 
 proc genArrayConstr(p: BProc, n: CgNode, d: var TLoc) =
@@ -2002,9 +2093,7 @@ proc genBracedInit(p: BProc, n: CgNode; optionalType: PType): Rope =
         of cnkNilLit:
           result = ~"{NIM_NIL,NIM_NIL}"
         of cnkProc:
-          var d: TLoc
-          initLocExpr(p, symNode, d)
-          result = "{(($1) $2),NIM_NIL}" % [getClosureType(p.module, typ, clHalfWithEnv), rdLoc(d)]
+          result = "{$1,NIM_NIL}" % [rdLoc(getThunk(p.module, typ, symNode.prc))]
         else:
           assert false # unreachable
 
