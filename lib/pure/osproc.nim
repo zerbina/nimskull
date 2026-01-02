@@ -1541,7 +1541,7 @@ elif not defined(useNimRtl):
       p.errStream = createStream(p.errHandle, fmRead).newPipeOutStream
     return p.errStream
 
-  proc csystem(cmd: cstring): cint {.nodecl, importc: "system",
+  proc csystem(cmd: cstring): cint {.importc: "system",
                                      header: "<stdlib.h>".}
 
   proc execCmd(command: string): int =

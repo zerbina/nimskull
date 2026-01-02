@@ -43,6 +43,7 @@ import
     modulegraphs # Project module graph
   ],
   compiler/backend/[
+    llvmbackend,
     extccomp,    # Calling C compiler
   ],
   compiler/utils/[
@@ -216,6 +217,42 @@ proc commandCompileToC(graph: ModuleGraph) =
     writeGccDepfile(conf)
   if optGenScript in graph.config.globalOptions:
     writeDepsFile(graph)
+
+proc commandCompileToLLVM(graph: ModuleGraph) =
+  # XXX: largely a copy of ``commandCompileToC``
+  let conf = graph.config
+  extccomp.initVars(conf)
+  # XXX: also define the "c" symbol, as very little would compile otherwise
+  conf.defineSymbol("c")
+  semanticPasses(graph)
+  if conf.symbolFiles == disabledSf:
+    registerPass(graph, collectPass)
+
+    if {optRun, optForceFullMake} * conf.globalOptions == {optRun} or isDefined(conf, "nimBetterRun"):
+      if not changeDetectedViaJsonBuildInstructions(conf, conf.jsonBuildInstructionsFile):
+        # nothing changed
+        graph.config.notes = graph.config.mainPackageNotes
+        return
+
+  graph.config.timeTracer.traceStr("compile"):
+    compileProject(graph)
+  prepareForCodegen(graph)
+  if conf.symbolFiles == disabledSf:
+    llvmbackend.generateCode(graph, graph.takeModuleList())
+  else:
+    if isDefined(conf, "nimIcIntegrityChecks"):
+      checkIntegrity(graph)
+    llvmbackend.generateCode(graph, graph.finalizeModules())
+
+  # the LLVM assembler modules are compiled using the C compiler (which may
+  # only be clang)
+  extccomp.callCCompiler(conf)
+  extccomp.writeJsonBuildInstructions(conf)
+  if conf.depfile.string.len != 0:
+    writeGccDepfile(conf)
+  if optGenScript in graph.config.globalOptions:
+    writeDepsFile(graph)
+
 
 proc commandJsonScript(graph: ModuleGraph) =
   extccomp.runJsonBuildInstructions(graph.config, graph.config.jsonBuildInstructionsFile)
@@ -440,7 +477,7 @@ proc customizeForBackend*(graph: ModuleGraph, conf: ConfigRef,
 
   defineSymbol(graph.config, $conf.backend)
   case conf.backend
-  of backendC:
+  of backendC, backendLLVM:
     case conf.exc
     of excNone, excNative: conf.exc = excGoto
     of excGoto:            discard
@@ -475,6 +512,7 @@ proc mainCommand*(graph: ModuleGraph) =
     setOutFile(conf)
     case conf.backend
     of backendC: commandCompileToC(graph)
+    of backendLLVM: commandCompileToLLVM(graph)
     of backendJs: commandCompileToJS(graph)
     of backendNimVm: commandCompileToVM(graph)
     of backendInvalid: unreachable()

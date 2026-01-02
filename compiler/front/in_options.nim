@@ -169,6 +169,7 @@ type
     ## Target compilation backend
     backendInvalid = "" # for parseEnum
     backendC = "c"
+    backendLLVM = "llvm"
     backendJs = "js"
     backendNimVm = "vm"
     # backendNimscript = "nimscript" # this could actually work

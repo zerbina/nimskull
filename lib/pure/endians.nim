@@ -17,7 +17,9 @@
 ##
 ## Unstable API.
 
-when defined(gcc) or defined(llvm_gcc) or defined(clang):
+when defined(llvm):
+  const useBuiltinSwap = false
+elif defined(gcc) or defined(llvm_gcc) or defined(clang):
   const useBuiltinSwap = true
   proc builtin_bswap16(a: uint16): uint16 {.
       importc: "__builtin_bswap16", nodecl, noSideEffect.}

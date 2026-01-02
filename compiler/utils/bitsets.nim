@@ -48,29 +48,21 @@ func bitSetInclRange*(x: var TBitSetView, s: Slice[BiggestInt]) =
   ## Includes elements in the slice `r` that aren't part of `x` yet into `x`
   if unlikely(s.a > s.b): return # Do nothing for empty slices
 
-  # This functions aims to be more efficient than a for loop with `bitSetIncl`
-
   let start = int(s.a.divElemSize)
   let last = int(s.b.divElemSize)
+  let (firstBit, lastBit) = (s.a.modElemSize, s.b.modElemSize)
 
-  let firstBit = s.a.modElemSize
-  let endBit = s.b.modElemSize + 1 # lastBit + 1
+  let bits =
+    if start < last: (AllOne shl firstBit)
+    else:            (AllOne shl firstBit) and (AllOne shr (7 - lastBit))
 
-  # The position of the last bit + 1 in the start element
-  let startElemEndBit =
-    if start < last: ElemSize
-    else: int(endBit)
-
-  # Calculate the intersection between the bit ranges `0..lastBit` and `firstBit..high`
-  let startElemBits = ((One shl startElemEndBit) - 1) and (AllOne shl firstBit)
-
-  x[start] = x[start] or startElemBits
+  x[start] = x[start] or bits
 
   for i in (start+1)..<last:
     x[i] = AllOne
 
   if start < last:
-    x[last] = x[last] or ((One shl endBit) - 1)
+    x[last] = x[last] or (AllOne shr (7 - lastBit))
 
 func bitSetInit*(b: var TBitSet, length: int) =
   ## Creates a new bitset in `b` with a size-in-bytes of `length * ElemSize` .

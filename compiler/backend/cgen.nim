@@ -497,8 +497,8 @@ proc exprToC(m; pos; r: var Writer) =
   of cnkDiv:    binOpToC(m, pos, " / ", r)
   of cnkMod:    binOpToC(m, pos, " % ", r)
   of cnkCheckedAdd: checkedOpToC(m, pos, "nimAddInt(", r)
-  of cnkCheckedSub: checkedOpToC(m, pos, "nimAddSub(", r)
-  of cnkCheckedMul: checkedOpToC(m, pos, "nimAddMul(", r)
+  of cnkCheckedSub: checkedOpToC(m, pos, "nimSubInt(", r)
+  of cnkCheckedMul: checkedOpToC(m, pos, "nimMulInt(", r)
   of cnkZext:
     let typ = advance(m.ast, pos).val.StringId
     let styp = getType(m, pos)

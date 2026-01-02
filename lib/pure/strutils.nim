@@ -2307,9 +2307,9 @@ func validIdentifier*(s: string): bool {.rtl, extern: "nsuValidIdentifier".} =
 # floating point formatting:
 when not defined(js):
   func c_snprintf(buf: cstring, size: csize_t, frmt: cstring): cint
-                 {.importc: "snprintf", varargs, sideEffect.}
+                 {.importc: "snprintf", varargs, cdecl, sideEffect.}
   func c_strerror(errnum: cint): cstring
-                 {.importc: "strerror", sideEffect.}
+                 {.importc: "strerror", cdecl, sideEffect.}
   var c_errno {.importc: "errno", header: "<errno.h>".}: cint
 
 type

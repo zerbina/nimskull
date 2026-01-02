@@ -117,6 +117,8 @@ proc hiXorLo(a, b: uint64): uint64 {.inline.} =
   else:
     when Hash.sizeof < 8:
       result = hiXorLoFallback64(a, b)
+    elif defined(llvm):
+      result = hiXorLoFallback64(a, b)
     elif defined(gcc) or defined(llvm_gcc) or defined(clang):
       {.emit: """__uint128_t r = `a`; r *= `b`; `result` = (r >> 64) ^ r;""".}
     elif defined(windows) and not defined(tcc):

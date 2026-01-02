@@ -438,9 +438,13 @@ proc process(body: var MirBody, prc: PSym, graph: ModuleGraph,
       graph.config.msgWrite(render(body.code, addr env, addr body))
       graph.config.msgWrite("\n-- end of expandArc ------------------------\n")
 
+  # TODO: give proper names to passes, allow enabling/disabling every pass
+  #       separately, and remove any knowledge about the selected target from
+  #       pass application
   let target =
     case graph.config.backend
     of backendC:       targetC
+    of backendLLVM:    targetLlvm
     of backendJs:      targetJs
     of backendNimVm:   targetVm
     of backendInvalid: unreachable()

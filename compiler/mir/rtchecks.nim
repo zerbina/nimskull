@@ -409,27 +409,23 @@ proc emitObjectCheck(tree; call; graph; env; bu) =
 
 # XXX: currently cannot be moved to within ``emitCheckedBinaryIntOp`` due to a
 #      csource compiler bug
-const ArithChcks: array[mAddI..mModI, array[tyInt..tyInt64, string]] = block:
+const DivOps: array[tyInt..tyInt64, string] = block:
   # compile the names of the procedure at compile-time
-  var res: array[mAddI..mModI, array[tyInt..tyInt64, string]]
-  for op, it in res.mpairs:
-    let base = case op
-      of mAddI: "nimAddInt"
-      of mSubI: "nimSubInt"
-      of mMulI: "nimMulInt"
-      of mDivI: "nimDivInt"
-      of mModI: "nimModInt"
+  var res: array[tyInt..tyInt64, string]
+  let base = "nimDivInt"
+  # the inner array stores the per-width names, which is the base name
+  # suffixed with the width
+  const intKinds = [tyInt8, tyInt16, tyInt32, tyInt64]
+  for i, k in intKinds.pairs:
+    res[k] = base & $(8 shl i)
 
-    # the inner array stores the per-width names, which is the base name
-    # suffixed with the width
-    const intKinds = [tyInt8, tyInt16, tyInt32, tyInt64]
-    for i, k in intKinds.pairs:
-      it[k] = base & $(8 shl i)
-
-    # for the moment, there's still a generic-width version
-    it[tyInt] = base
-
+  # for the moment, there's still a generic-width version
+  res[tyInt] = base
   res
+
+const ArithChcks = [
+  mAddI: mCheckedAdd, mSubI: mCheckedSub, mMulI: mCheckedMul
+]
 
 proc emitCheckedBinaryIntOp(tree; call; graph; env; bu): Value =
   ## Emits the lowered version of a checked binary arithmetic operation.
@@ -478,10 +474,9 @@ proc emitCheckedBinaryIntOp(tree; call; graph; env; bu): Value =
         bu.emitFrom(tree, x)
         bu.emitFrom(tree, y)
 
-  else:
-    # emit a call to the checked arithmethic operation:
+  elif magic == mDivI:
     let cond = bu.wrapTemp BoolType:
-      bu.buildCall env.addCompilerProc(graph, ArithChcks[magic][kind]), BoolType:
+      bu.buildCall env.addCompilerProc(graph, DivOps[kind]), BoolType:
         bu.subTree mnkArg:
           bu.emitFrom(tree, x)
         bu.subTree mnkArg:
@@ -489,6 +484,30 @@ proc emitCheckedBinaryIntOp(tree; call; graph; env; bu): Value =
         bu.emitByName(result, ekReassign)
 
     bu.buildIf cond:
+      bu.emitCall(tree, call, env.addCompilerProc(graph, "raiseOverflow")):
+        discard
+  elif magic != mModI:
+    # emit a call to the checked arithmetic operation:
+    let cond = bu.wrapTemp BoolType:
+      bu.buildMagicCall ArithChcks[magic], BoolType:
+        bu.subTree mnkArg:
+          bu.emitFrom(tree, x)
+        bu.subTree mnkArg:
+          bu.emitFrom(tree, y)
+        bu.emitByName(result, ekReassign)
+
+    bu.buildIf cond:
+      bu.emitCall(tree, call, env.addCompilerProc(graph, "raiseOverflow")):
+        discard
+  else:
+    bu.subTree mnkAsgn:
+      bu.use result
+      bu.subTree mnkModI, tree[call].typ:
+        bu.emitFrom(tree, x)
+        bu.emitFrom(tree, y)
+    # the raise is still needed, even if never called at run-time, in order to
+    # keep the CFG intact
+    bu.buildIf (bu.use literal(mnkUIntLit, env.getOrIncl(0), BoolType)):
       bu.emitCall(tree, call, env.addCompilerProc(graph, "raiseOverflow")):
         discard
 

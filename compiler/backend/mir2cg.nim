@@ -77,6 +77,7 @@ type
   Capability* = enum
     ## A capability of the targeted code generator.
     capExceptions ## the code generator supports checked calls, raise, etc.
+    capUnnamedStrings ## the code generator supports unnamed string constants
 
   Node = CgNode ## shorthand
 
@@ -149,6 +150,8 @@ type
       ## maps MIR data to the corresponding CGIR data. Populated on demand
     defaults: Table[TypeId, Datum]
       ## type -> default value for the type
+
+    stringMap: Table[StringId, (TypeId, Datum)]
 
     sourceLocs: BiTable[SourceLoc]
       # TODO: use an "intrusive BiTable", that is, a bitable where only the
@@ -666,6 +669,22 @@ proc genConstDefault(c; env; typ: TypeId, bu): NodeRef =
   if got.isSome: got.unsafeGet
   else:          bu.build Constr(typ)
 
+proc cstringToCgir(c; env; str: StringId; bu): Expr =
+  # TODO: take the "unnamed strings" capability into account
+  c.stringMap.withValue str, val:
+    result = bu.buildExpr CstringType:
+      PtrCast(CstringType, Addr(^val[0], ^datumRef(val[1])))
+  do:
+    let typ = env.types.newArray(c.module.get(str).len + 1, CharType)
+    let ptrTyp = env.types.newPtr(typ)
+    let id = c.buildDatum(Value(typ, str))
+    c.stringMap[str] = (ptrTyp, id)
+    result = bu.buildExpr CstringType:
+      PtrCast(CstringType, Addr(ptrTyp, ^datumRef(id)))
+
+proc cstringToCgir(c; env; val: sink string; bu): Expr =
+  c.cstringToCgir(env, c.module.put(val), bu)
+
 proc constToCgir(c; env; tree; n; bu): NodeRef =
   ## Translates a MIR constant expression to the corresponding CGIR
   ## constant expression.
@@ -824,7 +843,7 @@ proc constToCgir(c; env; tree; n; bu): NodeRef =
         # an empty cstring is represented with a nil pointer
         bu.build NilLit()
       else:
-        bu.build Value(typ, str)
+        bu.use c.cstringToCgir(env, str, bu)
     of tkString:
       # it's a NimSkull string (a length + payload pointer)
       if str.len > 0:
@@ -1247,7 +1266,7 @@ proc valueToCgir(c; env; tree; n; bu): Expr =
       expr emValue, ^c.genConv(env, recurse(tree.child(n, 0)), typ, bu)
   of mnkStrLit:
     # can only be a cstring
-    expr emValue, Value(typ, ^env[tree[n].strVal])
+    c.cstringToCgir(env, env[tree[n].strVal], bu)
   of mnkAstLit:
     unreachable("literal ast not supported")
   of AllNodeKinds - LvalueExprKinds - LiteralDataNodes - {mnkProcVal}:
@@ -1374,7 +1393,7 @@ proc genOf(c; env; tree; e: Expr, typ: TypeId; bu): NodeRef =
   bu.build Call(
     ^bu.useCompilerProc(c, env, "isObj"),
     ^c.fieldAccess(env, e, -1, bu),
-    Value(CstringType, ^genTypeInfo2Name(env[typ])))
+    *use(^c.cstringToCgir(env, genTypeInfo2Name(env[typ]), bu)))
 
 proc emitLength(c; env; dest, val: Expr, stmts, bu) =
   ## Emits a statement for storing the length of sequence-like `val` in `dest`.
@@ -2091,6 +2110,15 @@ proc magicToCgir(c; env; tree; n; dest: Expr, stmts, bu) =
       stmts.add c.genAsgn(env, dst, arge(1), bu)
     else:
       unreachable(env.types.headerFor(typ, Canonical).kind)
+  of mCheckedAdd:
+    let typ = tree[argp(0)].typ
+    wrapAsgn CheckedAdd(BoolType, typ, ^arg(0), ^arg(1), ^addrOp(arge(2)))
+  of mCheckedSub:
+    let typ = tree[argp(0)].typ
+    wrapAsgn CheckedSub(BoolType, typ, ^arg(0), ^arg(1), ^addrOp(arge(2)))
+  of mCheckedMul:
+    let typ = tree[argp(0)].typ
+    wrapAsgn CheckedMul(BoolType, typ, ^arg(0), ^arg(1), ^addrOp(arge(2)))
   of mNLen..mNError, mStatic..mQuoteAst:
     # TODO: move this error reporting into semantic analysis
     localReport(c.graph.config, c.prc.body.source[tree[n].info],
@@ -2637,7 +2665,7 @@ proc emitLineTrace(c; env; info: TLineInfo, stmts; bu) =
       let name = c.getFilePath(info)
       stmts.addStmt bu, Asgn(
         ^c.fieldAccess(env, c.prc.frameLocal, 3, bu),
-        Value(CstringType, name))
+        *use(^c.cstringToCgir(env, name, bu)))
       c.prc.lastFileIndex = info.fileIndex
 
   # FIXME: the `FR_` state tracking used is naive and doesn't take
@@ -3074,6 +3102,12 @@ proc toTree(c; env; tree; list: seq[Stmt], i: int, stmts, bu) =
   of Return:
     c.useSourceLoc(tree[list[i].n].info, bu)
     stmts.addStmt bu, Break(^labelRef(c.prc.unwindLabel))
+  of Tail:
+    c.useSourceLoc(tree[list[i].n].info, bu)
+    let n = list[i].n
+    let callee = c.calleeToCgir(env, tree, tree.callee(n), bu)
+    let args = c.argsToCgir(env, tree, n, callee.typ, stmts, bu)
+    stmts.add c.callToCgir(env, tree, list[i].n, Expr(typ: VoidType), bu.use(callee), args, bu)
   of None:
     discard "emit nothing"
 
@@ -3168,10 +3202,10 @@ proc procToCgir(c; env; sym: PSym): StringId =
     stmts.addStmt bu, Def(0, 0, ^fr.typ, ^localRef(name))
     stmts.addStmt bu, Asgn(
       ^c.fieldAccess(env, fr, 3, bu),
-      Value(CstringType, fname))
+      *use(^c.cstringToCgir(env, fname, bu)))
     stmts.addStmt bu, Asgn(
       ^c.fieldAccess(env, fr, 1, bu),
-      Value(CstringType, ^sym.name.s))
+      *use(^c.cstringToCgir(env, sym.name.s, bu)))
     stmts.addStmt bu, Asgn(
       ^c.fieldAccess(env, fr, 2, bu),
       ^c.genInt(env, 0, env.types.sizeType, bu))

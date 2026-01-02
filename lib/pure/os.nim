@@ -1783,7 +1783,7 @@ const hasCCopyfile = defined(osx) and not defined(nimLegacyCopyFile)
 
 when hasCCopyfile:
   # `copyfile` API available since osx 10.5.
-  {.push nodecl, header: "<copyfile.h>".}
+  {.push header: "<copyfile.h>".}
   type
     copyfile_state_t {.nodecl.} = pointer
     copyfile_flags_t = cint

@@ -98,7 +98,7 @@ proc handleCmdLine(cache: IdentCache; conf: ConfigRef, argv: openArray[string]):
       var cmdPrefix: string
       if nimRunExe.len > 0: cmdPrefix.add nimRunExe.quoteShell
       case conf.backend
-      of backendC: discard
+      of backendC, backendLLVM: discard
       of backendJs:
         let nodejs = findNodeJs()
         if nodejs.len > 0:

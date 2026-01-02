@@ -56,6 +56,7 @@ type
     #      care about what backend is the target -- it cares about what the
     #      targeted *language level* is (which is what the backend implies)
     targetC
+    targetLlvm
     targetJs
     targetVm
 
@@ -1042,7 +1043,7 @@ proc applyPasses*(body: var MirBody, prc: PSym, env: var MirEnv,
       batch:
         lowerTailcallBody(body, graph, prc, env, c)
 
-  if target == targetC:
+  if target in {targetC, targetLlvm}:
     batch:
       splitAssignments(body.code, c)
     batch:
@@ -1051,7 +1052,7 @@ proc applyPasses*(body: var MirBody, prc: PSym, env: var MirEnv,
       preventRvo(body.code, env.types, c)
 
   batch:
-    if target == targetC and body[resultId].typ != VoidType and
+    if target in {targetC, targetLlvm} and body[resultId].typ != VoidType and
        (sfNoInit notin body[resultId].flags):
       # the procedure has a result variable and initialization of it is
       # allowed
@@ -1064,13 +1065,13 @@ proc applyPasses*(body: var MirBody, prc: PSym, env: var MirEnv,
       # requires the extraction for cstring literals
       extractStringLiterals(body.code, env, c)
 
-    if target == targetC:
+    if target in {targetC, targetLlvm}:
       lowerNew(body.code, graph, env, c)
       lowerChecks(body, graph, env, c)
       injectStrPreparation(body.code, graph, env, c)
       lowerCase(body.code, graph, env, c)
 
-  if target == targetC:
+  if target in {targetC, targetLlvm}:
     batch:
       injectTypeHeaderInit(body.code, env, c)
       extractStringLiterals2(body.code, env, c)
@@ -1087,6 +1088,6 @@ proc applyPasses*(body: var MirBody, prc: PSym, env: var MirEnv,
 
   # apply the structural fix-ups and passes needed for the CGIR-based code
   # generators:
-  if target == targetC:
+  if target in {targetC, targetLlvm}:
     batch:
       moveUnscoped(body.code, c)

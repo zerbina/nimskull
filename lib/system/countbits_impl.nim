@@ -15,7 +15,7 @@ from std/private/bitops_utils import forwardImpl, toUnsigned
 const useBuiltins* = not defined(noIntrinsicsBitOpts)
 const noUndefined* = defined(noUndefinedBitOpts)
 const useGCC_builtins* = (defined(gcc) or defined(llvm_gcc) or
-                         defined(clang)) and useBuiltins
+                         defined(clang)) and useBuiltins and not(defined(llvm))
 const useICC_builtins* = defined(icc) and useBuiltins
 const useVCC_builtins* = defined(vcc) and useBuiltins
 const arch64* = sizeof(int) == 8

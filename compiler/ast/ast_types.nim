@@ -822,6 +822,8 @@ type
 
     mEvalToAst
 
+    mCheckedAdd, mCheckedSub, mCheckedMul
+
     # magics only used internally:
     mStrToCStr
       ## the backend-dependent string-to-cstring conversion

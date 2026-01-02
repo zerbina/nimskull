@@ -610,9 +610,9 @@ proc writeLine*[Ty](f: File, x: varargs[Ty, `$`]) {.inline,
 
 when defined(windows) and not defined(useWinAnsi):
   proc wfopen(filename, mode: WideCString): pointer {.
-    importc: "_wfopen", nodecl.}
+    importc: "_wfopen", header: "<stdio.h>".}
   proc wfreopen(filename, mode: WideCString, stream: File): File {.
-    importc: "_wfreopen", nodecl.}
+    importc: "_wfreopen", header: "<stdio.h>".}
 
   proc fopen(filename, mode: cstring): pointer =
     var f = newWideCString(filename)
@@ -625,9 +625,9 @@ when defined(windows) and not defined(useWinAnsi):
     result = wfreopen(f, m, stream)
 
 else:
-  proc fopen(filename, mode: cstring): pointer {.importc: "fopen", nodecl.}
+  proc fopen(filename, mode: cstring): pointer {.importc: "fopen", header: "<stdio.h>".}
   proc freopen(filename, mode: cstring, stream: File): File {.
-    importc: "freopen", nodecl.}
+    importc: "freopen", header: "<stdio.h>".}
 
 const
   NoInheritFlag =

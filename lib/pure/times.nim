@@ -239,16 +239,33 @@ elif defined(windows):
 
   type
     CTime = time_t.Time
-    Tm {.importc: "struct tm", header: "<time.h>", final, pure.} = object
-      tm_sec*: cint   ## Seconds [0,60].
-      tm_min*: cint   ## Minutes [0,59].
-      tm_hour*: cint  ## Hour [0,23].
-      tm_mday*: cint  ## Day of month [1,31].
-      tm_mon*: cint   ## Month of year [0,11].
-      tm_year*: cint  ## Years since 1900.
-      tm_wday*: cint  ## Day of week [0,6] (Sunday =0).
-      tm_yday*: cint  ## Day of year [0,365].
-      tm_isdst*: cint ## Daylight Savings flag.
+
+  when defined(llvm):
+    {.push stylechecks: off.}
+    type
+      Tm = object
+        tm_sec*: cint   ## Seconds [0,60].
+        tm_min*: cint   ## Minutes [0,59].
+        tm_hour*: cint  ## Hour [0,23].
+        tm_mday*: cint  ## Day of month [1,31].
+        tm_mon*: cint   ## Month of year [0,11].
+        tm_year*: cint  ## Years since 1900.
+        tm_wday*: cint  ## Day of week [0,6] (Sunday =0).
+        tm_yday*: cint  ## Day of year [0,365].
+        tm_isdst*: cint ## Daylight Savings flag.
+    {.pop.}
+  else:
+    type
+      Tm {.importc: "struct tm", header: "<time.h>", final, pure.} = object
+        tm_sec*: cint   ## Seconds [0,60].
+        tm_min*: cint   ## Minutes [0,59].
+        tm_hour*: cint  ## Hour [0,23].
+        tm_mday*: cint  ## Day of month [1,31].
+        tm_mon*: cint   ## Month of year [0,11].
+        tm_year*: cint  ## Years since 1900.
+        tm_wday*: cint  ## Day of week [0,6] (Sunday =0).
+        tm_yday*: cint  ## Day of year [0,365].
+        tm_isdst*: cint ## Daylight Savings flag.
 
   proc localtime(a1: var CTime): ptr Tm {.importc, header: "<time.h>", sideEffect.}
 
@@ -2604,8 +2621,13 @@ when not defined(js):
   proc getClock(): Clock
       {.importc: "clock", header: "<time.h>", tags: [TimeEffect], used, sideEffect.}
 
-  var
-    clocksPerSec {.importc: "CLOCKS_PER_SEC", nodecl, used.}: int
+  when defined(posix):
+    discard # the constant is provided by the already-imported posix module
+  elif defined(windows):
+    const clocksPerSec = clong(1000)
+  else:
+    var
+      clocksPerSec {.importc: "CLOCKS_PER_SEC", nodecl, used.}: int
 
   proc cpuTime*(): float {.tags: [TimeEffect].} =
     ## Gets time spent that the CPU spent to run the current process in

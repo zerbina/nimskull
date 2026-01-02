@@ -11,6 +11,9 @@ import compiler/mir/rtti_queries
 from compiler/ast/typesrenderer import typeToString, addTypeHeader
 from std/strutils import toLowerAscii
 
+proc cstringToCgir(c; env; str: StringId; bu): Expr
+proc cstringToCgir(c; env; val: sink string; bu): Expr
+
 # field positions are hardcoded because looking up the fields to retrieve
 # the position is too cumbersome
 const
@@ -122,7 +125,7 @@ proc genTypeInfoV2(c; env; typ: PType, bu): NodeRef =
   var fields: seq[NodeRef]
   if t.kind in {tyObject, tyDistinct}:
     fields.addField bu, MemberV2Name:
-      Value(CstringType, ^genTypeInfo2Name(t))
+      *use(^c.cstringToCgir(env, genTypeInfo2Name(t), bu))
 
   let destroy = c.graph.getAttachedOp(t, attachedDestructor)
   if destroy != nil and c.graph.getBody(destroy).len > 0:
@@ -217,7 +220,7 @@ proc genTypeInfo(c; env; typ, orig: PType;
                  c.graph.config$orig.skipTypes(skipPtrs).sym.info
 
     fields.addField bu, MemberV1Name:
-      Value(CstringType, typename)
+      *use(^c.cstringToCgir(env, typename, bu))
 
   fields.addField bu, MemberV1Node, sons
 
@@ -318,7 +321,7 @@ proc genObjectFields(c; env; typ: PType, n: PNode): Datum =
           path))),
       *field(MemberV1Typ, ^bu.use(getTypeInfoV1(c, env, discr.typ, bu))),
       *field(MemberV1Len, ^c.genInt(env, toInt64(L), env.types.sizeType, bu)),
-      *field(MemberV1NodeName, Value(CstringType, ^discr.name.s)),
+      *field(MemberV1NodeName, *use(^c.cstringToCgir(env, discr.name.s, bu))),
       *field(MemberV1Sons, ^c.genSonsArrayAddr(env, arrayTyp, tmp, bu)))
   of nkSym:
     let s = n.sym
@@ -334,7 +337,7 @@ proc genObjectFields(c; env; typ: PType, n: PNode): Datum =
               discard rawFieldAccess(c, env, id, s.position.int32, path, bu)
               path))),
         *field(MemberV1Typ, ^bu.use(getTypeInfoV1(c, env, s.typ, bu))),
-        *field(MemberV1NodeName, Value(CstringType, ^s.name.s)))
+        *field(MemberV1NodeName, *use(^c.cstringToCgir(env, s.name.s, bu))))
     else:
       c.buildDatum RecConstr(^c.rttiV1NodeType,
         *field(MemberV1NodeKind, ^c.genInt(env, 0, UInt8Type, bu)))
@@ -372,7 +375,7 @@ proc genTupleInfo(c; env; typ, orig: PType, bu): NodeRef =
               *field(MemberV1NodeKind, ^c.genInt(env, 1, UInt8Type, bu)),
               *field(MemberV1Offset, Offsetof(^env.types.sizeType, id, i)),
               *field(MemberV1Typ, ^bu.use(getTypeInfoV1(c, env, typ[i], bu))),
-              *field(MemberV1NodeName, Value(CstringType, ^("Field" & $i))))
+              *field(MemberV1NodeName, *use(^c.cstringToCgir(env, ("Field" & $i), bu))))
             bu.build Addr(pt, ^datumRef(f))))
       c.buildDatum RecConstr(^c.rttiV1NodeType,
         *field(MemberV1NodeKind, ^c.genInt(env, 2, UInt8Type, bu)),
@@ -407,7 +410,7 @@ proc genEnumInfo(c; env; typ, origType: PType, bu): NodeRef =
         *field(MemberV1NodeKind, ^c.genInt(env, 0, UInt8Type, bu)),
         *field(MemberV1Offset,
           ^c.genInt(env, field.position, env.types.sizeType, bu)),
-        *field(MemberV1NodeName, Value(CstringType, name)))
+        *field(MemberV1NodeName, *use(^c.cstringToCgir(env, name, bu))))
 
       enumFields.add bu.build(Addr(pt, ^datumRef(sub)))
 

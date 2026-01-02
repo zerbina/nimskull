@@ -323,7 +323,7 @@ proc getConfigVar(conf: ConfigRef; c: TSystemCC, suffix: string): string =
   var fullSuffix = suffix
   case conf.backend
   of backendJs, backendNimVm: fullSuffix = "." & $conf.backend & suffix
-  of backendC: discard
+  of backendC, backendLLVM: discard # TODO: revisit this decision
   of backendInvalid:
     # during parsing of cfg files; we don't know the backend yet, no point in
     # guessing wrong thing

@@ -63,6 +63,7 @@ type
     free: int            # how many bytes remain
     acc: int             # accumulator for small object allocation
     when defined(nimAlignPragma):
+      pad: int # XXX: the LLVM code generator doesn't support over-alignment
       data {.align: MemAlign.}: UncheckedArray[byte]      # start of usable memory
     else:
       data: UncheckedArray[byte]

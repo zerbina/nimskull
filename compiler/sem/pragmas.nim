@@ -1247,11 +1247,20 @@ proc applySymbolPragma(c: PContext, sym: PSym, it: PNode): PNode =
         if path.isError:
           return path
         result = it
-        let lib = getLib(c, libHeader, path)
-        addToLib(lib, sym)
-        sym.flags.incl sfImportc
-        sym.extFlags.incl {exfHeader, exfNoDecl}
-        # implies nodecl, because otherwise header would not make sense
+        if c.config.backend == backendLLVM and sym.kind in routineKinds and
+           sym.extname notin ["memcpy", "memset", "memmove"]:
+          # there is no such thing as headers with the LLVM backend. Silently
+          # ignore the pragma for routines, but keep some select ones as nodecl
+          # (their implementation is provided inline by the code generator)
+          sym.flags.incl sfImportc
+          if tfExplicitCallConv notin sym.typ.flags:
+            sym.typ.callConv = ccCDecl
+        else:
+          let lib = getLib(c, libHeader, path)
+          addToLib(lib, sym)
+          sym.flags.incl sfImportc
+          sym.extFlags.incl {exfHeader, exfNoDecl}
+          # implies nodecl, because otherwise header would not make sense
         if sym.extname == "": sym.extname = sym.name.s
       of wNoSideEffect:
         result = noVal(c, it)

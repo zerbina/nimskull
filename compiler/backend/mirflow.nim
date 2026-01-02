@@ -19,6 +19,7 @@ type
     Stmts
     Scope
     Block
+    Tail
     If
     Dispatch
     Target
@@ -206,11 +207,14 @@ proc toStructured*(tree): seq[Stmt] =
       append(Stmt(kind: Stmts, n: it))
     of mnkDef, mnkDefCursor, mnkAsgn, mnkInit, mnkSwitch, mnkVoid:
       let e = tree.last(it)
-      if tree[e].kind == mnkCheckedCall:
-        if tree[tree.last(e)].kind != mnkUnwind:
-          insertTry(tree.last(e), labels[tree[tree.last(e)].label])
+      if tree[e].kind == mnkTailCall:
+        append(Stmt(kind: Tail, n: e))
+      else:
+        if tree[e].kind == mnkCheckedCall:
+          if tree[tree.last(e)].kind != mnkUnwind:
+            insertTry(tree.last(e), labels[tree[tree.last(e)].label])
 
-      append(Stmt(kind: Stmts, n: it))
+        append(Stmt(kind: Stmts, n: it))
     of mnkRaise:
       if tree[tree.last(it)].kind != mnkUnwind:
         insertTry(tree.last(it), labels[tree[tree.last(it)].label])

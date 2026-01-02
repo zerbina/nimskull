@@ -23,7 +23,7 @@ var
     ## Unstable API.
 
 when defined(windows):
-  proc GetLastError(): int32 {.header: "<windows.h>", nodecl.}
+  proc GetLastError(): int32 {.importc, header: "<windows.h>".}
   const ERROR_BAD_EXE_FORMAT = 193
 
 when not defined(windows) or not defined(guiapp):
@@ -32,7 +32,7 @@ when not defined(windows) or not defined(guiapp):
     rawWriteString(cstderr, msg, length)
 else:
   proc MessageBoxA(hWnd: pointer, lpText, lpCaption: cstring, uType: int): int32 {.
-    header: "<windows.h>", nodecl.}
+    importc, header: "<windows.h>".}
   proc writeToStdErr(msg: cstring) =
     discard MessageBoxA(nil, msg, nil, 0)
   proc writeToStdErr(msg: cstring, length: int) =

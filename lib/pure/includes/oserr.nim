@@ -7,7 +7,7 @@ when not defined(nimscript):
   var errno {.importc, header: "<errno.h>".}: cint
 
   proc c_strerror(errnum: cint): cstring {.
-    importc: "strerror", header: "<string.h>".}
+    importc: "strerror", cdecl.}
 
   when defined(windows):
     import std/winlean
