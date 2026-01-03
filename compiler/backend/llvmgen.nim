@@ -41,6 +41,9 @@ type
     metadata: string
       ## code defining the named metadata
 
+    allocs: string
+      ## all 'alloca' instruction for the current procedure
+
     output: string
     currLine: uint16
     currFile: StringId
@@ -717,18 +720,20 @@ proc callToC(m; pos; musttail: bool, r: var Writer): Value =
 
   if typ.kind == tkAggregate:
     # the value is returned through an out parameter
-    let ret = r.newTemp()
     if args.len > 0:
       args.insert ", "
 
     if musttail:
       # forward the current out parameter
       r.add &"musttail call {cconv} void {callee.val}(ptr sret({typ}) %Result{args})\n"
-      makeIndirect(typ, ret)
+      makeVal(VoidType, "")
     else:
-      r.add &"{ret} = alloca {typ}\n"
-      r.add &"call {cconv} void {callee.val}(ptr sret({typ}) {ret}{args})\n"
-      makeIndirect(typ, ret)
+      # manually create a temporary, as we need a name that's not just a number
+      let name = r.nextTemp
+      inc r.nextTemp
+      r.allocs.add &"%temp.{name} = alloca {typ}\n"
+      r.add &"call {cconv} void {callee.val}(ptr sret({typ}) %temp.{name}{args})\n"
+      makeIndirect(typ, &"%temp.{name}")
   elif typ.kind == tkVoid:
     if musttail:
       r.add "musttail "
@@ -1048,7 +1053,7 @@ proc stmtToC(m; pos; r: var Writer): bool =
     let typ = typeRefToC(m, typName, r)
     let name = advance(m.ast, pos).val.StringId
 
-    r.add &"%{m.get(name)} = alloca {typ}, align {align}\n"
+    r.allocs.add &"%{m.get(name)} = alloca {typ}, align {align}\n"
     # r.add &"  #dbg_declare()\n"
   of cnkUnreachable:
     r.add "unreachable\n"
@@ -2041,6 +2046,7 @@ define private i8 @NIM_UNLIKELY(i8 %0) alwaysinline {
       r.add "inlinehint "
 
     r.add "{\n"
+    let start = r.output.len
     block:
       # in the CGIR, all parameters are proper locations (i.e., they have
       # an address). Conservatively commit all non-by-address parameters to
@@ -2058,15 +2064,20 @@ define private i8 @NIM_UNLIKELY(i8 %0) alwaysinline {
         #       so that their pointer is not unnecessarily commited to a stack
         #       location here
         if typ.kind != tkAggregate:
-          r.add &"%{m.get(name)} = alloca {typ}\n"
+          r.allocs.add &"%{m.get(name)} = alloca {typ}\n"
           r.add &"store {typ} %{i}, ptr %{m.get(name)}\n"
 
       r.nextTemp = len(n) + 1 # +1 because of the implicit entry label
 
     discard stmtToC(m, pos, r)
     r.add "}\n"
+    # insert the 'alloca's at the start, so that all stack locations are
+    # allocated before any other instructions
+    r.output.insert r.allocs, start
+
     # reset the procedure-local state:
     r.labels.clear()
+    r.allocs.setLen(0)
     r.nextLabel = 0
     r.nextTemp = 0
 
