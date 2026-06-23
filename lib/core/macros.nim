@@ -418,11 +418,11 @@ type
                          ## if not ambiguous (this cannot be achieved with
                          ## any other means in the language currently)
 
-proc bindSym*(ident: string | NimNode, rule: BindSymRule = brClosed): NimNode {.
+proc bindSym*(ident: string, rule: BindSymRule = brClosed): NimNode {.
               magic: "NBindSym", noSideEffect.}
   ## Creates a node that binds `ident` to a symbol node. The bound symbol
   ## may be an overloaded symbol.
-  ## if `ident` is a NimNode, it must have `nnkIdent` kind.
+  ##
   ## If `rule == brClosed` either an `nnkClosedSymChoice` tree is
   ## returned or `nnkSym` if the symbol is not ambiguous.
   ## If `rule == brOpen` either an `nnkOpenSymChoice` tree is
