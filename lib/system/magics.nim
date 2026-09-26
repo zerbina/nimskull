@@ -760,3 +760,6 @@ proc `[]`*(t: CacheTable; key: string): NimNode {.magic: "NctGet".} =
 
 proc hasNext*(t: CacheTable; iter: int): bool {.magic: "NctHasNext".}
 proc next*(t: CacheTable; iter: int): (string, NimNode, int) {.magic: "NctNext".}
+
+proc privateAccess*(t: typedesc) {.magic: "PrivateAccess".}
+  ## Enables access to private fields of `t` in current scope.
