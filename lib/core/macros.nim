@@ -374,9 +374,6 @@ proc newLit*[T](s: set[T]): NimNode =
     var typ = getTypeInst(typeof(s))
     result = newCall(typ,result)
 
-proc isNamedTuple(T: typedesc): bool {.magic: "TypeTrait".}
-  ## See `typetraits.isNamedTuple`
-
 proc newLit*[T: tuple](arg: T): NimNode =
   ## use -d:nimHasWorkaround14720 to restore behavior prior to PR, forcing
   ## a named tuple even when `arg` is unnamed.
